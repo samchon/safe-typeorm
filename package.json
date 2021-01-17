@@ -1,0 +1,35 @@
+{
+  "name": "safe-typeorm",
+  "version": "0.0.0",
+  "description": "Safe Relationship Decorators for the TypeORM",
+  "main": "lib/index.js",
+  "scripts": {
+    "build": "rm -rf && tsc",
+    "dev": "npm run build -- --watch",
+    "test": "node lib/test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/samchon/safe-typeorm.git"
+  },
+  "keywords": [
+    "safe",
+    "typeorm",
+    "belongs",
+    "has"
+  ],
+  "author": "Jeongho Nam",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/samchon/safe-typeorm/issues"
+  },
+  "homepage": "https://github.com/samchon/safe-typeorm#readme",
+  "dependencies": {
+    "pluralize": "^8.0.0",
+    "typeorm": "^0.2.30"
+  },
+  "devDependencies": {
+    "@types/node": "^14.14.21",
+    "@types/pluralize": "^0.0.29"
+  }
+}
