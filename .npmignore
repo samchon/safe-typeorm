@@ -1,9 +1,9 @@
 .git/
 .github/
 
-lib/
 node_modules/
 src/
+lib/**.js.map
 
 *.*ignore
 package-lock.json
