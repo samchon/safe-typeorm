@@ -2,40 +2,49 @@ import * as orm from "typeorm";
 
 import { IEntity } from "./internal/IEntity";
 import { CapsuleNullable } from "./typings/CapsuleNullable";
+import { CreatorType } from "./typings/CreatorType";
 
 export namespace Belongs
 {
-    export interface IOptions
-    {
-        index: boolean;
-        nullable: true;
-    }
-
-    export type ManyToOne<Target extends IEntity, Options extends Partial<IOptions> = {}> = Helper<Target, Options>;
-
-    export function ManyToOne<Target extends IEntity, Options extends Partial<IOptions>>
+    export type ManyToOne<Target extends IEntity, Options extends Partial<ManyToOne.IOptions> = {}> = Helper<Target, Options>;
+    export function ManyToOne<Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
         (targetGen: TypeGenerator<Target>, field: string, options?: Options): PropertyDecorator
     {
         return _Belongs_to(orm.ManyToOne, targetGen, field, options);
     }
+    export namespace ManyToOne
+    {
+        export interface IOptions
+        {
+            index: boolean;
+            nullable: boolean;
+        }
+    }
 
-    export type OneToOne<Target extends IEntity, Options extends Partial<IOptions> = {}> = Helper<Target, Options>;
-    
-    export function OneToOne<Target extends IEntity, Options extends Partial<IOptions>>
+    export type OneToOne<Target extends IEntity, Options extends Partial<OneToOne.IOptions> = {}> = Helper<Target, Options>;
+    export function OneToOne<Target extends IEntity, Options extends Partial<OneToOne.IOptions>>
         (targetGen: TypeGenerator<Target>, field: string, options?: Options): PropertyDecorator
     {
         return _Belongs_to(orm.OneToOne, targetGen, field, options);
     }
-
-    class Helper<Target extends IEntity, Options extends Partial<IOptions>>
+    export namespace OneToOne
     {
-        private readonly target_: orm.ObjectType<Target>;
+        export interface IOptions extends ManyToOne.IOptions
+        {
+            unique: boolean;
+            primary: boolean;
+        }
+    }
+
+    class Helper<Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
+    {
+        private readonly target_: CreatorType<Target>;
         private readonly source_: any;
         private readonly getter_: string;
         private readonly field_: string;
         private changed_: boolean;
 
-        public constructor(target: orm.ObjectType<Target>, source: object, property: string, field: string)
+        public constructor(target: CreatorType<Target>, source: ManyToOne.IOptions, property: string, field: string)
         {
             this.target_ = target;
             this.source_ = source;
@@ -84,20 +93,18 @@ export namespace Belongs
             this.source_[this.getter_] = Promise.resolve(obj);
         }
 
-        /**
-         * @internal
-         */
-        public static inverse<Target extends IEntity>
-            (helper: Helper<Target, any>): any
+        public statement(alias: string): orm.QueryBuilder<Target>
         {
-            return helper.source_[helper.getter_];
+            return orm.getRepository(this.target_)
+                .createQueryBuilder(alias)
+                .andWhere(`${alias}.id = :id`, { id: this.id });
         }
     }
 
-    function _Belongs_to<Target extends IEntity, Options extends Partial<IOptions>>
+    function _Belongs_to<Target extends IEntity, Options extends object>
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
-            targetGen: () => orm.ObjectType<Target>,
+            targetGen: () => CreatorType<Target>,
             field: string,
             options?: Options
         ): PropertyDecorator
@@ -107,24 +114,25 @@ export namespace Belongs
 
         return function ($class, $property)
         {
-            const getterField: string = `${$property as string}_getter`;
-            const helperField: string = `${$property as string}_helper`;
+            Reflect.defineMetadata(`SafeTypeORM:Belongs:field:${$property as string}`, $property, $class);
+            const getter: string = `${$property as string}_getter`;
+            const label: string = `${$property as string}_helper`;
 
             orm.Column("int", { ...options, unsigned: true })($class, field);
-            relation(targetGen, { ...options, lazy: true })($class, getterField);
-            orm.JoinColumn({ name: field })($class, getterField);
+            relation(targetGen, { ...options, lazy: true })($class, getter);
+            orm.JoinColumn({ name: field })($class, getter);
 
             Object.defineProperty($class, $property,
             {
                 get: function (): Helper<Target, Options>
                 {
-                    if (this[helperField] === undefined)
-                        this[helperField] = new Helper(targetGen(), this, $property as string, field);
-                    return this[helperField];
+                    if (this[label] === undefined)
+                        this[label] = new Helper(targetGen(), this, $property as string, field);
+                    return this[label];
                 }
             });
         };
     }
 
-    type TypeGenerator<Entity extends IEntity> = () => orm.ObjectType<Entity>;
+    type TypeGenerator<Entity extends IEntity> = () => CreatorType<Entity>;
 }

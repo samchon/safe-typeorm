@@ -3,6 +3,7 @@
 
 node_modules/
 src/
+lib/test/
 *.js.map
 
 *.*ignore
