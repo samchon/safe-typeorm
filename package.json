@@ -1,6 +1,6 @@
 {
   "name": "safe-typeorm",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Safe Relationship Decorators for the TypeORM",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -17,7 +17,9 @@
     "safe",
     "typeorm",
     "belongs",
-    "has"
+    "has",
+    "password",
+    "ecrypt"
   ],
   "author": "Jeongho Nam",
   "license": "MIT",

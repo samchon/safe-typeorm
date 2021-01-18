@@ -2,12 +2,11 @@ import * as bcrypt from "bcryptjs";
 import * as orm from "typeorm";
 
 /**
- * Closure table for the password.
+ * Password component for embedding.
  * 
  * @author Jeongho Nam - https://github.com/samchon
  */
-@orm.Tree("closure-table")
-export class PasswordClosure
+export class Password
 {
     /**
      * The password.

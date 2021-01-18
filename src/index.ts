@@ -2,4 +2,4 @@ export * from "./Belongs";
 export * from "./EncryptedColumn";
 export * from "./IncrementalColumn";
 export * from "./NamingStrategy";
-export * from "./PasswordClosure";
+export * from "./Password";
