@@ -11,8 +11,8 @@ export class Password
     /**
      * The password.
      */
-    @orm.Column("varchar", { length: 1000 })
-    private password!: string;
+    @orm.Column("varchar", { nullable: true })
+    private password!: string | null;
 
     /**
      * Configure password.
@@ -22,10 +22,15 @@ export class Password
      * 
      * @param str The password to configure.
      */
-    public async set(str: string): Promise<void>
+    public async set(str: string | null): Promise<void>
     {
-        const salt: string = await bcrypt.genSalt();
-        this.password = await bcrypt.hash(str, salt);
+        if (str === null)
+            this.password = null;
+        else
+        {
+            const salt: string = await bcrypt.genSalt();
+            this.password = await bcrypt.hash(str, salt);
+        }
     }
 
     /**
@@ -38,10 +43,12 @@ export class Password
      * @param str Target to be compared.
      * @return Whether equal or not.
      */
-    public async equals(str: string): Promise<boolean>
+    public async equals(str: string | null): Promise<boolean>
     {
         return (this.password === null)
-            ? false
-            : bcrypt.compare(str, this.password);
+            ? str === null
+            : str !== null
+                ? bcrypt.compare(str, this.password)
+                : false ;
     }
 }
