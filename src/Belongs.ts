@@ -28,9 +28,17 @@ export namespace Belongs
             options?: Options
         ): PropertyDecorator;
 
+    export function ManyToOne<Mine extends IEntity, Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
+        (
+            targetGen: TypeGenerator<Target>, 
+            inverse: (target: Target) => Has.OneToMany<Mine>,
+            myField: string, 
+            options?: Options
+        ): PropertyDecorator;
+
     export function ManyToOne(...args: any[]): PropertyDecorator
     {
-        return typeof args[1] === "string" && typeof args[2] === "string"
+        return typeof args[2] === "string"
             ? (_Belongs_to as Function)(orm.ManyToOne, ...args)
             : (_Belongs_to as Function)(orm.ManyToOne, args[0], undefined, ...args.slice(1));
     }
@@ -64,9 +72,17 @@ export namespace Belongs
             options?: Options
         ): PropertyDecorator;
 
+    export function OneToOne<Mine extends IEntity, Target extends IEntity, Options extends Partial<OneToOne.IOptions>>
+        (
+            targetGen: TypeGenerator<Target>, 
+            inverse: (target: Target) => Has.OneToOne<Mine>,
+            myField: string, 
+            options?: Options
+        ): PropertyDecorator;
+
     export function OneToOne(...args: any[]): PropertyDecorator
     {
-        return typeof args[1] === "string" && typeof args[2] === "string"
+        return typeof args[2] === "string"
             ? (_Belongs_to as Function)(orm.OneToOne, ...args)
             : (_Belongs_to as Function)(orm.OneToOne, args[0], undefined, ...args.slice(1));
     }
@@ -148,7 +164,7 @@ export namespace Belongs
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
             targetGen: () => CreatorType<Target>,
-            inverse: SpecialFields<Target, Has.OneToMany<Mine> | Has.OneToOne<Mine>> | undefined,
+            inverse: SpecialFields<Target, Has.OneToMany<Mine> | Has.OneToOne<Mine>> | ((target: Target) => Has.OneToMany<Mine>) | undefined,
             field: string,
             options?: Options
         ): PropertyDecorator
@@ -165,7 +181,7 @@ export namespace Belongs
             const label: string = `${$property as string}_helper`;
             
             orm.Column("int", { ...options, unsigned: true })($class, field);
-            if (inverse)
+            if (typeof inverse === "string")
                 relation(targetGen, `${inverse}_getter`, { ...options, lazy: true })($class, getter);
             else
                 relation(targetGen, { ...options, lazy: true })($class, getter);

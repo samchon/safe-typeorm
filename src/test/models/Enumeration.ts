@@ -13,9 +13,7 @@ export class Enumeration extends orm.BaseEntity
     @IncrementalColumn()
     public readonly id!: number;
     
-    @Belongs.ManyToOne(() => EnumerationGroup, "children", 
-        "enumration_group_id"
-    )
+    @Belongs.ManyToOne(() => EnumerationGroup, target => target.children, "enumration_group_id")
     public group!: Belongs.ManyToOne<EnumerationGroup>;
 
     @Has.OneToOne(() => SpecialEnumeration, "base")
