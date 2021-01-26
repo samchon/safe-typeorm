@@ -86,6 +86,17 @@ async function load(): Promise<void>
     console.log(await special.base.get());
 }
 
+function trace_fields(): void
+{
+    console.log(Enumeration.getColumn("id"));
+    console.log(Enumeration.getColumn("group"));
+    console.log(SpecialEnumeration.getColumn("base"));
+
+    console.log(EnumerationGroup.getJoinArguments("children"));
+    console.log(Enumeration.getJoinArguments("group"));
+    console.log(SpecialEnumeration.getJoinArguments("base"));
+}
+
 async function main(): Promise<void>
 {
     const connection: orm.Connection = await orm.createConnection({
@@ -102,5 +113,7 @@ async function main(): Promise<void>
     await load();
 
     await connection.close();
+
+    trace_fields();
 }
 main();

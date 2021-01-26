@@ -164,7 +164,7 @@ export namespace Belongs
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
             targetGen: () => CreatorType<Target>,
-            inverse: SpecialFields<Target, Has.OneToMany<Mine> | Has.OneToOne<Mine>> | ((target: Target) => Has.OneToMany<Mine>) | undefined,
+            inverse: SpecialFields<Target, Has.OneToMany<Mine> | Has.OneToOne<Mine>> | undefined,
             field: string,
             options?: Options
         ): PropertyDecorator
@@ -175,7 +175,9 @@ export namespace Belongs
         return function ($class, $property)
         {
             // LIST UP LABELS
-            Reflect.defineMetadata(`SafeTypeORM:Belongs:field:${$property as string}`, $property, $class);
+            Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}`, $property, $class);
+            Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}:field`, field, $class);
+            Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}:target`, targetGen, $class);
 
             const getter: string = `${$property as string}_getter`;
             const label: string = `${$property as string}_helper`;

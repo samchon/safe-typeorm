@@ -74,6 +74,9 @@ export namespace Has
     {
         return function ($class, $property)
         {
+            Reflect.defineMetadata(`SafeTypeORM:Has:${$property as string}:target`, targetGen, $class);
+            Reflect.defineMetadata(`SafeTypeORM:Has:${$property as string}:inverse`, inverse, $class);
+
             const label: string = `${$property as string}_helper`;
             const getter: string = `${$property as string}_getter`;
             const inverseGetter: string = `${inverse}_getter`;
@@ -86,7 +89,7 @@ export namespace Has
                 {
                     if (this[label] === undefined)
                     {
-                        const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Belongs:field:${inverse}`, targetGen());
+                        const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverse}`, targetGen());
                         this[label] = new Helper(this, targetGen(), inverseField, getter)
                     }
                     return this[label];
