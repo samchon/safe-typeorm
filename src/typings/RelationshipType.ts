@@ -1,5 +1,6 @@
-import { Belongs } from "../Belongs";
-import { Has } from "../Has";
+import { Belongs } from "../decorators/Belongs";
+import { Has } from "../decorators/Has";
+
 import { Model } from "../Model";
 
 export type RelationshipType<T extends Model> 

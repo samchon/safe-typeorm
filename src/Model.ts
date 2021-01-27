@@ -1,3 +1,4 @@
+import * as crypto from "crypto";
 import * as orm from "typeorm";
 
 import { JoinQueryBuilder } from "./JoinQueryBuilder";
@@ -5,11 +6,28 @@ import { JoinQueryBuilder } from "./JoinQueryBuilder";
 import { CreatorType } from "./typings/CreatorType";
 import { FieldType } from "./typings/FieldType";
 import { FieldValueType } from "./typings/FieldValueType";
+import { OperatorType } from "./typings/OperatorType";
 import { SpecialFields } from "./typings/SpecialFields";
 
 export abstract class Model extends orm.BaseEntity
 {
     public abstract get id(): number;
+
+    /* -----------------------------------------------------------
+        CONSTRUCTORS
+    ----------------------------------------------------------- */
+    public static createJoinQueryBuilder<T extends Model>
+        (
+            this: CreatorType<T>, 
+            closure: (builder: JoinQueryBuilder<T>) => void
+        ): orm.SelectQueryBuilder<T>
+    {
+        const stmt: orm.SelectQueryBuilder<T> = this.createQueryBuilder();
+        const builder: JoinQueryBuilder<T> = new JoinQueryBuilder(stmt, this);
+
+        closure(builder);
+        return stmt;
+    }
 
     /**
      * Update current entity data to the database.
@@ -37,6 +55,9 @@ export abstract class Model extends orm.BaseEntity
         await orm.getRepository(this.constructor).update(this.id, props);
     }
 
+    /* -----------------------------------------------------------
+        SPECIALIZATIONS
+    ----------------------------------------------------------- */
     public static getColumn<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
             this: CreatorType<T>, 
@@ -58,27 +79,46 @@ export abstract class Model extends orm.BaseEntity
         (
             this: CreatorType<T>,
             field: Field,
-            param: { [key: string]: FieldValueType<T[Field]> },
-            operator: string = "="
-        ): [string, object]
-    {
-        const entries = Object.entries(param);
-        if (entries.length !== 1)
-            throw new Error(`Error on getWhereArguments(): number of properties store in the param must not ${entries.length} but 1.`);
+            param: FieldValueType<T[Field]>
+        ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
-        return [`${this.getColumn(field)} ${operator} :${entries[0][0]}`, param];
-    }
-
-    public static createJoinQueryBuilder<T extends Model>
+    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
-            this: CreatorType<T>, 
-            closure: (builder: JoinQueryBuilder<T>) => void
-        ): orm.SelectQueryBuilder<T>
-    {
-        const stmt: orm.SelectQueryBuilder<T> = this.createQueryBuilder();
-        const builder: JoinQueryBuilder<T> = new JoinQueryBuilder(stmt, this);
+            this: CreatorType<T>,
+            field: Field,
+            operator: OperatorType,
+            param: FieldValueType<T[Field]>
+        ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
-        closure(builder);
-        return stmt;
+    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
+        (
+            this: CreatorType<T>,
+            field: Field,
+            operator: "IN",
+            param: Array<FieldValueType<T[Field]>>
+        ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
+
+    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
+        (
+            this: CreatorType<T>,
+            field: Field,
+            ...rest: any[]
+        ): [string, any]
+    {
+        const uuid: string = `${crypto.randomBytes(64).toString("hex")}_${Date.now()}`;
+        let operator: OperatorType;
+        let param: FieldValueType<T[Field]>
+
+        if (rest.length === 1)
+        {
+            operator = "=";
+            param = rest[0];
+        }
+        else
+        {
+            operator = rest[0];
+            param = rest[1];
+        }
+        return [`${this.getColumn(field)} ${operator} :${uuid}`, { [uuid]: param }];
     }
 }

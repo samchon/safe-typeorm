@@ -1,4 +1,5 @@
-import { Belongs } from "../Belongs";
+import { Belongs } from "../decorators/Belongs";
+
 import { FieldType } from "./FieldType";
 
 export type FieldValueType<Type extends FieldType> 

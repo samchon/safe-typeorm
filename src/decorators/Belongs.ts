@@ -1,10 +1,11 @@
 import * as orm from "typeorm";
-import { Has } from "./Has";
-import { Model } from "./Model";
+import { Model } from "../Model";
 
-import { CapsuleNullable } from "./typings/CapsuleNullable";
-import { CreatorType } from "./typings/CreatorType";
-import { SpecialFields } from "./typings/SpecialFields";
+import { Has } from "./Has";
+
+import { CapsuleNullable } from "../typings/CapsuleNullable";
+import { CreatorType } from "../typings/CreatorType";
+import { SpecialFields } from "../typings/SpecialFields";
 
 export namespace Belongs
 {

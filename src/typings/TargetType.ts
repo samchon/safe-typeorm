@@ -1,6 +1,8 @@
-import { Belongs } from "../Belongs";
-import { Has } from "../Has";
 import { Model } from "../Model";
+
+import { Belongs } from "../decorators/Belongs";
+import { Has } from "../decorators/Has";
+
 import { RelationshipType } from "./RelationshipType";
 import { SpecialFields } from "./SpecialFields";
 

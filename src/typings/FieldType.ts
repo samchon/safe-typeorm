@@ -1,4 +1,4 @@
-import { Belongs } from "../Belongs";
+import { Belongs } from "../decorators/Belongs";
 
 export type FieldType 
     = number 

@@ -1,7 +1,7 @@
 import { Column, ColumnOptions, Index } from "typeorm";
 
-import { AesPkcs5 } from "./internal/AesPkcs5";
-import { SpecialFields } from "./typings/SpecialFields";
+import { AesPkcs5 } from "../utils/AesPkcs5";
+import { SpecialFields } from "../typings/SpecialFields";
 
 /**
  * Decorator for special column storing encrypted data.

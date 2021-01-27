@@ -1,115 +1,9 @@
 import * as orm from "typeorm";
 
-import { NamingStrategy } from "../NamingStrategy";
-
-import { Enumeration } from "./models/Enumeration";
-import { EnumerationGroup } from "./models/EnumerationGroup";
-import { SpecialEnumeration } from "./models/SpecialEnumeration";
-
-const LIMIT = 5;
-
-async function create<Entity extends orm.BaseEntity>(factory: () => Entity): Promise<Entity[]>
-{
-    const ret: Entity[] = [];
-    for (let i: number = 0; i < LIMIT; ++i)
-    {
-        const child: Entity = factory();
-        ret.push(await child.save());
-    }
-    return ret;
-}
-
-function store_groups(): Promise<EnumerationGroup[]>
-{
-    return create(() => new EnumerationGroup());
-}
-
-function store_elements(group: EnumerationGroup): Promise<Enumeration[]>
-{
-    return create(() =>
-    {
-        const elem: Enumeration = new Enumeration();
-        if (Math.random() < .5)
-            elem.group.set(group);
-        else
-            elem.group.id = group.id;
-        
-        return elem;
-    });
-}
-
-async function store_special(elem: Enumeration): Promise<SpecialEnumeration>
-{
-    const special: SpecialEnumeration = new SpecialEnumeration();
-    if (Math.random() < .5)
-        special.base.set(elem);
-    else
-        special.base.id = elem.id;
-
-    return await special.save();
-}
-
-async function mount(connection: orm.Connection): Promise<void>
-{
-    await connection.dropDatabase();
-    await connection.synchronize();
-
-    const groupList: EnumerationGroup[] = await store_groups();
-    const elementList: Enumeration[] = [];
-    const specialList: SpecialEnumeration[] = [];
-
-    for (const group of groupList)
-        elementList.push(...await store_elements(group));
-
-    for (const elem of elementList)
-        if (elem.id % 2 === 0)
-            specialList.push(await store_special(elem));
-}
-
-async function load(): Promise<void>
-{
-    const group = await EnumerationGroup.findOne(1);
-    if (group === undefined)
-        return;
-
-    console.log((await group.children.get()).length);
-    
-    const child: Enumeration = (await group.children.get())[1];
-    console.log(child);
-    console.log(await child.group.get());
-
-    const special: SpecialEnumeration | null = await child.special.get();
-    if (special === null)
-        return;
-
-    console.log(special);
-    console.log(await special.base.get());
-
-    console.log(orm.getRepository(EnumerationGroup).createQueryBuilder().getSql());
-}
-
-async function safeJoin(): Promise<void>
-{
-    const stmt = EnumerationGroup
-        .createJoinQueryBuilder(joiner => joiner.innerJoin("children"))
-        .select([
-            EnumerationGroup.getColumn("id", "group_id"),
-            Enumeration.getColumn("id", "enum_id")
-        ]);
-    console.log(await stmt.getRawMany());
-}
-
-async function safeJoinAndSelect(): Promise<void>
-{
-    const stmt = EnumerationGroup.createJoinQueryBuilder(joiner => joiner.innerJoinAndSelect("children"));
-    console.log(await stmt.getOne());
-
-    EnumerationGroup.getWhereArguments("id", { id: 3 });
-    Enumeration.getWhereArguments("id", { id: 3 });
-    Enumeration.getWhereArguments("group", { id: 3 });
-    SpecialEnumeration.getWhereArguments("id", { id: 3 });
-    SpecialEnumeration.getWhereArguments("base", { id: 3 });
-}
+import { NamingStrategy } from "../utils/NamingStrategy";
+import { BbsArticle } from "./models/BbsArticle";
+import { BbsComment } from "./models/BbsComment";
+import { BbsGroup } from "./models/BbsGroup";
 
 async function main(): Promise<void>
 {
@@ -123,11 +17,16 @@ async function main(): Promise<void>
         namingStrategy: new NamingStrategy(),
         entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`]
     });
-    await mount(connection);
-    await load();
-    
-    await safeJoin();
-    await safeJoinAndSelect();
+    await connection.dropDatabase();
+    await connection.synchronize();
+
+    const stmt = BbsGroup
+        .createJoinQueryBuilder(group => group.innerJoin("articles").innerJoin("comments"))
+        .andWhere(...BbsGroup.getWhereArguments("id", "IN", [1, 2, 3, 4]))
+        .andWhere(...BbsArticle.getWhereArguments("id", 7))
+        .andWhere(...BbsComment.getWhereArguments("content", "LIKE", "yeah~!"));
+    console.log(stmt.getQueryAndParameters());
+
     await connection.close();
 }
 main();

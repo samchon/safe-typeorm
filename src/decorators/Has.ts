@@ -1,10 +1,10 @@
 import * as orm from "typeorm";
 
-import { CreatorType } from "./typings/CreatorType";
+import { CreatorType } from "../typings/CreatorType";
 
 import { Belongs } from "./Belongs";
-import { SpecialFields } from "./typings/SpecialFields";
-import { Model } from "./Model";
+import { SpecialFields } from "../typings/SpecialFields";
+import { Model } from "../Model";
 
 export namespace Has
 {
