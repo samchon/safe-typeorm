@@ -14,7 +14,10 @@ export class Enumeration extends Model
     @IncrementalColumn()
     public readonly id!: number;
     
-    @Belongs.ManyToOne(() => EnumerationGroup, target => target.children, "enumration_group_id")
+    @Belongs.ManyToOne(() => EnumerationGroup, 
+        "children", 
+        "enumration_group_id"
+    )
     public group!: Belongs.ManyToOne<EnumerationGroup>;
 
     @Has.OneToOne(() => SpecialEnumeration, "base")

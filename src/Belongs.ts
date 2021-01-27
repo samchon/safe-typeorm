@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
 import { Has } from "./Has";
+import { Model } from "./Model";
 
-import { IEntity } from "./internal/IEntity";
 import { CapsuleNullable } from "./typings/CapsuleNullable";
 import { CreatorType } from "./typings/CreatorType";
 import { SpecialFields } from "./typings/SpecialFields";
@@ -11,16 +11,16 @@ export namespace Belongs
     /* -----------------------------------------------------------
         MANY-TO-ONE
     ----------------------------------------------------------- */
-    export type ManyToOne<Target extends IEntity, Options extends Partial<ManyToOne.IOptions> = {}> = Helper<Target, Options>;
+    export type ManyToOne<Target extends Model, Options extends Partial<ManyToOne.IOptions> = {}> = Helper<Target, Options>;
 
-    export function ManyToOne<Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
+    export function ManyToOne<Target extends Model, Options extends Partial<ManyToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             myField: string, 
             options?: Options
         ): PropertyDecorator;
 
-    export function ManyToOne<Mine extends IEntity, Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
+    export function ManyToOne<Mine extends Model, Target extends Model, Options extends Partial<ManyToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: SpecialFields<Target, Has.OneToMany<Mine>>,
@@ -28,7 +28,7 @@ export namespace Belongs
             options?: Options
         ): PropertyDecorator;
 
-    export function ManyToOne<Mine extends IEntity, Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
+    export function ManyToOne<Mine extends Model, Target extends Model, Options extends Partial<ManyToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: (target: Target) => Has.OneToMany<Mine>,
@@ -55,16 +55,16 @@ export namespace Belongs
     /* -----------------------------------------------------------
         ONE-TO-ONE
     ----------------------------------------------------------- */
-    export type OneToOne<Target extends IEntity, Options extends Partial<OneToOne.IOptions> = {}> = Helper<Target, Options>;
+    export type OneToOne<Target extends Model, Options extends Partial<OneToOne.IOptions> = {}> = Helper<Target, Options>;
 
-    export function OneToOne<Target extends IEntity, Options extends Partial<OneToOne.IOptions>>
+    export function OneToOne<Target extends Model, Options extends Partial<OneToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             myField: string, 
             options?: Options
         ): PropertyDecorator;
 
-    export function OneToOne<Mine extends IEntity, Target extends IEntity, Options extends Partial<OneToOne.IOptions>>
+    export function OneToOne<Mine extends Model, Target extends Model, Options extends Partial<OneToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: SpecialFields<Target, Has.OneToOne<Mine>>,
@@ -72,7 +72,7 @@ export namespace Belongs
             options?: Options
         ): PropertyDecorator;
 
-    export function OneToOne<Mine extends IEntity, Target extends IEntity, Options extends Partial<OneToOne.IOptions>>
+    export function OneToOne<Mine extends Model, Target extends Model, Options extends Partial<OneToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: (target: Target) => Has.OneToOne<Mine>,
@@ -95,7 +95,7 @@ export namespace Belongs
         }
     }
 
-    class Helper<Target extends IEntity, Options extends Partial<ManyToOne.IOptions>>
+    class Helper<Target extends Model, Options extends Partial<ManyToOne.IOptions>>
     {
         private readonly target_: CreatorType<Target>;
         private readonly source_: any;
@@ -160,7 +160,7 @@ export namespace Belongs
         }
     }
 
-    function _Belongs_to<Mine extends IEntity, Target extends IEntity, Options extends object>
+    function _Belongs_to<Mine extends Model, Target extends Model, Options extends object>
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
             targetGen: () => CreatorType<Target>,
@@ -201,5 +201,5 @@ export namespace Belongs
         };
     }
 
-    type TypeGenerator<Entity extends IEntity> = () => CreatorType<Entity>;
+    type TypeGenerator<Entity extends Model> = () => Model.CreatorType<Entity>;
 }

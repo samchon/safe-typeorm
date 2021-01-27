@@ -1,15 +1,15 @@
 import * as orm from "typeorm";
 
-import { IEntity } from "./internal/IEntity";
 import { CreatorType } from "./typings/CreatorType";
 
 import { Belongs } from "./Belongs";
 import { SpecialFields } from "./typings/SpecialFields";
+import { Model } from "./Model";
 
 export namespace Has
 {
-    export type OneToOne<Target extends IEntity> = Helper<Target, Target | null>;
-    export function OneToOne<Mine extends IEntity, Target extends IEntity>
+    export type OneToOne<Target extends Model> = Helper<Target, Target | null>;
+    export function OneToOne<Mine extends Model, Target extends Model>
         (
             targetGen: TypeGenerator<Target>,
             inverse: SpecialFields<Target, Belongs.OneToOne<Mine, any>>
@@ -18,8 +18,8 @@ export namespace Has
         return _Has_one_to(orm.OneToOne, targetGen, inverse);
     }
 
-    export type OneToMany<Target extends IEntity> = Helper<Target, Target[]>;
-    export function OneToMany<Mine extends IEntity, Target extends IEntity>
+    export type OneToMany<Target extends Model> = Helper<Target, Target[]>;
+    export function OneToMany<Mine extends Model, Target extends Model>
         (
             targetGen: TypeGenerator<Target>,
             inverse: SpecialFields<Target, Belongs.ManyToOne<Mine, any>>
@@ -28,7 +28,7 @@ export namespace Has
         return _Has_one_to(orm.OneToMany, targetGen, inverse);
     }
 
-    class Helper<Target extends IEntity, Ret>
+    class Helper<Target extends Model, Ret>
     {
         private readonly source_: any;
         private readonly target_: CreatorType<Target>;
@@ -63,8 +63,8 @@ export namespace Has
     }
 
     function _Has_one_to<
-            Mine extends IEntity, 
-            Target extends IEntity,
+            Mine extends Model, 
+            Target extends Model,
             Ret>
         (
             relation: typeof orm.OneToMany,
@@ -98,5 +98,5 @@ export namespace Has
         };
     }
 
-    type TypeGenerator<Entity extends IEntity> = () => CreatorType<Entity>;
+    type TypeGenerator<Entity extends Model> = () => CreatorType<Entity>;
 }

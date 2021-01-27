@@ -84,17 +84,29 @@ async function load(): Promise<void>
 
     console.log(special);
     console.log(await special.base.get());
+
+    console.log(orm.getRepository(EnumerationGroup).createQueryBuilder().getSql());
 }
 
-function trace_fields(): void
+async function safeJoin(): Promise<void>
 {
-    console.log(Enumeration.getColumn("id"));
-    console.log(Enumeration.getColumn("group"));
-    console.log(SpecialEnumeration.getColumn("base"));
+    const stmt = EnumerationGroup
+        .createQueryBuilder()
+        .select([
+            EnumerationGroup.getColumn("id", "group_id"),
+            Enumeration.getColumn("id", "enum_id")
+        ]);
+    EnumerationGroup.join(stmt, "inner", "children");
 
-    console.log(EnumerationGroup.getJoinArguments("children"));
-    console.log(Enumeration.getJoinArguments("group"));
-    console.log(SpecialEnumeration.getJoinArguments("base"));
+    console.log(await stmt.getRawMany());
+}
+
+async function safeJoinAndSelect(): Promise<void>
+{
+    const stmt = EnumerationGroup.createQueryBuilder();
+    EnumerationGroup.joinAndSelect(stmt, "inner", "children");
+
+    console.log(await stmt.getOne());
 }
 
 async function main(): Promise<void>
@@ -111,9 +123,9 @@ async function main(): Promise<void>
     });
     await mount(connection);
     await load();
-
+    
+    await safeJoin();
+    await safeJoinAndSelect();
     await connection.close();
-
-    trace_fields();
 }
 main();

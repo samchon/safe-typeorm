@@ -1,5 +1,4 @@
 import * as orm from "typeorm";
-import { InvalidArgument } from "tstl/exception/InvalidArgument";
 
 import { Belongs } from "./Belongs";
 import { Has } from "./Has";
@@ -40,45 +39,92 @@ export abstract class Model extends orm.BaseEntity
     public static getColumn<T extends Model>
         (
             this: CreatorType<T>, 
-            field: SpecialFields<T, number | string | boolean | Date | Belongs.ManyToOne<any> | Belongs.OneToOne<any>>
+            field: SpecialFields<T, number | string | boolean | Date | Belongs.ManyToOne<any> | Belongs.OneToOne<any>>,
+            alias?: string
         ): string
     {
         const fieldName: string = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, this.prototype)
             ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, this.prototype)
             : field as string;
-        return `${getTable(this)}.${fieldName}`;
+        const ret: string = `${this.name}.${fieldName}`;
+
+        return (alias !== undefined)
+            ? `${ret} AS ${alias}`
+            : ret;
     }
 
-    public static getJoinArguments<T extends Model, Target extends Model>
+    public static join<T extends Model, Field extends SpecialFields<T, Model.RelationshipType<any>>>
         (
-            this: CreatorType<T>,
-            field: SpecialFields<T, Belongs.ManyToOne<Target> | Has.OneToMany<Target>>
-        ): [CreatorType<Target>, string]
+            this: Model.CreatorType<T>,
+            stmt: orm.SelectQueryBuilder<any>,
+            type: "inner" | "left",
+            field: Field,
+        ): Model.CreatorType<Model.TargetType<T, Field>>
     {
-        let target: CreatorType<Target>;
-        let targetField: string;
+        type Target = Model.TargetType<T, Field>;
+
+        let target: Model.CreatorType<Target>;
         let myField: string;
+        let targetField: string;
 
         if (Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, this.prototype))
         {
             target = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, this.prototype)();
-            targetField = "id";
             myField = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, this.prototype);
-        }
-        else if (Reflect.hasMetadata(`SafeTypeORM:Has:${field}:target`, this.prototype))
-        {
-            target = Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, this.prototype)();
-            targetField = Reflect.getMetadata(`SafeTypeORM:Has:${field}:inverse`, this.prototype);
-            myField = "id";
+            targetField = "id";
         }
         else
-            throw new InvalidArgument(`Error on ${this.constructor.name}.getJoinArguments("${field}"): target field is not a type of the Belongs or Has relationship.`);
+        {
+            myField = "id";
+            target = Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, this.prototype)();
 
-        return [target, `${getTable(this)}.${myField} = ${getTable(target)}.${targetField}`];
+            const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Has:${field}:inverse`, this.prototype);
+            targetField = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverseField}:field`, target.prototype);
+        }
+
+        const tuple: [Model.CreatorType<Target>, string, string] = [target, target.name, `${this.name}.${myField} = ${target.name}.${targetField}`];
+        if (type === "inner")
+            stmt.innerJoin(...tuple);
+        else
+            stmt.leftJoin(...tuple);
+
+        return target;
+    }
+
+    public static joinAndSelect<T extends Model, Field extends SpecialFields<T, Model.RelationshipType<any>>>
+        (
+            this: Model.CreatorType<T>,
+            stmt: orm.SelectQueryBuilder<any>,
+            type: "inner" | "left",
+            field: Field,
+        ): Model.CreatorType<Model.TargetType<T, Field>>
+    {
+        const target: Model.CreatorType<Model.TargetType<T, Field>> = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, this.prototype)
+            ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, this.prototype)()
+            : Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, this.prototype)();
+
+        const tuple: [string, string] = [`${this.name}.${field}_getter`, target.name];
+        if (type === "inner")
+            stmt.innerJoinAndSelect(...tuple);
+        else
+            stmt.leftJoinAndSelect(...tuple);
+        return target;
     }
 }
 
-function getTable<T extends Model>(creator: CreatorType<T>): string
+export namespace Model
 {
-    return orm.getRepository(creator).metadata.tableName;
+    export type CreatorType<T extends Model> = 
+    {
+        new(...args: any[]): T;
+    } & typeof Model;
+
+    export type TargetType<T extends Model, Field extends SpecialFields<T, RelationshipType<any>>>
+        = T[Field] extends Belongs.ManyToOne<infer Target, any> ? Target
+        : T[Field] extends Belongs.OneToOne<infer Target, any> ? Target
+        : T[Field] extends Has.OneToOne<infer Target> ? Target
+        : T[Field] extends Has.OneToMany<infer Target> ? Target
+        : never;
+
+    export type RelationshipType<T extends Model> = Belongs.ManyToOne<T> | Belongs.OneToOne<T> | Has.OneToOne<T> | Has.OneToMany<T>;
 }
