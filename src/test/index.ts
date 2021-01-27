@@ -91,22 +91,24 @@ async function load(): Promise<void>
 async function safeJoin(): Promise<void>
 {
     const stmt = EnumerationGroup
-        .createQueryBuilder()
+        .createJoinQueryBuilder(joiner => joiner.innerJoin("children"))
         .select([
             EnumerationGroup.getColumn("id", "group_id"),
             Enumeration.getColumn("id", "enum_id")
         ]);
-    EnumerationGroup.join(stmt, "inner", "children");
-
     console.log(await stmt.getRawMany());
 }
 
 async function safeJoinAndSelect(): Promise<void>
 {
-    const stmt = EnumerationGroup.createQueryBuilder();
-    EnumerationGroup.joinAndSelect(stmt, "inner", "children");
-
+    const stmt = EnumerationGroup.createJoinQueryBuilder(joiner => joiner.innerJoinAndSelect("children"));
     console.log(await stmt.getOne());
+
+    EnumerationGroup.getWhereArguments("id", { id: 3 });
+    Enumeration.getWhereArguments("id", { id: 3 });
+    Enumeration.getWhereArguments("group", { id: 3 });
+    SpecialEnumeration.getWhereArguments("id", { id: 3 });
+    SpecialEnumeration.getWhereArguments("base", { id: 3 });
 }
 
 async function main(): Promise<void>

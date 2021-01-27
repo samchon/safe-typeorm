@@ -1,9 +1,10 @@
 import * as orm from "typeorm";
 
-import { Belongs } from "./Belongs";
-import { Has } from "./Has";
+import { JoinQueryBuilder } from "./JoinQueryBuilder";
 
 import { CreatorType } from "./typings/CreatorType";
+import { FieldType } from "./typings/FieldType";
+import { FieldValueType } from "./typings/FieldValueType";
 import { SpecialFields } from "./typings/SpecialFields";
 
 export abstract class Model extends orm.BaseEntity
@@ -36,10 +37,10 @@ export abstract class Model extends orm.BaseEntity
         await orm.getRepository(this.constructor).update(this.id, props);
     }
 
-    public static getColumn<T extends Model>
+    public static getColumn<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
             this: CreatorType<T>, 
-            field: SpecialFields<T, number | string | boolean | Date | Belongs.ManyToOne<any> | Belongs.OneToOne<any>>,
+            field: Field,
             alias?: string
         ): string
     {
@@ -53,78 +54,31 @@ export abstract class Model extends orm.BaseEntity
             : ret;
     }
 
-    public static join<T extends Model, Field extends SpecialFields<T, Model.RelationshipType<any>>>
+    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
-            this: Model.CreatorType<T>,
-            stmt: orm.SelectQueryBuilder<any>,
-            type: "inner" | "left",
+            this: CreatorType<T>,
             field: Field,
-        ): Model.CreatorType<Model.TargetType<T, Field>>
+            param: { [key: string]: FieldValueType<T[Field]> },
+            operator: string = "="
+        ): [string, object]
     {
-        type Target = Model.TargetType<T, Field>;
+        const entries = Object.entries(param);
+        if (entries.length !== 1)
+            throw new Error(`Error on getWhereArguments(): number of properties store in the param must not ${entries.length} but 1.`);
 
-        let target: Model.CreatorType<Target>;
-        let myField: string;
-        let targetField: string;
-
-        if (Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, this.prototype))
-        {
-            target = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, this.prototype)();
-            myField = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, this.prototype);
-            targetField = "id";
-        }
-        else
-        {
-            myField = "id";
-            target = Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, this.prototype)();
-
-            const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Has:${field}:inverse`, this.prototype);
-            targetField = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverseField}:field`, target.prototype);
-        }
-
-        const tuple: [Model.CreatorType<Target>, string, string] = [target, target.name, `${this.name}.${myField} = ${target.name}.${targetField}`];
-        if (type === "inner")
-            stmt.innerJoin(...tuple);
-        else
-            stmt.leftJoin(...tuple);
-
-        return target;
+        return [`${this.getColumn(field)} ${operator} :${entries[0][0]}`, param];
     }
 
-    public static joinAndSelect<T extends Model, Field extends SpecialFields<T, Model.RelationshipType<any>>>
+    public static createJoinQueryBuilder<T extends Model>
         (
-            this: Model.CreatorType<T>,
-            stmt: orm.SelectQueryBuilder<any>,
-            type: "inner" | "left",
-            field: Field,
-        ): Model.CreatorType<Model.TargetType<T, Field>>
+            this: CreatorType<T>, 
+            closure: (builder: JoinQueryBuilder<T>) => void
+        ): orm.SelectQueryBuilder<T>
     {
-        const target: Model.CreatorType<Model.TargetType<T, Field>> = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, this.prototype)
-            ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, this.prototype)()
-            : Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, this.prototype)();
+        const stmt: orm.SelectQueryBuilder<T> = this.createQueryBuilder();
+        const builder: JoinQueryBuilder<T> = new JoinQueryBuilder(stmt, this);
 
-        const tuple: [string, string] = [`${this.name}.${field}_getter`, target.name];
-        if (type === "inner")
-            stmt.innerJoinAndSelect(...tuple);
-        else
-            stmt.leftJoinAndSelect(...tuple);
-        return target;
+        closure(builder);
+        return stmt;
     }
-}
-
-export namespace Model
-{
-    export type CreatorType<T extends Model> = 
-    {
-        new(...args: any[]): T;
-    } & typeof Model;
-
-    export type TargetType<T extends Model, Field extends SpecialFields<T, RelationshipType<any>>>
-        = T[Field] extends Belongs.ManyToOne<infer Target, any> ? Target
-        : T[Field] extends Belongs.OneToOne<infer Target, any> ? Target
-        : T[Field] extends Has.OneToOne<infer Target> ? Target
-        : T[Field] extends Has.OneToMany<infer Target> ? Target
-        : never;
-
-    export type RelationshipType<T extends Model> = Belongs.ManyToOne<T> | Belongs.OneToOne<T> | Has.OneToOne<T> | Has.OneToMany<T>;
 }

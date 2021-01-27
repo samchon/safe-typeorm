@@ -201,5 +201,5 @@ export namespace Belongs
         };
     }
 
-    type TypeGenerator<Entity extends Model> = () => Model.CreatorType<Entity>;
+    type TypeGenerator<Entity extends Model> = () => CreatorType<Entity>;
 }
