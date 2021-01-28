@@ -23,8 +23,8 @@ export abstract class BbsContentBase extends Model
     })
     public writer!: string;
 
-    @orm.Column(() => Password)
-    public password!: Password;
+    @orm.Column(() => Password, { prefix: "" })
+    public password: Password = new Password();
 
     @orm.Column("text")
     public content!: string;

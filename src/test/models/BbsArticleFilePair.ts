@@ -7,6 +7,10 @@ import { IncrementalColumn } from "../../decorators/IncrementalColumn";
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
 
+@orm.Unique([
+    Belongs.getIndexField<BbsArticleFilePair>("article"),
+    Belongs.getIndexField<BbsArticleFilePair>("file")
+])
 @orm.Entity()
 export class BbsArticleFilePair extends Model
 {
@@ -17,14 +21,13 @@ export class BbsArticleFilePair extends Model
     public id!: number;
 
     @Belongs.ManyToOne(() => BbsArticle, 
-        "filePairs", 
-        "bbs_article_id"
+        "bbs_article_id",
     )
     public article!: Belongs.ManyToOne<BbsArticle>;
 
     @Belongs.ManyToOne(() => AttachmentFile,
-        "articlePairs",
-        "attachment_file_id"
+        "attachment_file_id",
+        { index: true }
     )
     public file!: Belongs.ManyToOne<AttachmentFile>;
 }

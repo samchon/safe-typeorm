@@ -2,6 +2,7 @@ import * as orm from "typeorm";
 
 import { Belongs } from "../../decorators/Belongs";
 import { Has } from "../../decorators/Has";
+import { AttachmentFile } from "./AttachmentFile";
 
 import { BbsContentBase } from "./base/BbsContentBase";
 import { BbsArticleCover } from "./BbsArticleCover";
@@ -37,8 +38,8 @@ export class BbsArticle extends BbsContentBase
     @Has.OneToMany(() => BbsArticle, "parent")
     public children!: Has.OneToMany<BbsArticle>;
     
-    @Has.OneToMany(() => BbsArticleFilePair, "article")
-    public filePairs!: Has.OneToMany<BbsArticleFilePair>;
+    @Has.ManyToMany(() => AttachmentFile, () => BbsArticleFilePair, "file", "article")
+    public files!: Has.ManyToMany<AttachmentFile>;
 
     @Has.OneToOne(() => BbsArticleCover, "article")
     public cover!: Has.OneToOne<BbsArticleCover>;

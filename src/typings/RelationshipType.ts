@@ -1,9 +1,8 @@
+import { IEntity } from "../IEntity";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
 
-import { Model } from "../Model";
-
-export type RelationshipType<T extends Model> 
+export type RelationshipType<T extends IEntity<any>> 
     = Belongs.ManyToOne<T> 
     | Belongs.OneToOne<T> 
     | Has.OneToOne<T> 

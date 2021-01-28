@@ -14,6 +14,11 @@ export class Password
     @orm.Column("varchar", { nullable: true })
     private password!: string | null;
 
+    public isNull(): boolean
+    {
+        return this.password === null;
+    }
+
     /**
      * Configure password.
      * 

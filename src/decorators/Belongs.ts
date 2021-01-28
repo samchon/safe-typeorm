@@ -1,6 +1,6 @@
 import * as orm from "typeorm";
-import { Model } from "../Model";
 
+import { IEntity } from "../IEntity";
 import { Has } from "./Has";
 
 import { CapsuleNullable } from "../typings/CapsuleNullable";
@@ -9,19 +9,33 @@ import { SpecialFields } from "../typings/SpecialFields";
 
 export namespace Belongs
 {
+    export function getIndexField<Entity extends IEntity<any>>
+        (field: SpecialFields<Entity, ManyToOne<any, any> | OneToOne<any, any>>): string
+    {
+        return `__m_belongs_${field}_getter__`;
+    }
+
+    /**
+     * @internal
+     */
+    export function getHelperField(field: string): string
+    {
+        return `__m_belongs_${field}_helper__`;
+    }
+
     /* -----------------------------------------------------------
         MANY-TO-ONE
     ----------------------------------------------------------- */
-    export type ManyToOne<Target extends Model, Options extends Partial<ManyToOne.IOptions> = {}> = Helper<Target, Options>;
+    export type ManyToOne<Target extends IEntity<any>, Options extends Partial<ManyToOne.IOptions> = {}> = Helper<Target, Options>;
 
-    export function ManyToOne<Target extends Model, Options extends Partial<ManyToOne.IOptions>>
+    export function ManyToOne<Target extends IEntity<any>, Options extends Partial<ManyToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             myField: string, 
             options?: Options
         ): PropertyDecorator;
 
-    export function ManyToOne<Mine extends Model, Target extends Model, Options extends Partial<ManyToOne.IOptions>>
+    export function ManyToOne<Mine extends IEntity<any>, Target extends IEntity<any>, Options extends Partial<ManyToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: SpecialFields<Target, Has.OneToMany<Mine>>,
@@ -29,7 +43,7 @@ export namespace Belongs
             options?: Options
         ): PropertyDecorator;
 
-    export function ManyToOne<Mine extends Model, Target extends Model, Options extends Partial<ManyToOne.IOptions>>
+    export function ManyToOne<Mine extends IEntity<any>, Target extends IEntity<any>, Options extends Partial<ManyToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: (target: Target) => Has.OneToMany<Mine>,
@@ -39,7 +53,7 @@ export namespace Belongs
 
     export function ManyToOne(...args: any[]): PropertyDecorator
     {
-        return typeof args[2] === "string"
+        return (typeof args[2] === "string")
             ? (_Belongs_to as Function)(orm.ManyToOne, ...args)
             : (_Belongs_to as Function)(orm.ManyToOne, args[0], undefined, ...args.slice(1));
     }
@@ -56,16 +70,16 @@ export namespace Belongs
     /* -----------------------------------------------------------
         ONE-TO-ONE
     ----------------------------------------------------------- */
-    export type OneToOne<Target extends Model, Options extends Partial<OneToOne.IOptions> = {}> = Helper<Target, Options>;
+    export type OneToOne<Target extends IEntity<any>, Options extends Partial<OneToOne.IOptions> = {}> = Helper<Target, Options>;
 
-    export function OneToOne<Target extends Model, Options extends Partial<OneToOne.IOptions>>
+    export function OneToOne<Target extends IEntity<any>, Options extends Partial<OneToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             myField: string, 
             options?: Options
         ): PropertyDecorator;
 
-    export function OneToOne<Mine extends Model, Target extends Model, Options extends Partial<OneToOne.IOptions>>
+    export function OneToOne<Mine extends IEntity<any>, Target extends IEntity<any>, Options extends Partial<OneToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: SpecialFields<Target, Has.OneToOne<Mine>>,
@@ -73,7 +87,7 @@ export namespace Belongs
             options?: Options
         ): PropertyDecorator;
 
-    export function OneToOne<Mine extends Model, Target extends Model, Options extends Partial<OneToOne.IOptions>>
+    export function OneToOne<Mine extends IEntity<any>, Target extends IEntity<any>, Options extends Partial<OneToOne.IOptions>>
         (
             targetGen: TypeGenerator<Target>, 
             inverse: (target: Target) => Has.OneToOne<Mine>,
@@ -96,7 +110,7 @@ export namespace Belongs
         }
     }
 
-    class Helper<Target extends Model, Options extends Partial<ManyToOne.IOptions>>
+    class Helper<Target extends IEntity<any>, Options extends Partial<ManyToOne.IOptions>>
     {
         private readonly target_: CreatorType<Target>;
         private readonly source_: any;
@@ -108,18 +122,18 @@ export namespace Belongs
         {
             this.target_ = target;
             this.source_ = source;
-            this.getter_ = `${property}_getter`;
+            this.getter_ = getIndexField<any>(property);
             this.field_ = field;
             this.changed_ = false;
         }
 
-        public get id(): CapsuleNullable<number, Options>
+        public get id(): CapsuleNullable<IEntity.KeyType<Target>, Options>
         {
             return this.source_[this.field_];
         }
-        public set id(value: CapsuleNullable<number, Options>)
+        public set id(value: CapsuleNullable<IEntity.KeyType<Target>, Options>)
         {
-            const previous: number | null = this.source_[this.field_];
+            const previous: CapsuleNullable<IEntity.KeyType<Target>, Options> = this.source_[this.field_];
             this.source_[this.field_] = value;
 
             if (previous !== value)
@@ -132,7 +146,7 @@ export namespace Belongs
 
         public async get(): Promise<CapsuleNullable<Target, Options>>
         {
-            const id: number | null = this.id;
+            const id: CapsuleNullable<IEntity.KeyType<Target>, Options> = this.id;
             if (id === null)
                 return null!;
 
@@ -153,15 +167,15 @@ export namespace Belongs
             this.source_[this.getter_] = Promise.resolve(obj);
         }
 
-        public statement(alias: string): orm.QueryBuilder<Target>
+        public statement(): orm.QueryBuilder<Target>
         {
             return orm.getRepository(this.target_)
-                .createQueryBuilder(alias)
-                .andWhere(`${alias}.id = :id`, { id: this.id });
+                .createQueryBuilder(this.target_.name)
+                .andWhere(`${this.target_.name}.id = :id`, { id: this.id });
         }
     }
 
-    function _Belongs_to<Mine extends Model, Target extends Model, Options extends object>
+    function _Belongs_to<Mine extends IEntity<any>, Target extends IEntity<any>, Options extends object>
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
             targetGen: () => CreatorType<Target>,
@@ -180,12 +194,11 @@ export namespace Belongs
             Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}:field`, field, $class);
             Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}:target`, targetGen, $class);
 
-            const getter: string = `${$property as string}_getter`;
-            const label: string = `${$property as string}_helper`;
+            const getter: string = getIndexField<any>($property as string);
+            const label: string = getHelperField($property as string);
             
-            orm.Column("int", { ...options, unsigned: true })($class, field);
             if (typeof inverse === "string")
-                relation(targetGen, `${inverse}_getter`, { ...options, lazy: true })($class, getter);
+                relation(targetGen, Has.getIndexField(inverse), { ...options, lazy: true })($class, getter);
             else
                 relation(targetGen, { ...options, lazy: true })($class, getter);
             orm.JoinColumn({ name: field })($class, getter);
@@ -202,5 +215,5 @@ export namespace Belongs
         };
     }
 
-    type TypeGenerator<Entity extends Model> = () => CreatorType<Entity>;
+    type TypeGenerator<Entity extends IEntity<any>> = () => CreatorType<Entity>;
 }

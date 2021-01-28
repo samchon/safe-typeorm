@@ -1,3 +1,4 @@
+export * from "./IEntity";
 export * from "./JoinQueryBuilder";
 export * from "./Model";
 
@@ -8,3 +9,5 @@ export * from "./decorators/IncrementalColumn";
 
 export * from "./utils/NamingStrategy";
 export * from "./utils/Password";
+
+export * from "./global";

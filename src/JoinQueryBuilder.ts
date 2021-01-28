@@ -1,21 +1,27 @@
 import * as orm from "typeorm";
+import { Belongs } from "./decorators/Belongs";
+import { Has } from "./decorators/Has";
 
-import { Model } from "./Model";
+import { IEntity } from "./IEntity";
+
 import { CreatorType } from "./typings/CreatorType";
 import { RelationshipType } from "./typings/RelationshipType";
-
 import { SpecialFields } from "./typings/SpecialFields";
 import { TargetType } from "./typings/TargetType";
 
-export class JoinQueryBuilder<Mine extends Model>
+export class JoinQueryBuilder<Mine extends IEntity<any>>
 {
     private readonly stmt_: orm.SelectQueryBuilder<any>;
     private readonly mine_: CreatorType<Mine>;
+    private readonly alias_: string;
 
-    public constructor(stmt: orm.SelectQueryBuilder<any>, mine: CreatorType<Mine>)
+    public constructor(stmt: orm.SelectQueryBuilder<any>, mine: CreatorType<Mine>, alias?: string)
     {
         this.stmt_ = stmt;
         this.mine_ = mine;
+        this.alias_ = (alias === undefined)
+            ? mine.name
+            : alias;
     }
 
     /* -----------------------------------------------------------
@@ -25,19 +31,47 @@ export class JoinQueryBuilder<Mine extends Model>
         (
             field: Field, 
             closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public innerJoin<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field, 
+            alias: string,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public innerJoin<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field, 
+            alias?: string | ((builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void),
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<TargetType<Mine, Field>>
     {
         return this._Join
         (
             (target, alias, condition) => this.stmt_.innerJoin(target, alias, condition),
             field,
-            closure
+            ...get_parametric_tuple(alias, closure)
         );
     }
 
     public leftJoin<Field extends SpecialFields<Mine, RelationshipType<any>>>
         (
-            field: Field, 
+            field: Field,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public leftJoin<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field,
+            alias: string,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public leftJoin<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field,
+            alias?: string | ((builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void),
             closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<TargetType<Mine, Field>>
     {
@@ -45,7 +79,7 @@ export class JoinQueryBuilder<Mine extends Model>
         (
             (target, alias, condition) => this.stmt_.leftJoin(target, alias, condition),
             field,
-            closure
+            ...get_parametric_tuple(alias, closure)
         );
     }
 
@@ -53,21 +87,18 @@ export class JoinQueryBuilder<Mine extends Model>
         (
             joiner: (target: CreatorType<TargetType<Mine, Field>>, alias: string, condition: string) => orm.SelectQueryBuilder<any>,
             field: Field,
+            alias: string | undefined,
             closure: ((builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void) | undefined
         ): JoinQueryBuilder<TargetType<Mine, Field>>
     {
-        //----
-        // PREPARE ASSETS
-        //----
-        // GET TARGET CLASS WITH TYPE OF THE RELATIONSHIP
-        const belongs: boolean = is_belongs<Mine, Field>(this.mine_, field);
-        const target: CreatorType<TargetType<Mine, Field>> = get_target_creator(this.mine_, field, belongs);
+        // PREPRAE ASSET
+        const asset: IAsset<Mine, Field> = prepare_asset(this.mine_, field, alias);
 
         // LIST UP EACH FIELDS
         let myField: string;
         let targetField: string;
 
-        if (belongs === true)
+        if (asset.belongs === true)
         {
             // WHEN BELONGS TO PARENT
             myField = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, this.mine_.prototype);
@@ -77,16 +108,16 @@ export class JoinQueryBuilder<Mine extends Model>
         {
             // WHEN HAS CHILDREN
             const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Has:${field}:inverse`, this.mine_.prototype);
-            targetField = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverseField}:field`, target.prototype);
+            targetField = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverseField}:field`, asset.target.prototype);
             myField = "id";
         }
 
         // DO JOIN
-        const condition: string = `${this.mine_.name}.${myField} = ${target.name}.${targetField}`;
-        joiner(target, target.name, condition);
+        const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
+        joiner(asset.target, asset.alias, condition);
 
         // CALL-BACK
-        return call_back(this.stmt_, target, closure);
+        return call_back(this.stmt_, asset.target, asset.alias, closure);
     }
 
     /* -----------------------------------------------------------
@@ -94,21 +125,49 @@ export class JoinQueryBuilder<Mine extends Model>
     ----------------------------------------------------------- */
     public innerJoinAndSelect<Field extends SpecialFields<Mine, RelationshipType<any>>>
         (
-            field: Field, 
+            field: Field,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public innerJoinAndSelect<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field,
+            alias: string,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public innerJoinAndSelect<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field,
+            alias?: string | ((builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void),
             closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<TargetType<Mine, Field>>
     {
         return this._Join_and_select
         (
             (field, alias) => this.stmt_.innerJoinAndSelect(field, alias),
-            field, 
-            closure
+            field,
+            ...get_parametric_tuple(alias, closure)
         );
     }
 
     public leftJoinAndSelect<Field extends SpecialFields<Mine, RelationshipType<any>>>
         (
-            field: Field, 
+            field: Field,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public leftJoinAndSelect<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field,
+            alias: string,
+            closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<TargetType<Mine, Field>>;
+
+    public leftJoinAndSelect<Field extends SpecialFields<Mine, RelationshipType<any>>>
+        (
+            field: Field,
+            alias?: string | ((builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void),
             closure?: (builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<TargetType<Mine, Field>>
     {
@@ -116,7 +175,7 @@ export class JoinQueryBuilder<Mine extends Model>
         (
             (field, alias) => this.stmt_.leftJoinAndSelect(field, alias), 
             field, 
-            closure
+            ...get_parametric_tuple(alias, closure)
         );
     }
 
@@ -124,50 +183,77 @@ export class JoinQueryBuilder<Mine extends Model>
         (
             joiner: (field: string, alias: string) => orm.SelectQueryBuilder<any>,
             field: Field,
+            alias: string | undefined,
             closure: ((builder: JoinQueryBuilder<TargetType<Mine, Field>>) => void) | undefined
         )
     {
-        // GET TARGET CLASS
-        const target: CreatorType<TargetType<Mine, Field>> = get_target_creator<Mine, Field>(this.mine_, field);
+        // PREPARE ASSET
+        const asset: IAsset<Mine, Field> = prepare_asset(this.mine_, field, alias);
+        const index: string = (asset.belongs === true)
+            ? Belongs.getIndexField<any>(field)
+            : Has.getIndexField(field);
 
         // DO JOIN
-        joiner(`${this.mine_.name}.${field}_getter`, target.name);
+        joiner(`${this.alias_}.${index}`, asset.alias);
 
         // CALL-BACK
-        return call_back(this.stmt_, target, closure);
+        return call_back(this.stmt_, asset.target, asset.alias, closure);
     }
 }
 
 /* -----------------------------------------------------------
     BACKGROUND
 ----------------------------------------------------------- */
-function call_back<Target extends Model>
-    (stmt: orm.SelectQueryBuilder<any>, target: CreatorType<Target>, closure: ((builder: JoinQueryBuilder<Target>) => void) | undefined): JoinQueryBuilder<Target>
+interface IAsset<
+        Mine extends IEntity<any>, 
+        Field extends SpecialFields<Mine, RelationshipType<any>>>
 {
-    const ret: JoinQueryBuilder<Target> = new JoinQueryBuilder(stmt, target);
+    target: CreatorType<TargetType<Mine, Field>>;
+    alias: string;
+    belongs: boolean;
+}
+
+function prepare_asset<
+        Mine extends IEntity<any>, 
+        Field extends SpecialFields<Mine, RelationshipType<any>>>
+    (
+        mine: CreatorType<Mine>,
+        field: Field,
+        alias: string | undefined
+    ): IAsset<Mine, Field>
+{
+    // FIND TARGET
+    const belongs: boolean = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, mine.prototype);
+    const target: CreatorType<TargetType<Mine, Field>> = (belongs === true)
+        ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, mine.prototype)()
+        : Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, mine.prototype)();
+
+    // DETERMINE THE ALIAS
+    if (alias === undefined)
+        alias = target.name;
+    
+    // RETURNS
+    return { target, alias, belongs };
+}
+
+function call_back<Target extends IEntity<any>>
+    (
+        stmt: orm.SelectQueryBuilder<any>, 
+        target: CreatorType<Target>, 
+        alias: string,
+        closure: ((builder: JoinQueryBuilder<Target>) => void) | undefined
+    ): JoinQueryBuilder<Target>
+{
+    const ret: JoinQueryBuilder<Target> = new JoinQueryBuilder(stmt, target, alias);
     if (closure !== undefined)
         closure(ret);
     return ret;
 }
 
-function is_belongs<
-        Mine extends Model, 
-        Field extends SpecialFields<Mine, RelationshipType<any>>>
-    (mine: CreatorType<Model>, field: Field): boolean
+function get_parametric_tuple<Func extends Function>
+    (x?: string | Func, y?: Func): [string|undefined, Func|undefined]
 {
-    return Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, mine.prototype);
-}
-
-function get_target_creator<
-        Mine extends Model, 
-        Field extends SpecialFields<Mine, RelationshipType<any>>>
-    (
-        mine: CreatorType<Model>, 
-        field: Field, 
-        belongs: boolean = is_belongs<Mine, Field>(mine, field)
-    ): CreatorType<TargetType<Mine, Field>>
-{
-    return belongs === true
-        ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, mine.prototype)()
-        : Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, mine.prototype)();
+    return (typeof x === "string")
+        ? [x, y]
+        : [undefined, x];
 }

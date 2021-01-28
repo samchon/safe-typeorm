@@ -16,7 +16,7 @@ export function EncryptedColumn(type: EncryptedColumn.Type, options: EncryptedCo
 {
     return function (target: any, key: string)
     {
-        const field: string = EncryptedColumn.get_hidden_field(key);
+        const field: string = EncryptedColumn.getIndexField(key);
 
         Column(type as "varchar", { ...options, name: key })(target, field);
         if (options.index === true)
@@ -95,15 +95,20 @@ export namespace EncryptedColumn
     export function get_raw_value<Entity extends object, Field extends SpecialFields<Entity, string|null>>
         (record: Entity, field: Field): Field extends SpecialFields<Entity, string> ? string : string | null
     {
-        let hidden: string = get_hidden_field(<any>field as string);
+        let hidden: string = getIndexField(<any>field as string);
         return (record as any)[hidden];
+    }
+
+    export function getIndexField(key: string): string
+    {
+        return `__m_enc_${key}__`;
     }
 
     /**
      * @internal
      */
-    export function get_hidden_field(key: string): string
+    export function getFieldByIndex(index: string): string
     {
-        return `m_enc_${key}_`;
+        return index.substring(8, index.length - 2);
     }
 }

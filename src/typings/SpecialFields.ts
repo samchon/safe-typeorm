@@ -6,7 +6,7 @@
  * 
  * @author Jeongho Nam - https://github.com/samchon
  */
-export type SpecialFields<Instance, Target> =
+export type SpecialFields<Instance extends object, Target> =
 {
     [P in keyof Instance]: Instance[P] extends Target ? P : never;
-}[keyof Instance];
+}[keyof Instance & string];
