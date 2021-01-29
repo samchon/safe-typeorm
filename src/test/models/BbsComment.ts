@@ -13,21 +13,24 @@ export class BbsComment extends BbsContentBase
         COLUMNS
     ----------------------------------------------------------- */
     @Belongs.ManyToOne(() => BbsArticle,
-        "comments",
+        article => article.comments,
+        "int",
         "bbs_article_id",
         { index: true }
     )
-    public article!: Belongs.ManyToOne<BbsArticle>;
+    public article!: Belongs.ManyToOne<BbsArticle, "int">;
 
     @Belongs.ManyToOne(() => BbsComment, 
-        "children", 
+        parent => parent.children, 
+        "int",
         "pid", 
         { index: true, nullable: true }
     )
-    public parent!: Belongs.ManyToOne<BbsComment>;
+    public parent!: Belongs.ManyToOne<BbsComment, "int">;
 
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
+    @Has.OneToMany(() => BbsComment, child => child.parent)
     public children!: Has.OneToMany<BbsComment>;
 }

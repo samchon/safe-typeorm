@@ -1,7 +1,6 @@
 import * as crypto from "crypto";
 import * as orm from "typeorm";
 
-import { IEntity } from "../IEntity";
 import { JoinQueryBuilder } from "../JoinQueryBuilder";
 
 import { CreatorType } from "../typings/CreatorType";
@@ -10,20 +9,23 @@ import { FieldValueType } from "../typings/FieldValueType";
 import { OperatorType } from "../typings/OperatorType";
 import { SpecialFields } from "../typings/SpecialFields";
 
-export function createJoinQueryBuilder<T extends IEntity<any>>
+/* -----------------------------------------------------------
+    JOIN
+----------------------------------------------------------- */
+export function createJoinQueryBuilder<T extends object>
     (
         creator: CreatorType<T>, 
         closure: (builder: JoinQueryBuilder<T>) => void
     ): orm.SelectQueryBuilder<T>;
 
-export function createJoinQueryBuilder<T extends IEntity<any>>
+export function createJoinQueryBuilder<T extends object>
     (
         creator: CreatorType<T>, 
         alias: string,
         closure: (builder: JoinQueryBuilder<T>) => void
     ): orm.SelectQueryBuilder<T>;
 
-export function createJoinQueryBuilder<T extends IEntity<any>>
+export function createJoinQueryBuilder<T extends object>
     (creator: CreatorType<T>, ...args: any[]): orm.SelectQueryBuilder<T>
 {
     let alias: string;
@@ -49,12 +51,13 @@ export function createJoinQueryBuilder<T extends IEntity<any>>
     return stmt;
 }
 
-export function getColumn<
-        T extends IEntity<any>, 
-        Field extends SpecialFields<T, FieldType>>
+/* -----------------------------------------------------------
+    COLUMN
+----------------------------------------------------------- */
+export function getColumn<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>, 
-        fieldLike: Field | `${string}.${Field}`,
+        fieldLike: `${Field}` | `${string}.${Field}`,
         alias?: string
     ): string
 {
@@ -76,40 +79,43 @@ export function getColumn<
     const fieldName: string = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, creator.prototype)
         ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, creator.prototype)
         : field as string;
-    const ret: string = `${tableAlias}.${fieldName}`;
+    const target: string = `${tableAlias}.${fieldName}`;
 
-    return (alias !== undefined)
-        ? `${ret} AS ${alias}`
-        : ret;
+    if (alias === undefined)
+        alias = fieldName;
+    return `${target} AS \`${alias}\``;
 }
 
-export function getWhereArguments<T extends IEntity<any>, Field extends SpecialFields<T, FieldType>>
+/* -----------------------------------------------------------
+    WHERE
+----------------------------------------------------------- */
+export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
-        fieldLike: Field | `${string}.${Field}`,
+        fieldLike: `${Field}` | `${string}.${Field}`,
         param: FieldValueType<T[Field]>
     ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
-export function getWhereArguments<T extends IEntity<any>, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
-        fieldLike: Field | `${string}.${Field}`,
+        fieldLike: `${Field}` | `${string}.${Field}`,
         operator: OperatorType,
         param: FieldValueType<T[Field]>
     ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
-export function getWhereArguments<T extends IEntity<any>, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
-        fieldLike: Field | `${string}.${Field}`,
+        fieldLike: `${Field}` | `${string}.${Field}`,
         operator: "IN",
         param: Array<FieldValueType<T[Field]>>
     ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
 
-export function getWhereArguments<T extends IEntity<any>, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
-        fieldLike: Field | `${string}.${Field}`,
+        fieldLike: `${Field}` | `${string}.${Field}`,
         ...rest: any[]
     ): [string, any]
 {

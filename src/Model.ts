@@ -1,6 +1,6 @@
 import * as orm from "typeorm";
-import * as global from "./global";
 
+import * as functional from "./functional";
 import { EncryptedColumn } from "./decorators/EncryptedColumn";
 import { JoinQueryBuilder } from "./JoinQueryBuilder";
 
@@ -37,7 +37,7 @@ export abstract class Model extends orm.BaseEntity
             ...args: any[]
         ): orm.SelectQueryBuilder<T>
     {
-        return global.createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
+        return functional.createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
     }
 
     /**
@@ -72,24 +72,24 @@ export abstract class Model extends orm.BaseEntity
     public static getColumn<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
             this: Model.CreatorType<T>, 
-            fieldLike: Field | `${string}.${Field}`,
+            fieldLike: `${Field}` | `${string}.${Field}`,
             alias?: string
-        ): string
+        )
     {
-        return global.getColumn<T, Field>(this, fieldLike, alias);
+        return functional.getColumn<T, Field>(this, fieldLike, alias);
     }
 
     public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
             this: Model.CreatorType<T>,
-            fieldLike: Field | `${string}.${Field}`,
+            fieldLike: `${Field}` | `${string}.${Field}`,
             param: FieldValueType<T[Field]>
         ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
     public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
             this: Model.CreatorType<T>,
-            fieldLike: Field | `${string}.${Field}`,
+            fieldLike: `${Field}` | `${string}.${Field}`,
             operator: OperatorType,
             param: FieldValueType<T[Field]>
         ): [string, { [key: string]: FieldValueType<T[Field]> }];
@@ -99,7 +99,7 @@ export abstract class Model extends orm.BaseEntity
             Field extends SpecialFields<T, FieldType>>
         (
             this: Model.CreatorType<T>,
-            fieldLike: Field | `${string}.${Field}`,
+            fieldLike: `${Field}` | `${string}.${Field}`,
             operator: "IN",
             param: Array<FieldValueType<T[Field]>>,
         ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
@@ -107,11 +107,11 @@ export abstract class Model extends orm.BaseEntity
     public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
         (
             this: Model.CreatorType<T>,
-            fieldLike: Field | `${string}.${Field}`,
+            fieldLike: `${Field}` | `${string}.${Field}`,
             ...rest: any[]
         ): [string, any]
     {
-        return global.getWhereArguments(this, fieldLike, ...(rest as [ OperatorType, FieldValueType<T[Field]> ]));
+        return functional.getWhereArguments(this, fieldLike, ...(rest as [ OperatorType, FieldValueType<T[Field]> ]));
     }
 
     /* -----------------------------------------------------------
@@ -154,8 +154,10 @@ export namespace Model
     {
         [P in keyof T]: T[P] extends (number|string|boolean|Date|null)
             ? T[P] extends Date
-                ? T[P] extends null ? (string|null) : string
+                ? string
+                : T[P] extends (Date|null) 
+                    ? (string|null)
+                    : T[P]
                 : T[P]
-            : never;
     }>;
 }

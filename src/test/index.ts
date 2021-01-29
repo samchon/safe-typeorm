@@ -10,6 +10,7 @@ import { BbsArticleCover } from "./models/BbsArticleCover";
 import { BbsArticleFilePair } from "./models/BbsArticleFilePair";
 import { BbsComment } from "./models/BbsComment";
 import { BbsGroup } from "./models/BbsGroup";
+
 import { validate_equality } from "./internal/validate_equality";
 
 /* -----------------------------------------------------------
@@ -209,9 +210,25 @@ async function validate(original: IBbsGroup[], records: BbsGroup[]): Promise<voi
     const comment = (await article.comments.get())[0];
 
     console.log(group?.toJSON(), article?.toJSON(), comment?.toJSON());
+    console.log("article.bbs_group_id", article?.group.id);
 
     const deserialized: IBbsGroup[] = await serialize(records);
     validate_equality(original, deserialized);
+}
+
+async function test_join(): Promise<void>
+{
+    const stmt = BbsGroup.createJoinQueryBuilder(group => group.innerJoin("articles"))
+        .select([
+            BbsArticle.getColumn("id"),
+            BbsArticle.getColumn("group"),
+            BbsGroup.getColumn("name", "group"),
+            BbsArticle.getColumn("title"),
+            BbsArticle.getColumn("content"),
+            BbsArticle.getColumn("created_at")
+        ]);
+    console.log(stmt.getSql());
+    console.log(await stmt.getRawMany());
 }
 
 /* -----------------------------------------------------------
@@ -256,9 +273,11 @@ async function main(): Promise<void>
     // LOAD WITH JOIN
     await validate(rawGroups, await BbsGroup.createJoinQueryBuilder(group => group.innerJoin("articles").innerJoin("comments")).getMany());
     await fs.promises.writeFile(__dirname + "/../../assets/eager.json", JSON.stringify(await serialize(await BbsGroup.createJoinQueryBuilder(group => group.innerJoinAndSelect("articles").innerJoinAndSelect("comments")).getMany()), null, 4));
-    
+
     // COMPARE RAW & MODEL
     validate_equality(rawGroups, output);
+    await test_join();
+
     await connection.close();
 }
 main();

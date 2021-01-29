@@ -1,8 +1,6 @@
 import * as orm from "typeorm";
 
 import { EncryptedColumn } from "../../../decorators/EncryptedColumn";
-import { IncrementalColumn } from "../../../decorators/IncrementalColumn";
-
 import { Model } from "../../../Model";
 import { Password } from "../../../utils/Password";
 
@@ -11,7 +9,7 @@ export abstract class BbsContentBase extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @IncrementalColumn()
+    @orm.PrimaryGeneratedColumn()
     public readonly id!: number;
 
     @EncryptedColumn("varchar", {

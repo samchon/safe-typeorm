@@ -1,3 +1,4 @@
+import { PrimaryGeneratedColumnType } from "typeorm/driver/types/ColumnTypes";
 import { Belongs } from "../decorators/Belongs";
 
 export type FieldType 
@@ -5,6 +6,6 @@ export type FieldType
     | string 
     | boolean 
     | Date 
-    | Belongs.ManyToOne<any> 
-    | Belongs.OneToOne<any>
+    | Belongs.ManyToOne<any, PrimaryGeneratedColumnType> 
+    | Belongs.OneToOne<any, PrimaryGeneratedColumnType>
     | null;

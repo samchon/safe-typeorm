@@ -2,14 +2,12 @@ import * as orm from "typeorm";
 import { Belongs } from "./decorators/Belongs";
 import { Has } from "./decorators/Has";
 
-import { IEntity } from "./IEntity";
-
 import { CreatorType } from "./typings/CreatorType";
 import { RelationshipType } from "./typings/RelationshipType";
 import { SpecialFields } from "./typings/SpecialFields";
 import { TargetType } from "./typings/TargetType";
 
-export class JoinQueryBuilder<Mine extends IEntity<any>>
+export class JoinQueryBuilder<Mine extends object>
 {
     private readonly stmt_: orm.SelectQueryBuilder<any>;
     private readonly mine_: CreatorType<Mine>;
@@ -190,8 +188,8 @@ export class JoinQueryBuilder<Mine extends IEntity<any>>
         // PREPARE ASSET
         const asset: IAsset<Mine, Field> = prepare_asset(this.mine_, field, alias);
         const index: string = (asset.belongs === true)
-            ? Belongs.getIndexField<any>(field)
-            : Has.getIndexField(field);
+            ? Belongs.getGetterField<any>(field)
+            : Has.getGetterField(field);
 
         // DO JOIN
         joiner(`${this.alias_}.${index}`, asset.alias);
@@ -205,7 +203,7 @@ export class JoinQueryBuilder<Mine extends IEntity<any>>
     BACKGROUND
 ----------------------------------------------------------- */
 interface IAsset<
-        Mine extends IEntity<any>, 
+        Mine extends object, 
         Field extends SpecialFields<Mine, RelationshipType<any>>>
 {
     target: CreatorType<TargetType<Mine, Field>>;
@@ -214,7 +212,7 @@ interface IAsset<
 }
 
 function prepare_asset<
-        Mine extends IEntity<any>, 
+        Mine extends object, 
         Field extends SpecialFields<Mine, RelationshipType<any>>>
     (
         mine: CreatorType<Mine>,
@@ -236,7 +234,7 @@ function prepare_asset<
     return { target, alias, belongs };
 }
 
-function call_back<Target extends IEntity<any>>
+function call_back<Target extends object>
     (
         stmt: orm.SelectQueryBuilder<any>, 
         target: CreatorType<Target>, 

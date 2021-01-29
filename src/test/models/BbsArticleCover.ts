@@ -2,7 +2,6 @@ import * as orm from "typeorm";
 import { Model } from "../../Model";
 
 import { Belongs } from "../../decorators/Belongs";
-import { IncrementalColumn } from "../../decorators/IncrementalColumn";
 
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
@@ -13,22 +12,24 @@ export class BbsArticleCover extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @IncrementalColumn()
+    @orm.PrimaryGeneratedColumn()
     public readonly id!: number;
 
     @Belongs.OneToOne(() => BbsArticle, 
-        "cover", 
-        "bbs_article_id", 
+        article => article.cover, 
+        "int", 
+        "bbs_article_id",
         { unique: true }
     )
-    public article!: Belongs.ManyToOne<BbsArticle>;
+    public article!: Belongs.ManyToOne<BbsArticle, "int">;
 
     @Belongs.ManyToOne(() => AttachmentFile,
-        "articleCover",
+        file => file.articleCover,
+        "int",
         "attachment_file_id",
         { index: true }
     )
-    public file!: Belongs.ManyToOne<AttachmentFile>;
+    public file!: Belongs.ManyToOne<AttachmentFile, "int">;
 
     @orm.Column("varchar")
     public sub_title!: string;

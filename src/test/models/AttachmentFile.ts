@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
 import { Has } from "../../decorators/Has";
-import { IncrementalColumn } from "../../decorators/IncrementalColumn";
 import { Model } from "../../Model";
+
 import { BbsArticleCover } from "./BbsArticleCover";
 import { BbsArticleFilePair } from "./BbsArticleFilePair";
 
@@ -11,7 +11,7 @@ export class AttachmentFile extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @IncrementalColumn()
+    @orm.PrimaryGeneratedColumn()
     public id!: number;
 
     @orm.Column("varchar")
@@ -29,9 +29,9 @@ export class AttachmentFile extends Model
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @Has.OneToMany(() => BbsArticleCover, "file")
+    @Has.OneToMany(() => BbsArticleCover, cover => cover.file)
     public articleCover!: Has.OneToMany<BbsArticleCover>;
 
-    @Has.OneToMany(() => BbsArticleFilePair, "file")
+    @Has.OneToMany(() => BbsArticleFilePair, pair => pair.file)
     public articlePairs!: Has.OneToMany<BbsArticleFilePair>;
 }
