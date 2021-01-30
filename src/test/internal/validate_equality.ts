@@ -5,7 +5,7 @@ function error<T>(x: T, y: T, depth: string): void
 
 function validate_object<T extends object>(x: T, y: T, depth: string, ...excludes: string[]): void
 {
-    for (let key in x)
+    for (const key in x)
         if (excludes.findIndex(elem => elem === key) === -1)
             recursive(x[key], y[key], `${depth}.${key}`, ...excludes);
 }
@@ -20,7 +20,7 @@ function validate_array<T>(x: T[], y: T[], depth: string, ...excludes: string[])
 
 function recursive<T>(x: T, y: T, depth: string, ...excludes: string[]): void
 {
-    let type = typeof x;
+    const type = typeof x;
     if (type !== typeof y)
         error(x, y, depth);
     else if (type === "object")

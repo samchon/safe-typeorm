@@ -92,10 +92,10 @@ export namespace EncryptedColumn
      * @param field Target field.
      * @return The raw value.
      */
-    export function get_raw_value<Entity extends object, Field extends SpecialFields<Entity, string|null>>
+    export function getRawValue<Entity extends object, Field extends SpecialFields<Entity, string|null>>
         (record: Entity, field: Field): Field extends SpecialFields<Entity, string> ? string : string | null
     {
-        let hidden: string = getIndexField(<any>field as string);
+        const hidden: string = getIndexField(field as string);
         return (record as any)[hidden];
     }
 

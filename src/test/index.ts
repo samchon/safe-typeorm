@@ -209,7 +209,7 @@ async function validate(original: IBbsGroup[], records: BbsGroup[]): Promise<voi
     const article = (await group.articles.get())[0];
     const comment = (await article.comments.get())[0];
 
-    console.log(group?.toJSON(), article?.toJSON(), comment?.toJSON());
+    console.log(group?.toPrimitive(), article?.toPrimitive(), comment?.toPrimitive());
     console.log("article.bbs_group_id", article?.group.id);
 
     const deserialized: IBbsGroup[] = await serialize(records);

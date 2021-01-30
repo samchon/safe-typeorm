@@ -2,25 +2,20 @@ import * as orm from "typeorm";
 import { Singleton } from "tstl/thread/Singleton";
 
 import { CreatorType } from "../typings/CreatorType";
+import { GeneratorType } from "../typings/GeneratorType";
 
 import { Belongs } from "./Belongs";
 import { ClosureProxy } from "./internal/ClosureProxy";
 
+/**
+ * Decorators for the "has" relationship.
+ * 
+ * `Has` is a module containing decorators who can represent the "has" relationship. 
+ * 
+ * @author Jeongho Nam - https://github.com/samchon
+ */
 export namespace Has
 {
-    /**
-     * @internal
-     */
-    export function getGetterField(field: string): string
-    {
-        return `__m_has_${field}_getter__`;
-    }
-    
-    export function getHelperField(field: string): string
-    {
-        return `__m_has_${field}_helper__`;
-    }
-
     /* ===========================================================
         REGULAR
             - ONE-TO-ONE
@@ -29,10 +24,28 @@ export namespace Has
     ==============================================================
         ONE-TO-ONE
     ----------------------------------------------------------- */
+    /**
+     * Type for a variable using the `Has.OneToOne` decorator.
+     * 
+     * @template Target Type of the target model class who belongs to this model class *Mine* as 1: 1
+     */
     export type OneToOne<Target extends object> = Helper<Target, Target | null>;
+
+    /**
+     * Decorator function for the "1: 1 has" relationship.
+     * 
+     * @template Mine Type of this model class who is using it, the `Has.OneToOne` decorator
+     * @template Target Type of the target model class who belongs to this model class *Mine* as 1: 1
+     * @param targetGen A closure function returning the *Target* model class who belongs to this 
+     *                  model class *Mine* as 1: 1
+     * @param inverse A closure function returning the {@link Belongs.OneToOne} typed member 
+     *                variable, who is pointing this model class *Mine*, from the *Target* model 
+     *                class
+     * @return The *PropertyDecorator* function
+     */
     export function OneToOne<Mine extends object, Target extends object>
         (
-            targetGen: TypeGenerator<Target>,
+            targetGen: GeneratorType<Target>,
             inverse: (input: Target) =>  Belongs.OneToOne<Mine, any>
         ): PropertyDecorator
     {
@@ -42,10 +55,30 @@ export namespace Has
     /* -----------------------------------------------------------
         ONE-TO-MANY
     ----------------------------------------------------------- */
+    /**
+     * Type for a variable using the `Has.OneToMany` decorator.
+     * 
+     * @template Target Type of the target model class who belongs to this model class *Mine* as 
+     *                  1: N
+     */
     export type OneToMany<Target extends object> = Helper<Target, Target[]>;
+
+    /**
+     * Decorator function for the "1: N has" relationship.
+     * 
+     * @template Mine Type of this model class who is using it, the `Has.OneToMany` decorator
+     * @template Target Type of the target model class who belongs to this model class *Mine* as 
+     *                  N: 1
+     * @param targetGen A closure function returning the *Target* model class who belongs this 
+     *                  model class *Mine* as 1: N
+     * @param inverse A closure funnction returning the {@link Belongs.ManyToOne} typed member 
+     *                variable, who is pointing this model class *Mine*, from the *Target* model 
+     *                class
+     * @return The *PropertyDecorator* function
+     */
     export function OneToMany<Mine extends object, Target extends object>
         (
-            targetGen: TypeGenerator<Target>,
+            targetGen: GeneratorType<Target>,
             inverse: (input: Target) => Belongs.ManyToOne<Mine, any>
         ): PropertyDecorator
     {
@@ -61,13 +94,13 @@ export namespace Has
         private readonly getter_: string;
         private readonly stmt_: orm.QueryBuilder<Target>
 
-        public constructor
+        private constructor
             (
                 mine: any, 
                 primaryField: string,
                 target: CreatorType<Target>, 
                 inverseField: string,
-                getter: string,
+                getter: string
             )
         {
             this.mine_ = mine;
@@ -77,16 +110,41 @@ export namespace Has
                 .andWhere(`${target.name}.${inverseField} = :id`, { id: this.mine_[primaryField] });
         }
 
+        /**
+         * @internal
+         */
+        public static create<Target extends object, Ret>
+            (
+                mine: any, 
+                primaryField: string,
+                target: CreatorType<Target>, 
+                inverseField: string,
+                getter: string
+            ): Helper<Target, Ret>
+        {
+            return new Helper(mine, primaryField, target, inverseField, getter);
+        }
+
+        /**
+         * 
+         */
         public get(): Promise<Ret>
         {
             return this.mine_[this.getter_];
         }
 
+        /**
+         * 
+         * @param obj 
+         */
         public set(obj: Ret): void
         {
             this.mine_[this.getter_] = Promise.resolve(obj);
         }
 
+        /**
+         * 
+         */
         public statement(): orm.QueryBuilder<Target>
         {
             return this.stmt_.clone();
@@ -99,7 +157,7 @@ export namespace Has
             Ret>
         (
             relation: typeof orm.OneToMany,
-            targetGen: TypeGenerator<Target>,
+            targetGen: GeneratorType<Target>,
             inverseClosure: (input: Target) => Belongs.ManyToOne<Mine, any>
         ): PropertyDecorator
     {
@@ -124,27 +182,15 @@ export namespace Has
                     if (this[label] === undefined)
                     {
                         if (primaryField === null)
-                            primaryField = get_primary_field(`Has.${relation.name}`, targetGen());
+                            primaryField = getPrimaryField(`Has.${relation.name}`, targetGen());
 
                         const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverse}`, targetGen());
-                        this[label] = new Helper(this, primaryField, targetGen(), inverseField, getter)
+                        this[label] = Helper.create(this, primaryField, targetGen(), inverseField, getter)
                     }
                     return this[label];
                 }
             });
         };
-    }
-
-    /**
-     * @internal
-     */
-    export function get_primary_field(method: string, target: CreatorType<any>): string
-    {
-        const columns = orm.getRepository(target).metadata.primaryColumns;
-        if (columns.length !== 1)
-            throw new Error(`Error on @safe.${method}(): number of columns composing primary key of the ${target} table is not 1 but ${columns.length}.`);
-
-        return columns[0].databaseName;
     }
 
     /* ===========================================================
@@ -155,11 +201,38 @@ export namespace Has
     ==============================================================
         MANY-TO-MANY
     ----------------------------------------------------------- */
+    /**
+     * Type for a variable using the `Has.ManyToMany` decorator.
+     * 
+     * @template Target Type of the target model, who has the N: N relationship with this model 
+     *                  class *Mine*, through the *Route* model class
+     */
     export type ManyToMany<Target extends object> = RouterHelper<Target>;
+
+    /**
+     * Decorator function for the "N:N has" relationship.
+     * 
+     * @template Mine Type of this model class who is using it, the `Has.ManyToMany` decorator
+     * @template Target Type of the target model class, who has the N: N relationship with this 
+     *                  model class *Mine*, through the *Route* model class
+     * @template Router Type of the router model who intermediates those *Mine* and *Route* model 
+     *                  classes to resolve the N: N relationship
+     * @param targetGen A closure function returning the *Target* model class, who has the N: N
+     *                  relationship with this model class *Mine* through the *Route* model class
+     * @param routerGen A closure function returning the *Router* model class, who intermediates
+     *                  those *Mine* and *Route* model classes to resolve the N: N relationship
+     * @param targetInverse A closure function returning the {@link Belongs.ManyToOne} typed member
+     *                      variable, who is pointing this model class *Mine*, from the *Route* 
+     *                      model class
+     * @param myInverse A closure function returning the {@link Belongs.ManyToOne} typed member
+     *                  variable, who is poining the target model class *Target*, from the *Rote*
+     *                  mode class
+     * @return The *PropertyDecorator* function
+     */
     export function ManyToMany<Mine extends object, Target extends object, Router extends object>
         (
-            targetGen: TypeGenerator<Target>,
-            routerGen: TypeGenerator<Router>,
+            targetGen: GeneratorType<Target>,
+            routerGen: GeneratorType<Router>,
             targetInverse: (router: Router) => Belongs.ManyToOne<Target, any>,
             myInverse: (router: Router) => Belongs.ManyToOne<Mine, any>
         ): PropertyDecorator
@@ -176,7 +249,7 @@ export namespace Has
                     if (this[label] === undefined)
                     {
                         if (primaryFieldTuple === null)
-                            primaryFieldTuple = [ get_primary_field("Has.ManyToMany", this.constructor), get_primary_field("Has.ManyToMany", targetGen()) ];
+                            primaryFieldTuple = [ getPrimaryField("Has.ManyToMany", this.constructor), getPrimaryField("Has.ManyToMany", targetGen()) ];
 
                         this[label] = new RouterHelper
                         (
@@ -229,6 +302,35 @@ export namespace Has
             return this.stmt_.clone();
         }
     }
-}
 
-type TypeGenerator<Entity extends object> = () => CreatorType<Entity>;
+    /* -----------------------------------------------------------
+        HIDDEN ACCESSORS
+    ----------------------------------------------------------- */
+    /**
+     * @internal
+     */
+    export function getGetterField(field: string): string
+    {
+        return `__m_has_${field}_getter__`;
+    }
+    
+    /**
+     * @internal
+     */
+    export function getHelperField(field: string): string
+    {
+        return `__m_has_${field}_helper__`;
+    }
+
+    /**
+     * @internal
+     */
+    export function getPrimaryField(method: string, target: CreatorType<any>): string
+    {
+        const columns = orm.getRepository(target).metadata.primaryColumns;
+        if (columns.length !== 1)
+            throw new Error(`Error on @safe.${method}(): number of columns composing primary key of the ${target} table is not 1 but ${columns.length}.`);
+
+        return columns[0].databaseName;
+    }
+}

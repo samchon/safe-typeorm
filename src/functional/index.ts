@@ -54,6 +54,26 @@ export function createJoinQueryBuilder<T extends object>
 /* -----------------------------------------------------------
     COLUMN
 ----------------------------------------------------------- */
+/**
+ * Get column name.
+ * 
+ * `getColumn()` is a global function returning the column name. 
+ * 
+ * Unlike writing the column name by yourself manually who can result in the critical runtime 
+ * error by a typing error, the `getColumn()` can detect the typing error in the compile level. 
+ * 
+ * The `getColumn()` even supports the table alias, therefore the table alias addicted column name 
+ * also can take advantage of the compile time validation. In such reason, if you don't ignore 
+ * error message from the TypeScript compiler, there can't be any runtime error that is caused by 
+ * the mis-typing error in the SQL column specification level.
+ * 
+ * @template T Type of a model class
+ * @template Field Type of a literal who represents the field that is defined in the *T* model
+ * @param fieldLike Name of the target field in the model class. The field name can contain the 
+ *                  table alias.
+ * @param alias Alias of the target column
+ * @return The exact column name who never can be the runtime error
+ */
 export function getColumn<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>, 
@@ -89,6 +109,18 @@ export function getColumn<T extends object, Field extends SpecialFields<T, Field
 /* -----------------------------------------------------------
     WHERE
 ----------------------------------------------------------- */
+/**
+ * Get arguments for the where-equal query.
+ * 
+ * @template T Type of a model class
+ * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @param creator The target model class
+ * @param fieldLike Name of the target field in the model class. The field name can contain the 
+ *                  table alias.
+ * @param param A parameter for the where-equal query
+ * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
+ *         never can be the runtime error
+ */
 export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
@@ -96,6 +128,19 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
         param: FieldValueType<T[Field]>
     ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
+/**
+ * Get arguments for the where query.
+ * 
+ * @template T Type of a model class
+ * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @param creator The target model class
+ * @param fieldLike Name of the target field in the model class. The field name can contain the 
+ *                  table alias.
+ * @param operator Operator for the where condition
+ * @param param A parameter for the where query
+ * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
+ *         never can be the runtime error
+ */
 export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
@@ -104,12 +149,48 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
         param: FieldValueType<T[Field]>
     ): [string, { [key: string]: FieldValueType<T[Field]> }];
 
+/**
+ * Get arguments for the where-in query.
+ * 
+ * @template T Type of a model class
+ * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @param creator The target model class
+ * @param fieldLike Name of the target field in the model class. The field name can contain the 
+ *                  table alias.
+ * @param operator Operator "BETWEEN" for the where condition
+ * @param parameters Parameters for the where-in query
+ * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
+ *         never can be the runtime error
+ */
 export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
     (
         creator: CreatorType<T>,
         fieldLike: `${Field}` | `${string}.${Field}`,
         operator: "IN",
-        param: Array<FieldValueType<T[Field]>>
+        parameters: Array<FieldValueType<T[Field]>>
+    ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
+
+/**
+ * Get arguments for the where-between query.
+ * 
+ * @template T Type of a model class
+ * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @param creator The target model class
+ * @param fieldLike Name of the target field in the model class. The field name can contain the 
+ *                  table alias.
+ * @param operator Operator "BETWEEN" for the where condition
+ * @param minimum Minimum parameter of the between range
+ * @param maximum Maximum parameter of the between range
+ * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
+ *         never can be the runtime error
+ */
+export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
+    (
+        creator: CreatorType<T>,
+        fieldLike: `${Field}` | `${string}.${Field}`,
+        operator: "BETWEEN",
+        minimum: FieldValueType<T[Field]>,
+        maximum: FieldValueType<T[Field]>
     ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
 
 export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
@@ -119,19 +200,37 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
         ...rest: any[]
     ): [string, any]
 {
-    const uuid: string = crypto.randomBytes(64).toString("hex");
-    let operator: OperatorType;
-    let param: FieldValueType<T[Field]>
+    const column: string = getColumn(creator, fieldLike);
 
-    if (rest.length === 1)
+    // MOST OPERATORS
+    if (rest.length <= 2)
     {
-        operator = "=";
-        param = rest[0];
+        const uuid: string = crypto.randomBytes(64).toString("hex");
+        let operator: OperatorType;
+        let param: FieldValueType<T[Field]>
+
+        if (rest.length === 1)
+        {
+            operator = "=";
+            param = rest[0];
+        }
+        else
+        {
+            operator = rest[0];
+            param = rest[1];
+        }
+        return [`${column} ${operator} :${uuid}`, { [uuid]: param }];
     }
-    else
+
+    // BETWEEN OPERATOR
+    const from: string = crypto.randomBytes(64).toString("hex");
+    const to: string = crypto.randomBytes(64).toString("hex");;
+    const minimum: FieldValueType<T[Field]> = rest[1];
+    const maximum: FieldValueType<T[Field]> = rest[2];
+
+    return [`${column} BETWEEN :${from} AND :${to}`, 
     {
-        operator = rest[0];
-        param = rest[1];
-    }
-    return [`${getColumn(creator, fieldLike)} ${operator} :${uuid}`, { [uuid]: param }];
+        [from]: minimum,
+        [to]: maximum
+    }];
 }

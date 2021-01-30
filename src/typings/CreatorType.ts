@@ -1,10 +1,10 @@
 /**
- * Creator type of a model class.
+ * Creator type of a class.
  * 
- * @template Instance Target class type.
+ * @template T The target class type.
  * @author Jeongho Nam - https://github.com/samchon
  */
-export type CreatorType<Instance extends Object> = 
+export type CreatorType<T extends Object> = 
 {
-    new(...args: any[]): Instance;
+    new(...args: any[]): T;
 };

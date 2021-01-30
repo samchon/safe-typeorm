@@ -22,8 +22,8 @@ export namespace AesPkcs5
      */
     export function encode(data: string, key: string, iv: string): string
     {
-        let bytes: number = key.length * 8;
-        let cipher: crypto.Cipher = crypto.createCipheriv(`AES-${bytes}-CBC`, key, iv);
+        const bytes: number = key.length * 8;
+        const cipher: crypto.Cipher = crypto.createCipheriv(`AES-${bytes}-CBC`, key, iv);
 
         return cipher.update(data, "utf8", "base64") + cipher.final("base64");
     }
@@ -38,8 +38,8 @@ export namespace AesPkcs5
      */
     export function decode(data: string, key: string, iv: string): string
     {
-        let bytes: number = key.length * 8;
-        let decipher: crypto.Decipher = crypto.createDecipheriv(`AES-${bytes}-CBC`, key, iv);
+        const bytes: number = key.length * 8;
+        const decipher: crypto.Decipher = crypto.createDecipheriv(`AES-${bytes}-CBC`, key, iv);
 
         return decipher.update(data, "base64", "utf8") + decipher.final("utf8");
     }
