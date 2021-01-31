@@ -25,6 +25,18 @@ export abstract class Model extends orm.BaseEntity
     /**
      * Create join query builder.
      * 
+     * `Model.createJoinQueryBuilder()` is a static method who returns not only the 
+     * `TypeORM.SelectQueryBuilder` instance but also the {@link JoinQueryBuilder} instance, who 
+     * can join related tabless very easily and safely, through the callback function *closure*.
+     * 
+     * Unlike the traditional join query through the `TypeORM.SelectQueryBuilder.innerJoin()` and
+     * some similar methods, who can cause the critical runtime error by a mis-typing error, the 
+     * {@link JoinQueryBuilder.innerJoin} and similar methods can prevent the mis-typing error in 
+     * the compilation level.
+     * 
+     * Therefore, if you don't ignore error message from the TypeScript compiler, there can't be
+     * any runtime error that is caused by the mis-typing error in the SQL join query level.
+     * 
      * @template T Type of a model class that is derived from the `Model`
      * @param closure A callback function who can join related tables very easily and safely
      * @return The newly created `TyperORM.SelectQueryBuilder` instance
@@ -38,8 +50,20 @@ export abstract class Model extends orm.BaseEntity
     /**
      * Create join query builder with alias.
      * 
+     * `Model.createJoinQueryBuilder()` is a static method who returns not only the 
+     * `TypeORM.SelectQueryBuilder` instance but also the {@link JoinQueryBuilder} instance, who 
+     * can join related tabless very easily and safely, through the callback function *closure*.
+     * 
+     * Unlike the traditional join query through the `TypeORM.SelectQueryBuilder.innerJoin()` and
+     * some similar methods, who can cause the critical runtime error by a mis-typing error, the 
+     * {@link JoinQueryBuilder.innerJoin} and similar methods can prevent the mis-typing error in 
+     * the compilation level.
+     * 
+     * Therefore, if you don't ignore error message from the TypeScript compiler, there can't be
+     * any runtime error that is caused by the mis-typing error in the SQL join query level.
+     * 
      * @template T Type of a model class that is derived from the `Model`
-     * @param alias Alias for the table
+     * @param alias Alias for the table *T*
      * @param closure A callback function who can join related tables very easily and safely
      * @return The newly created `TyperORM.SelectQueryBuilder` instance
      */
@@ -97,9 +121,9 @@ export abstract class Model extends orm.BaseEntity
      * 
      * `Model.getColumn()` is a static method returning the column name. 
      * 
-     * Unlike writing the column name by yourself manually who can result in the critical runtime 
-     * error by a typing error, the `Model.getColumn()` can detect the typing error in the compile
-     * level. 
+     * Unlike writing the column name by yourself manually, who can cause the critical runtime 
+     * error by a mis-typing error, the `Model.getColumn()` can prevent the mis-typing error in the 
+     * compilation level. 
      * 
      * The `Model.getColumn()` even supports the table alias, therefore the table alias addicted 
      * column name also can take advantage of the compile time validation. In such reason, if you 
@@ -126,6 +150,18 @@ export abstract class Model extends orm.BaseEntity
     /**
      * Get arguments for the where-equal query.
      * 
+     * `Model.getWhereArguments()` is a static method returning arguments for the 
+     * `TypeORM.SelectQueryBuilder.where()` and similar methods.
+     * 
+     * Unlike writing parameters of the `TypeORM.SelectQueryBuilder.where()` or similar methods
+     * by yourself manullay, who can cause critical runtime error by a mis-typing error, the
+     * `Model.getWhereArguments()` can prevent the mis-typing error in the compilation level.
+     * 
+     * The `Model.getWhereArguments()` even supports the table alias, therefore the table alias
+     * addicted column also can take advantage of the compile time validation. In such reason, if
+     * you don't ignore error message from the TypeScript error, there can't be any runtime error
+     * that is caused by the mis-typing error in the SQL where query level.
+     * 
      * @template T Type of a model class that is derived from the `Model`
      * @template Field Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
@@ -143,6 +179,18 @@ export abstract class Model extends orm.BaseEntity
 
     /**
      * Get arguments for the where query.
+     * 
+     * `Model.getWhereArguments()` is a static method returning arguments for the 
+     * `TypeORM.SelectQueryBuilder.where()` and similar methods.
+     * 
+     * Unlike writing parameters of the `TypeORM.SelectQueryBuilder.where()` or similar methods
+     * by yourself manullay, who can cause critical runtime error by a mis-typing error, the
+     * `Model.getWhereArguments()` can prevent the mis-typing error in the compilation level.
+     * 
+     * The `Model.getWhereArguments()` even supports the table alias, therefore the table alias
+     * addicted column also can take advantage of the compile time validation. In such reason, if
+     * you don't ignore error message from the TypeScript error, there can't be any runtime error
+     * that is caused by the mis-typing error in the SQL where query level.
      * 
      * @template T Type of a model class that is derived from the `Model`
      * @template Field Type of a literal who represents the field that is defined in the *T* model
@@ -164,6 +212,18 @@ export abstract class Model extends orm.BaseEntity
     /**
      * Get arguments for the where-in query.
      * 
+     * `Model.getWhereArguments()` is a static method returning arguments for the 
+     * `TypeORM.SelectQueryBuilder.where()` and similar methods.
+     * 
+     * Unlike writing parameters of the `TypeORM.SelectQueryBuilder.where()` or similar methods
+     * by yourself manullay, who can cause critical runtime error by a mis-typing error, the
+     * `Model.getWhereArguments()` can prevent the mis-typing error in the compilation level.
+     * 
+     * The `Model.getWhereArguments()` even supports the table alias, therefore the table alias
+     * addicted column also can take advantage of the compile time validation. In such reason, if
+     * you don't ignore error message from the TypeScript error, there can't be any runtime error
+     * that is caused by the mis-typing error in the SQL where query level.
+     * 
      * @template T Type of a model class that is derived from the `Model`
      * @template Field Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
@@ -183,6 +243,18 @@ export abstract class Model extends orm.BaseEntity
     
     /**
      * Get arguments for the where-between query.
+     * 
+     * `Model.getWhereArguments()` is a static method returning arguments for the 
+     * `TypeORM.SelectQueryBuilder.where()` and similar methods.
+     * 
+     * Unlike writing parameters of the `TypeORM.SelectQueryBuilder.where()` or similar methods
+     * by yourself manullay, who can cause critical runtime error by a mis-typing error, the
+     * `Model.getWhereArguments()` can prevent the mis-typing error in the compilation level.
+     * 
+     * The `Model.getWhereArguments()` even supports the table alias, therefore the table alias
+     * addicted column also can take advantage of the compile time validation. In such reason, if
+     * you don't ignore error message from the TypeScript error, there can't be any runtime error
+     * that is caused by the mis-typing error in the SQL where query level.
      * 
      * @template T Type of a model class that is derived from the `Model`
      * @template Field Type of a literal who represents the field that is defined in the *T* model
