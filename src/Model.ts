@@ -1,16 +1,16 @@
 import * as orm from "typeorm";
 
 import * as functional from "./functional";
-import { EncryptedColumn } from "./decorators/EncryptedColumn";
 import { JoinQueryBuilder } from "./JoinQueryBuilder";
-
-import { CreatorType as _CreatorType } from "./typings/CreatorType";
-import { FieldType } from "./typings/FieldType";
-import { FieldValueType } from "./typings/FieldValueType";
-import { OmitNever } from "./typings/OmitNever";
-import { OperatorType } from "./typings/OperatorType";
-import { SpecialFields } from "./typings/SpecialFields";
+import { EncryptedColumn } from "./decorators/EncryptedColumn";
 import { Has } from "./decorators/Has";
+
+import { Creator as _Creator } from "./typings/Creator";
+import { Field } from "./typings/Field";
+import { OmitNever } from "./typings/OmitNever";
+import { Initialized } from "./typings/Initialized";
+import { Operator } from "./typings/Operator";
+import { SpecialFields } from "./typings/SpecialFields";
 
 /**
  * The basic model class.
@@ -23,64 +23,29 @@ export abstract class Model extends orm.BaseEntity
         CONSTRUCTORS
     ----------------------------------------------------------- */
     /**
-     * Create join query builder.
+     * Initialize a model instance.
      * 
-     * `Model.createJoinQueryBuilder()` is a static method who returns not only the 
-     * `TypeORM.SelectQueryBuilder` instance but also the {@link JoinQueryBuilder} instance, who 
-     * can join related tabless very easily and safely, through the callback function *closure*.
+     * `Model.initailize()` is a static method creating a new model instance very safely.
      * 
-     * Unlike the traditional join query through the `TypeORM.SelectQueryBuilder.innerJoin()` and
-     * some similar methods, who can cause the critical runtime error by a mis-typing error, the 
-     * {@link JoinQueryBuilder.innerJoin} and similar methods can prevent the mis-typing error in 
-     * the compilation level.
+     * Unlike `TypeORM.BaseEntity.create()` method, who can cause the critical runtime error by
+     * ommitting essential variables, the `Model.initialize()` does not permit ommitting the 
+     * essential member variables in the compilation level.
      * 
-     * Therefore, if you don't ignore error message from the TypeScript compiler, there can't be
-     * any runtime error that is caused by the mis-typing error in the SQL join query level.
+     * In such reason, if you don't ignore error message from the TypeScript compiler, there can't
+     * be any runtime error that is caused by the ommitting essential column values in the SQL 
+     * INSERT or UPDATE level.
      * 
      * @template T Type of a model class that is derived from the `Model`
-     * @param closure A callback function who can join related tables very easily and safely
-     * @return The newly created `TyperORM.SelectQueryBuilder` instance
+     * @param input Variables that would be assigned to the new model instance
+     * @return A new model instance
      */
-    public static createJoinQueryBuilder<T extends Model>
+    public static initialize<T extends Model>
         (
-            this: Model.CreatorType<T>, 
-            closure: (builder: JoinQueryBuilder<T>) => void
-        ): orm.SelectQueryBuilder<T>;
-
-    /**
-     * Create join query builder with alias.
-     * 
-     * `Model.createJoinQueryBuilder()` is a static method who returns not only the 
-     * `TypeORM.SelectQueryBuilder` instance but also the {@link JoinQueryBuilder} instance, who 
-     * can join related tabless very easily and safely, through the callback function *closure*.
-     * 
-     * Unlike the traditional join query through the `TypeORM.SelectQueryBuilder.innerJoin()` and
-     * some similar methods, who can cause the critical runtime error by a mis-typing error, the 
-     * {@link JoinQueryBuilder.innerJoin} and similar methods can prevent the mis-typing error in 
-     * the compilation level.
-     * 
-     * Therefore, if you don't ignore error message from the TypeScript compiler, there can't be
-     * any runtime error that is caused by the mis-typing error in the SQL join query level.
-     * 
-     * @template T Type of a model class that is derived from the `Model`
-     * @param alias Alias for the table *T*
-     * @param closure A callback function who can join related tables very easily and safely
-     * @return The newly created `TyperORM.SelectQueryBuilder` instance
-     */
-    public static createJoinQueryBuilder<T extends Model>
-        (
-            this: Model.CreatorType<T>, 
-            alias: string,
-            closure: (builder: JoinQueryBuilder<T>) => void
-        ): orm.SelectQueryBuilder<T>
-
-    public static createJoinQueryBuilder<T extends Model>
-        (
-            this: Model.CreatorType<T>, 
-            ...args: any[]
-        ): orm.SelectQueryBuilder<T>
+            this: Model.Creator<T>, 
+            input: Initialized<T>
+        ): T
     {
-        return functional.createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
+        return functional.initialize(this, input);
     }
 
     /**
@@ -114,6 +79,70 @@ export abstract class Model extends orm.BaseEntity
     }
 
     /* -----------------------------------------------------------
+        JOINER
+    ----------------------------------------------------------- */
+    /**
+     * Create join query builder.
+     * 
+     * `Model.createJoinQueryBuilder()` is a static method who returns not only the 
+     * `TypeORM.SelectQueryBuilder` instance but also the {@link JoinQueryBuilder} instance, who 
+     * can join related tabless very easily and safely, through the callback function *closure*.
+     * 
+     * Unlike the traditional join query through the `TypeORM.SelectQueryBuilder.innerJoin()` and
+     * some similar methods, who can cause the critical runtime error by a mis-typing error, the 
+     * {@link JoinQueryBuilder.innerJoin} and similar methods can prevent the mis-typing error in 
+     * the compilation level.
+     * 
+     * Therefore, if you don't ignore error message from the TypeScript compiler, there can't be
+     * any runtime error that is caused by the mis-typing error in the SQL join query level.
+     * 
+     * @template T Type of a model class that is derived from the `Model`
+     * @param closure A callback function who can join related tables very easily and safely
+     * @return The newly created `TyperORM.SelectQueryBuilder` instance
+     */
+    public static createJoinQueryBuilder<T extends Model>
+        (
+            this: Model.Creator<T>, 
+            closure: (builder: JoinQueryBuilder<T>) => void
+        ): orm.SelectQueryBuilder<T>;
+
+    /**
+     * Create join query builder with alias.
+     * 
+     * `Model.createJoinQueryBuilder()` is a static method who returns not only the 
+     * `TypeORM.SelectQueryBuilder` instance but also the {@link JoinQueryBuilder} instance, who 
+     * can join related tabless very easily and safely, through the callback function *closure*.
+     * 
+     * Unlike the traditional join query through the `TypeORM.SelectQueryBuilder.innerJoin()` and
+     * some similar methods, who can cause the critical runtime error by a mis-typing error, the 
+     * {@link JoinQueryBuilder.innerJoin} and similar methods can prevent the mis-typing error in 
+     * the compilation level.
+     * 
+     * Therefore, if you don't ignore error message from the TypeScript compiler, there can't be
+     * any runtime error that is caused by the mis-typing error in the SQL join query level.
+     * 
+     * @template T Type of a model class that is derived from the `Model`
+     * @param alias Alias for the table *T*
+     * @param closure A callback function who can join related tables very easily and safely
+     * @return The newly created `TyperORM.SelectQueryBuilder` instance
+     */
+    public static createJoinQueryBuilder<T extends Model>
+        (
+            this: Model.Creator<T>, 
+            alias: string,
+            closure: (builder: JoinQueryBuilder<T>) => void
+        ): orm.SelectQueryBuilder<T>
+
+    public static createJoinQueryBuilder<T extends Model>
+        (
+            this: Model.Creator<T>, 
+            ...args: any[]
+        ): orm.SelectQueryBuilder<T>
+    {
+        return functional.createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
+    }
+
+    /* -----------------------------------------------------------
         SPECIALIZATIONS
     ----------------------------------------------------------- */
     /**
@@ -131,20 +160,20 @@ export abstract class Model extends orm.BaseEntity
      * that is caused by the mis-typing error in the SQL column specification level.
      * 
      * @template T Type of a model class that is derived from the `Model`
-     * @template Field Type of a literal who represents the field that is defined in the *T* model
+     * @template Literal Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
      *                  the table alias.
      * @param alias Alias of the target column
      * @return The exact column name who never can be the runtime error
      */
-    public static getColumn<T extends Model, Field extends SpecialFields<T, FieldType>>
+    public static getColumn<T extends Model, Literal extends SpecialFields<T, Field>>
         (
-            this: Model.CreatorType<T>, 
-            fieldLike: `${Field}` | `${string}.${Field}`,
+            this: Model.Creator<T>, 
+            fieldLike: `${Literal}` | `${string}.${Literal}`,
             alias?: string
         ): string
     {
-        return functional.getColumn<T, Field>(this, fieldLike, alias);
+        return functional.getColumn<T, Literal>(this, fieldLike, alias);
     }
 
     /**
@@ -163,19 +192,19 @@ export abstract class Model extends orm.BaseEntity
      * that is caused by the mis-typing error in the SQL where query level.
      * 
      * @template T Type of a model class that is derived from the `Model`
-     * @template Field Type of a literal who represents the field that is defined in the *T* model
+     * @template Literal Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
      *                  the table alias.
      * @param param A parameter for the where-equal query
      * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods,
      *         which never can be the runtime error
      */
-    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
+    public static getWhereArguments<T extends Model, Literal extends SpecialFields<T, Field>>
         (
-            this: Model.CreatorType<T>,
-            fieldLike: `${Field}` | `${string}.${Field}`,
-            param: FieldValueType<T[Field]>
-        ): [string, { [key: string]: FieldValueType<T[Field]> }];
+            this: Model.Creator<T>,
+            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            param: Field.ValueType<T[Literal]>
+        ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
     /**
      * Get arguments for the where query.
@@ -193,7 +222,7 @@ export abstract class Model extends orm.BaseEntity
      * that is caused by the mis-typing error in the SQL where query level.
      * 
      * @template T Type of a model class that is derived from the `Model`
-     * @template Field Type of a literal who represents the field that is defined in the *T* model
+     * @template Literal Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
      *                  the table alias.
      * @param operator Operator for the where condition
@@ -201,13 +230,13 @@ export abstract class Model extends orm.BaseEntity
      * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods,
      *         which never can be the runtime error
      */
-    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
+    public static getWhereArguments<T extends Model, Literal extends SpecialFields<T, Field>>
         (
-            this: Model.CreatorType<T>,
-            fieldLike: `${Field}` | `${string}.${Field}`,
-            operator: OperatorType,
-            param: FieldValueType<T[Field]>
-        ): [string, { [key: string]: FieldValueType<T[Field]> }];
+            this: Model.Creator<T>,
+            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            operator: Operator,
+            param: Field.ValueType<T[Literal]>
+        ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
     /**
      * Get arguments for the where-in query.
@@ -225,7 +254,7 @@ export abstract class Model extends orm.BaseEntity
      * that is caused by the mis-typing error in the SQL where query level.
      * 
      * @template T Type of a model class that is derived from the `Model`
-     * @template Field Type of a literal who represents the field that is defined in the *T* model
+     * @template Literal Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
      *                  the table alias.
      * @param operator Operator "BETWEEN" for the where condition
@@ -233,13 +262,13 @@ export abstract class Model extends orm.BaseEntity
      */
     public static getWhereArguments<
             T extends Model, 
-            Field extends SpecialFields<T, FieldType>>
+            Literal extends SpecialFields<T, Field>>
         (
-            this: Model.CreatorType<T>,
-            fieldLike: `${Field}` | `${string}.${Field}`,
+            this: Model.Creator<T>,
+            fieldLike: `${Literal}` | `${string}.${Literal}`,
             operator: "IN",
-            parameters: Array<FieldValueType<T[Field]>>,
-        ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
+            parameters: Array<Field.ValueType<T[Literal]>>,
+        ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
     
     /**
      * Get arguments for the where-between query.
@@ -257,7 +286,7 @@ export abstract class Model extends orm.BaseEntity
      * that is caused by the mis-typing error in the SQL where query level.
      * 
      * @template T Type of a model class that is derived from the `Model`
-     * @template Field Type of a literal who represents the field that is defined in the *T* model
+     * @template Literal Type of a literal who represents the field that is defined in the *T* model
      * @param fieldLike Name of the target field in the model class. The field name can contain
      *                  the table alias.
      * @param operator Operator "BETWEEN" for the where condition
@@ -268,23 +297,23 @@ export abstract class Model extends orm.BaseEntity
      */
     public static getWhereArguments<
             T extends Model, 
-            Field extends SpecialFields<T, FieldType>>
+            Literal extends SpecialFields<T, Field>>
         (
-            this: Model.CreatorType<T>,
-            fieldLike: `${Field}` | `${string}.${Field}`,
+            this: Model.Creator<T>,
+            fieldLike: `${Literal}` | `${string}.${Literal}`,
             operator: "BETWEEN",
-            minimum: FieldValueType<T[Field]>,
-            maximum: FieldValueType<T[Field]>
-        ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
+            minimum: Field.ValueType<T[Literal]>,
+            maximum: Field.ValueType<T[Literal]>
+        ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
-    public static getWhereArguments<T extends Model, Field extends SpecialFields<T, FieldType>>
+    public static getWhereArguments<T extends Model, Literal extends SpecialFields<T, Field>>
         (
-            this: Model.CreatorType<T>,
-            fieldLike: `${Field}` | `${string}.${Field}`,
+            this: Model.Creator<T>,
+            fieldLike: `${Literal}` | `${string}.${Literal}`,
             ...rest: any[]
         ): [string, any]
     {
-        return functional.getWhereArguments(this, fieldLike, ...(rest as [ OperatorType, FieldValueType<T[Field]> ]));
+        return functional.getWhereArguments(this, fieldLike, ...(rest as [ Operator, Field.ValueType<T[Literal]> ]));
     }
 
     /* -----------------------------------------------------------
@@ -331,7 +360,7 @@ export namespace Model
      * 
      * @template T Type of the target class that is derived from the {@link Model}
      */
-    export type CreatorType<T extends Model> = _CreatorType<T> & typeof Model;
+    export type Creator<T extends Model> = _Creator<T> & typeof Model;
 
     /**
      * @template T Type of a derived class from the {@link Model}
@@ -347,4 +376,6 @@ export namespace Model
                     : T[P]
                 : T[P];
     }>;
+
+    export type IProps<T extends Model> = Initialized<T>;
 }

@@ -1,12 +1,9 @@
-export * from "./IEntity";
+export * as typings from "./typings";
+
+export * from "./decorators";
+export * from "./functional";
+export * from "./utils";
+
 export * from "./JoinQueryBuilder";
 export * from "./Model";
-
-export * from "./decorators/Belongs";
-export * from "./decorators/EncryptedColumn";
-export * from "./decorators/Has";
-
-export * from "./utils/NamingStrategy";
-export * from "./utils/Password";
-
-export * from "./functional";
+export * from "./DEFAULT";

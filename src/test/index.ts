@@ -12,6 +12,7 @@ import { BbsComment } from "./models/BbsComment";
 import { BbsGroup } from "./models/BbsGroup";
 
 import { validate_equality } from "./internal/validate_equality";
+import { DEFAULT } from "../DEFAULT";
 
 /* -----------------------------------------------------------
     RAW DATA
@@ -62,12 +63,12 @@ function create_raw_content(): IContent
 
 function create_raw_file(): IAttachmentFile
 {
-    let name: string = RandomGenerator.characters(randint(5, 10));
-    let extension: string = RandomGenerator.characters(3);
+    const name: string = RandomGenerator.characters(randint(5, 10));
+    const extension: string = RandomGenerator.characters(3);
 
     return {
-        name: name,
-        extension: extension,
+        name,
+        extension,
         path: `http://127.0.0.1/files/${name}.${extension}`
     };
 }
@@ -95,10 +96,13 @@ function create_raw_groups(): IBbsGroup[]
 ----------------------------------------------------------- */
 async function archive_file(rawFile: IAttachmentFile): Promise<AttachmentFile>
 {
-    let ret: AttachmentFile = new AttachmentFile();
-    ret.name = rawFile.name;
-    ret.extension = rawFile.extension;
-    ret.path = rawFile.path;
+    const ret: AttachmentFile = AttachmentFile.initialize({
+        id: DEFAULT,
+        name: rawFile.name,
+        extension: rawFile.extension,
+        path: rawFile.path,
+        created_at: DEFAULT
+    });
     return await ret.save();
 }
 
@@ -107,46 +111,59 @@ async function archive_groups(rawGroupList: IBbsGroup[]): Promise<BbsGroup[]>
     const ret: BbsGroup[] = [];
     for (const rawGroup of rawGroupList)
     {
-        const group: BbsGroup = new BbsGroup();
-        group.code = rawGroup.code;
-        group.name = rawGroup.name;
+        const group: BbsGroup = BbsGroup.initialize({
+            id: DEFAULT,
+            parent: null,
+            code: rawGroup.code,
+            name: rawGroup.name
+        });
         await group.save();
 
         ret.push(group);
 
-        for (let rawArticle of rawGroup.articles)
+        for (const rawArticle of rawGroup.articles)
         {
-            let article: BbsArticle = new BbsArticle();
-            article.group.set(group);
-            article.writer = rawArticle.writer;
-            article.title = rawArticle.title;
-            article.content = rawArticle.content;
+            const article: BbsArticle = BbsArticle.initialize({
+                id: DEFAULT,
+                group,
+                writer: rawArticle.writer,
+                title: rawArticle.title,
+                content: rawArticle.content,
+                created_at: DEFAULT
+            });
             await article.password.set(RandomGenerator.characters(8));
             await article.save();
 
             if (rawArticle.cover !== null)
             {
-                let cover: BbsArticleCover = new BbsArticleCover();
-                cover.sub_title = rawArticle.cover.sub_title;
-                cover.file.set(await archive_file(rawArticle.cover.file));
-                cover.article.set(article);
+                const cover: BbsArticleCover = BbsArticleCover.initialize({
+                    id: DEFAULT,
+                    article,
+                    file: await archive_file(rawArticle.cover.file),
+                    sub_title: rawArticle.cover.sub_title
+                });
                 await cover.save();
             }
 
-            for (let rawFile of rawArticle.files)
+            for (const rawFile of rawArticle.files)
             {
-                let pair: BbsArticleFilePair = new BbsArticleFilePair();
-                pair.file.set(await archive_file(rawFile));
-                pair.article.set(article);
+                const pair: BbsArticleFilePair = BbsArticleFilePair.initialize({
+                    id: DEFAULT,
+                    article,
+                    file: await archive_file(rawFile),
+                });
                 await pair.save();
             }
 
-            for (let rawComment of rawArticle.comments)
+            for (const rawComment of rawArticle.comments)
             {
-                let comment: BbsComment = new BbsComment();
-                comment.article.set(article);
-                comment.writer = rawComment.writer;
-                comment.content = rawComment.content;
+                const comment: BbsComment = BbsComment.initialize({
+                    id: DEFAULT,
+                    article,
+                    writer: rawComment.writer,
+                    content: rawComment.content,
+                    created_at: DEFAULT
+                });
                 await comment.password.set(RandomGenerator.characters(8));
                 await comment.save();
             }
@@ -160,8 +177,8 @@ async function archive_groups(rawGroupList: IBbsGroup[]): Promise<BbsGroup[]>
 ----------------------------------------------------------- */
 async function map<T, Ret>(elements: T[], closure: (elem: T) => Promise<Ret>): Promise<Ret[]>
 {
-    let ret: Ret[] = [];
-    for (let elem of elements)
+    const ret: Ret[] = [];
+    for (const elem of elements)
         ret.push(await closure(elem));
     return ret;
 }

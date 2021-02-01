@@ -1,13 +1,58 @@
 import * as crypto from "crypto";
 import * as orm from "typeorm";
 
+import { Belongs } from "../decorators/Belongs";
 import { JoinQueryBuilder } from "../JoinQueryBuilder";
+import { DEFAULT } from "../DEFAULT";
 
-import { CreatorType } from "../typings/CreatorType";
-import { FieldType } from "../typings/FieldType";
-import { FieldValueType } from "../typings/FieldValueType";
-import { OperatorType } from "../typings/OperatorType";
+import { Creator } from "../typings/Creator";
+import { Field } from "../typings/Field";
+import { Initialized } from "../typings/Initialized";
+import { Operator } from "../typings/Operator";
 import { SpecialFields } from "../typings/SpecialFields";
+
+/**
+ * Initialize a model instance.
+ * 
+ * `initailize()` is a global function creating a new model instance very safely.
+ * 
+ * Unlike `TypeORM.Repository.create()` method, who can cause the critical runtime error by
+ * ommitting essential variables, the `initialize()` function does nott permit ommitting the 
+ * essential member variables in the compilation level.
+ * 
+ * In such reason, if you don't ignore error message from the TypeScript compiler, there can't be 
+ * any runtime error that is caused by the ommitting essential column values in the SQL INSERT or 
+ * UPDATE level.
+ * 
+ * @template T Type of a model class that is derived from the `Model`
+ * @param input Variables that would be assigned to the new model instance
+ * @return A new model instance
+ */
+export function initialize<T extends object>
+    (creator: Creator<T>, input: Initialized<T>): T
+{
+    const ret: T = new creator();
+    for (const tuple of Object.entries(input))
+    {
+        const value: any = tuple[1];
+        if (value === DEFAULT || value === null)
+            continue;
+
+        const key: string = tuple[0];
+        const type = typeof value;
+
+        if ((ret as any)[key] instanceof Belongs.HELPER_TYPE)
+        {
+            if (value instanceof Object)
+                (ret as any)[key].set(value);
+            else
+                (ret as any)[key].id = value;
+        }
+        else if (type === "boolean" || type === "number" || type === "string" || value instanceof Date)
+            (ret as any)[key] = value;
+    }
+    return ret;
+}
 
 /* -----------------------------------------------------------
     JOIN
@@ -33,7 +78,7 @@ import { SpecialFields } from "../typings/SpecialFields";
  */
 export function createJoinQueryBuilder<T extends object>
     (
-        creator: CreatorType<T>, 
+        creator: Creator<T>, 
         closure: (builder: JoinQueryBuilder<T>) => void
     ): orm.SelectQueryBuilder<T>;
 
@@ -59,13 +104,13 @@ export function createJoinQueryBuilder<T extends object>
  */
 export function createJoinQueryBuilder<T extends object>
     (
-        creator: CreatorType<T>, 
+        creator: Creator<T>, 
         alias: string,
         closure: (builder: JoinQueryBuilder<T>) => void
     ): orm.SelectQueryBuilder<T>;
 
 export function createJoinQueryBuilder<T extends object>
-    (creator: CreatorType<T>, ...args: any[]): orm.SelectQueryBuilder<T>
+    (creator: Creator<T>, ...args: any[]): orm.SelectQueryBuilder<T>
 {
     let alias: string;
     let closure: (builder: JoinQueryBuilder<T>) => void;
@@ -107,32 +152,32 @@ export function createJoinQueryBuilder<T extends object>
  * the mis-typing error in the SQL column specification level.
  * 
  * @template T Type of a model class
- * @template Field Type of a literal who represents the field that is defined in the *T* model
+ * @template Literal Type of a literal who represents the field that is defined in the *T* model
  * @param fieldLike Name of the target field in the model class. The field name can contain the 
  *                  table alias.
  * @param alias Alias of the target column
  * @return The exact column name who never can be the runtime error
  */
-export function getColumn<T extends object, Field extends SpecialFields<T, FieldType>>
+export function getColumn<T extends object, Literal extends SpecialFields<T, Field>>
     (
-        creator: CreatorType<T>, 
-        fieldLike: `${Field}` | `${string}.${Field}`,
+        creator: Creator<T>, 
+        fieldLike: `${Literal}` | `${string}.${Literal}`,
         alias?: string
     ): string
 {
     const index: number = (<string>fieldLike).indexOf(".");
     let tableAlias: string;
-    let field: Field;
+    let field: Literal;
 
     if (index === -1)
     {
         tableAlias = creator.name;
-        field = fieldLike as Field;
+        field = fieldLike as Literal;
     }
     else
     {
         tableAlias = (<string>fieldLike).substr(0, index);
-        field = (<string>fieldLike).substr(index + 1) as Field;
+        field = (<string>fieldLike).substr(index + 1) as Literal;
     }
 
     const fieldName: string = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, creator.prototype)
@@ -164,7 +209,7 @@ export function getColumn<T extends object, Field extends SpecialFields<T, Field
  * caused by the mis-typing error in the SQL where query level.
  * 
  * @template T Type of a model class
- * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @template Literal Type of a literal who represents the field that is defined in the *T*
  * @param creator The target model class
  * @param fieldLike Name of the target field in the model class. The field name can contain the 
  *                  table alias.
@@ -172,12 +217,12 @@ export function getColumn<T extends object, Field extends SpecialFields<T, Field
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
     (
-        creator: CreatorType<T>,
-        fieldLike: `${Field}` | `${string}.${Field}`,
-        param: FieldValueType<T[Field]>
-    ): [string, { [key: string]: FieldValueType<T[Field]> }];
+        creator: Creator<T>,
+        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        param: Field.ValueType<T[Literal]>
+    ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
 /**
  * Get arguments for the where query.
@@ -195,7 +240,7 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
  * caused by the mis-typing error in the SQL where query level.
  * 
  * @template T Type of a model class
- * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @template Literal Type of a literal who represents the field that is defined in the *T*
  * @param creator The target model class
  * @param fieldLike Name of the target field in the model class. The field name can contain the 
  *                  table alias.
@@ -204,13 +249,13 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
     (
-        creator: CreatorType<T>,
-        fieldLike: `${Field}` | `${string}.${Field}`,
-        operator: OperatorType,
-        param: FieldValueType<T[Field]>
-    ): [string, { [key: string]: FieldValueType<T[Field]> }];
+        creator: Creator<T>,
+        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        operator: Operator,
+        param: Field.ValueType<T[Literal]>
+    ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
 /**
  * Get arguments for the where-in query.
@@ -228,7 +273,7 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
  * caused by the mis-typing error in the SQL where query level.
  * 
  * @template T Type of a model class
- * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @template Literal Type of a literal who represents the field that is defined in the *T*
  * @param creator The target model class
  * @param fieldLike Name of the target field in the model class. The field name can contain the 
  *                  table alias.
@@ -237,13 +282,13 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
     (
-        creator: CreatorType<T>,
-        fieldLike: `${Field}` | `${string}.${Field}`,
+        creator: Creator<T>,
+        fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: "IN",
-        parameters: Array<FieldValueType<T[Field]>>
-    ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
+        parameters: Array<Field.ValueType<T[Literal]>>
+    ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
 /**
  * Get arguments for the where-between query.
@@ -261,7 +306,7 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
  * caused by the mis-typing error in the SQL where query level.
  * 
  * @template T Type of a model class
- * @template Field Type of a literal who represents the field that is defined in the *T*
+ * @template Literal Type of a literal who represents the field that is defined in the *T*
  * @param creator The target model class
  * @param fieldLike Name of the target field in the model class. The field name can contain the 
  *                  table alias.
@@ -271,19 +316,19 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
     (
-        creator: CreatorType<T>,
-        fieldLike: `${Field}` | `${string}.${Field}`,
+        creator: Creator<T>,
+        fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: "BETWEEN",
-        minimum: FieldValueType<T[Field]>,
-        maximum: FieldValueType<T[Field]>
-    ): [string, { [key: string]: Array<FieldValueType<T[Field]>> }];
+        minimum: Field.ValueType<T[Literal]>,
+        maximum: Field.ValueType<T[Literal]>
+    ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
-export function getWhereArguments<T extends object, Field extends SpecialFields<T, FieldType>>
+export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
     (
-        creator: CreatorType<T>,
-        fieldLike: `${Field}` | `${string}.${Field}`,
+        creator: Creator<T>,
+        fieldLike: `${Literal}` | `${string}.${Literal}`,
         ...rest: any[]
     ): [string, any]
 {
@@ -293,8 +338,8 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
     if (rest.length <= 2)
     {
         const uuid: string = crypto.randomBytes(64).toString("hex");
-        let operator: OperatorType;
-        let param: FieldValueType<T[Field]>
+        let operator: Operator;
+        let param: Field.ValueType<T[Literal]>
 
         if (rest.length === 1)
         {
@@ -312,8 +357,8 @@ export function getWhereArguments<T extends object, Field extends SpecialFields<
     // BETWEEN OPERATOR
     const from: string = crypto.randomBytes(64).toString("hex");
     const to: string = crypto.randomBytes(64).toString("hex");;
-    const minimum: FieldValueType<T[Field]> = rest[1];
-    const maximum: FieldValueType<T[Field]> = rest[2];
+    const minimum: Field.ValueType<T[Literal]> = rest[1];
+    const maximum: Field.ValueType<T[Literal]> = rest[2];
 
     return [`${column} BETWEEN :${from} AND :${to}`, 
     {

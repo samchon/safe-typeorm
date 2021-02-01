@@ -1,8 +1,7 @@
 import * as orm from "typeorm";
 import { Singleton } from "tstl/thread/Singleton";
 
-import { CreatorType } from "../typings/CreatorType";
-import { GeneratorType } from "../typings/GeneratorType";
+import { Creator } from "../typings/Creator";
 
 import { Belongs } from "./Belongs";
 import { ClosureProxy } from "./internal/ClosureProxy";
@@ -45,7 +44,7 @@ export namespace Has
      */
     export function OneToOne<Mine extends object, Target extends object>
         (
-            targetGen: GeneratorType<Target>,
+            targetGen: Creator.Generator<Target>,
             inverse: (input: Target) =>  Belongs.OneToOne<Mine, any>
         ): PropertyDecorator
     {
@@ -78,7 +77,7 @@ export namespace Has
      */
     export function OneToMany<Mine extends object, Target extends object>
         (
-            targetGen: GeneratorType<Target>,
+            targetGen: Creator.Generator<Target>,
             inverse: (input: Target) => Belongs.ManyToOne<Mine, any>
         ): PropertyDecorator
     {
@@ -98,7 +97,7 @@ export namespace Has
             (
                 mine: any, 
                 primaryField: string,
-                target: CreatorType<Target>, 
+                target: Creator<Target>, 
                 inverseField: string,
                 getter: string
             )
@@ -117,7 +116,7 @@ export namespace Has
             (
                 mine: any, 
                 primaryField: string,
-                target: CreatorType<Target>, 
+                target: Creator<Target>, 
                 inverseField: string,
                 getter: string
             ): Helper<Target, Ret>
@@ -157,7 +156,7 @@ export namespace Has
             Ret>
         (
             relation: typeof orm.OneToMany,
-            targetGen: GeneratorType<Target>,
+            targetGen: Creator.Generator<Target>,
             inverseClosure: (input: Target) => Belongs.ManyToOne<Mine, any>
         ): PropertyDecorator
     {
@@ -231,8 +230,8 @@ export namespace Has
      */
     export function ManyToMany<Mine extends object, Target extends object, Router extends object>
         (
-            targetGen: GeneratorType<Target>,
-            routerGen: GeneratorType<Router>,
+            targetGen: Creator.Generator<Target>,
+            routerGen: Creator.Generator<Router>,
             targetInverse: (router: Router) => Belongs.ManyToOne<Target, any>,
             myInverse: (router: Router) => Belongs.ManyToOne<Mine, any>
         ): PropertyDecorator
@@ -278,8 +277,8 @@ export namespace Has
         public constructor
             (
                 mine: any, 
-                targetFactory: CreatorType<Target>,
-                routerFactory: CreatorType<object>,
+                targetFactory: Creator<Target>,
+                routerFactory: Creator<object>,
                 targetInverseField: string,
                 myInverseField: string,
                 primaryKeyTuple: [string, string]
@@ -325,7 +324,7 @@ export namespace Has
     /**
      * @internal
      */
-    export function getPrimaryField(method: string, target: CreatorType<any>): string
+    export function getPrimaryField(method: string, target: Creator<any>): string
     {
         const columns = orm.getRepository(target).metadata.primaryColumns;
         if (columns.length !== 1)

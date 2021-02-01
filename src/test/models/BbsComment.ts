@@ -26,7 +26,7 @@ export class BbsComment extends BbsContentBase
         "pid", 
         { index: true, nullable: true }
     )
-    public parent!: Belongs.ManyToOne<BbsComment, "int">;
+    public parent!: Belongs.ManyToOne<BbsComment, "int", { nullable: true }>;
 
     /* -----------------------------------------------------------
         HAS

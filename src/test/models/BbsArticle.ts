@@ -29,7 +29,7 @@ export class BbsArticle extends BbsContentBase
         "pid",
         { index: true, nullable: true }
     )
-    public parent!: Belongs.ManyToOne<BbsArticle, "int">;
+    public parent!: Belongs.ManyToOne<BbsArticle, "int", { nullable: true }>;
 
     @orm.Column("varchar")
     public title!: string;

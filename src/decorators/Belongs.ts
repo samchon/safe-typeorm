@@ -1,14 +1,13 @@
 import * as orm from "typeorm";
 
 import { Has } from "./Has";
+import { ClosureProxy } from "./internal/ClosureProxy";
 
 import { CapsuleNullable } from "../typings/CapsuleNullable";
-import { CreatorType } from "../typings/CreatorType";
+import { Creator } from "../typings/Creator";
 import { SpecialFields } from "../typings/SpecialFields";
 import { PrimaryGeneratedColumnType } from "typeorm/driver/types/ColumnTypes";
 import { PrimaryGeneratedColumnValueType } from "../typings/PrimaryGeneratedColumnValueType";
-import { ClosureProxy } from "./internal/ClosureProxy";
-import { GeneratorType } from "../typings/GeneratorType";
 
 /**
  * Decorators for the "belongs" relationship.
@@ -54,7 +53,7 @@ export namespace Belongs
             Type extends PrimaryGeneratedColumnType,
             Options extends Partial<ManyToOne.IOptions<Type>>>
         (
-            targetGen: GeneratorType<Target>, 
+            targetGen: Creator.Generator<Target>, 
             type: Type,
             myField: string, 
             options?: Options
@@ -83,7 +82,7 @@ export namespace Belongs
             Type extends PrimaryGeneratedColumnType,
             Options extends Partial<ManyToOne.IOptions<Type>>>
         (
-            targetGen: GeneratorType<Target>, 
+            targetGen: Creator.Generator<Target>, 
             inverse: (target: Target) => Has.OneToMany<Mine>,
             type: Type,
             myField: string, 
@@ -145,7 +144,7 @@ export namespace Belongs
             Type extends PrimaryGeneratedColumnType,
             Options extends Partial<OneToOne.IOptions<Type>>>
         (
-            targetGen: GeneratorType<Target>, 
+            targetGen: Creator.Generator<Target>, 
             type: Type,
             myField: string,
             options?: Options
@@ -174,7 +173,7 @@ export namespace Belongs
             Type extends PrimaryGeneratedColumnType,
             Options extends Partial<OneToOne.IOptions<Type>>>
         (
-            targetGen: GeneratorType<Target>, 
+            targetGen: Creator.Generator<Target>, 
             inverse: (input: Target) => Has.OneToOne<Mine>,
             type: Type,
             myField: string, 
@@ -210,7 +209,7 @@ export namespace Belongs
             Options extends OneToOne.IOptions<Type>>
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
-            targetGen: () => CreatorType<Target>,
+            targetGen: () => Creator<Target>,
             inverse: ((input: Target) => (Has.OneToOne<Mine> | Has.OneToMany<Mine>)) | undefined,
             type: Type,
             field: string,
@@ -274,14 +273,14 @@ export namespace Belongs
             Type extends PrimaryGeneratedColumnType, 
             Options extends Partial<ManyToOne.IOptions<Type>>>
     {
-        private readonly target_: CreatorType<Target>;
+        private readonly target_: Creator<Target>;
         private readonly target_primary_field_: string;
         private readonly source_: any;
         private readonly getter_: string;
         private readonly field_: string;
         private changed_: boolean;
 
-        private constructor(target: CreatorType<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string)
+        private constructor(target: Creator<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string)
         {
             this.target_ = target;
             this.target_primary_field_ = targetPrimaryField;
@@ -298,7 +297,7 @@ export namespace Belongs
                 Target extends object, 
                 Type extends PrimaryGeneratedColumnType, 
                 Options extends Partial<ManyToOne.IOptions<Type>>>
-            (target: CreatorType<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string): Helper<Target, Type, Options>
+            (target: Creator<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string): Helper<Target, Type, Options>
         {
             return new Helper(target, targetPrimaryField, source, property, field);
         }
@@ -367,6 +366,11 @@ export namespace Belongs
     /* -----------------------------------------------------------
         HIDDEN ACCESSORS
     ----------------------------------------------------------- */
+    /**
+     * @internal
+     */
+    export const HELPER_TYPE = Helper;
+
     /**
      * @internal
      */
