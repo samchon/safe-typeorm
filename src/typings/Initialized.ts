@@ -7,7 +7,7 @@ import { DEFAULT } from "../DEFAULT"
 
 export type Initialized<T extends object> 
     = OmitNever<Initialized.Essential<T>>
-    & Partial<OmitNever<Initialized.Nullable<T>>>;
+    & OmitNever<Initialized.Nullable<T>>;
 
 export namespace Initialized
 {

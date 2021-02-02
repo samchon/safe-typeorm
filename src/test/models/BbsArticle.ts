@@ -20,7 +20,8 @@ export class BbsArticle extends BbsContentBase
         group => group.articles,
         "int", 
         "bbs_group_id",
-        { index: true })
+        { index: true }
+    )
     public group!: Belongs.ManyToOne<BbsGroup, "int">;
 
     @Belongs.ManyToOne(() => BbsArticle,

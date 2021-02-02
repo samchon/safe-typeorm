@@ -126,10 +126,13 @@ async function archive_groups(rawGroupList: IBbsGroup[]): Promise<BbsGroup[]>
             const article: BbsArticle = BbsArticle.initialize({
                 id: DEFAULT,
                 group,
+                parent: null,
                 writer: rawArticle.writer,
                 title: rawArticle.title,
                 content: rawArticle.content,
-                created_at: DEFAULT
+                created_at: DEFAULT,
+                updated_at: DEFAULT,
+                deleted_at: null
             });
             await article.password.set(RandomGenerator.characters(8));
             await article.save();
@@ -160,9 +163,12 @@ async function archive_groups(rawGroupList: IBbsGroup[]): Promise<BbsGroup[]>
                 const comment: BbsComment = BbsComment.initialize({
                     id: DEFAULT,
                     article,
+                    parent: null,
                     writer: rawComment.writer,
                     content: rawComment.content,
-                    created_at: DEFAULT
+                    created_at: DEFAULT,
+                    updated_at: DEFAULT,
+                    deleted_at: null
                 });
                 await comment.password.set(RandomGenerator.characters(8));
                 await comment.save();

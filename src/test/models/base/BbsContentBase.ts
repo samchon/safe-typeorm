@@ -31,8 +31,8 @@ export abstract class BbsContentBase extends Model
     @orm.CreateDateColumn()
     public created_at!: Date;
 
-    @orm.UpdateDateColumn({ nullable: true })
-    public updated_at!: Date | null;
+    @orm.UpdateDateColumn()
+    public updated_at!: Date;
 
     @orm.DeleteDateColumn({ nullable: true })
     public deleted_at!: Date | null;

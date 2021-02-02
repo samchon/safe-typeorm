@@ -102,9 +102,9 @@ export namespace Belongs
          * 
          */
         export interface IOptions<Type extends PrimaryGeneratedColumnType>
+            extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
         {
             index: boolean;
-            nullable: boolean;
             unsigned: Type extends "uuid" ? never : boolean;
         }
     }
@@ -218,6 +218,7 @@ export namespace Belongs
     {
         if (options === undefined)
             options = {} as Options;
+        options = _Take_relation_options(options) as Options;
 
         return function ($class, $property)
         {
@@ -243,10 +244,11 @@ export namespace Belongs
             orm.JoinColumn({ name: field })($class, getter);
 
             // THE FOREIGN REFERENCING COLUMN
+            const columnOptions = _Take_column_options(options!);
             if (options!.primary === true)
-                orm.PrimaryColumn(<any>type, options)($class, field);
+                orm.PrimaryColumn(<any>type, columnOptions)($class, field);
             else
-                orm.Column(<any>type, options)($class, field);
+                orm.Column(<any>type, columnOptions)($class, field);
 
             // DEFINE THE ACCESSOR PROPERTY
             Object.defineProperty($class, $property,
@@ -264,6 +266,38 @@ export namespace Belongs
             });
         };
     }
+
+    function _Take_relation_options<Type extends PrimaryGeneratedColumnType>
+        (options: OneToOne.IOptions<Type>): OneToOne.IOptions<Type>
+    {
+        const ret: OneToOne.IOptions<Type> = { ...options };
+        if (ret.onDelete === undefined)
+            ret.onDelete = "CASCADE";
+        if (ret.onUpdate === undefined)
+            ret.onUpdate = "CASCADE";
+        return ret;
+    }
+
+    function _Take_column_options<Type extends PrimaryGeneratedColumnType>
+        (options: OneToOne.IOptions<Type>): Omit<OneToOne.IOptions<Type>, keyof orm.RelationOptions>
+    {
+        const ret: any = { ...options };
+        for (const key of RELATION_PROPERTIES)
+            if (ret[key] !== undefined)
+                delete ret[key];
+        return ret;
+    }
+
+    const RELATION_PROPERTIES: Array<keyof orm.RelationOptions> = [
+        "cascade", 
+        "onDelete",
+        "onUpdate",
+        "deferrable",
+        "lazy", 
+        "eager", 
+        "persistence", 
+        "orphanedRowAction"
+    ];
 
     /* -----------------------------------------------------------
         HELPER
