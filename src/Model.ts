@@ -203,7 +203,7 @@ export abstract class Model extends orm.BaseEntity
         (
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
-            param: Field.ValueType<T[Literal]>
+            param: Field.MemberType<T, Literal>
         ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
     /**
@@ -235,7 +235,7 @@ export abstract class Model extends orm.BaseEntity
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
             operator: Operator,
-            param: Field.ValueType<T[Literal]>
+            param: Field.MemberType<T, Literal>
         ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
     /**
@@ -267,7 +267,7 @@ export abstract class Model extends orm.BaseEntity
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
             operator: "IN",
-            parameters: Array<Field.ValueType<T[Literal]>>,
+            parameters: Array<Field.MemberType<T, Literal>>,
         ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
     
     /**
@@ -302,8 +302,8 @@ export abstract class Model extends orm.BaseEntity
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
             operator: "BETWEEN",
-            minimum: Field.ValueType<T[Literal]>,
-            maximum: Field.ValueType<T[Literal]>
+            minimum: Field.MemberType<T, Literal>,
+            maximum: Field.MemberType<T, Literal>
         ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
     public static getWhereArguments<T extends Model, Literal extends SpecialFields<T, Field>>
@@ -313,7 +313,7 @@ export abstract class Model extends orm.BaseEntity
             ...rest: any[]
         ): [string, any]
     {
-        return functional.getWhereArguments(this, fieldLike, ...(rest as [ Operator, Field.ValueType<T[Literal]> ]));
+        return functional.getWhereArguments(this, fieldLike, ...(rest as [ Operator, Field.MemberType<T, Literal> ]));
     }
 
     /* -----------------------------------------------------------

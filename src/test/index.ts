@@ -241,7 +241,11 @@ async function validate(original: IBbsGroup[], records: BbsGroup[]): Promise<voi
 
 async function test_join(): Promise<void>
 {
+    const article: BbsArticle = await BbsArticle.findOneOrFail();
+
     const stmt = BbsGroup.createJoinQueryBuilder(group => group.innerJoin("articles"))
+        .andWhere(...BbsGroup.getWhereArguments("id", article.group))
+        .orWhere(...BbsGroup.getWhereArguments("id", "IN", [1, 2, 3, article.group]))
         .select([
             BbsArticle.getColumn("id"),
             BbsArticle.getColumn("group"),

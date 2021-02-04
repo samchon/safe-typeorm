@@ -165,6 +165,19 @@ export function getColumn<T extends object, Literal extends SpecialFields<T, Fie
         alias?: string
     ): string
 {
+    const tuple: [string, string] = _Get_column(creator, fieldLike);
+    if (alias === undefined)
+        alias = tuple[1];
+
+    return `${tuple[0]}.${tuple[1]} AS \`${alias}\``;
+}
+
+function _Get_column<T extends object, Literal extends SpecialFields<T, Field>>
+    (
+        creator: Creator<T>, 
+        fieldLike: `${Literal}` | `${string}.${Literal}`
+    ): [string, string]
+{
     const index: number = (<string>fieldLike).indexOf(".");
     let tableAlias: string;
     let field: Literal;
@@ -183,11 +196,7 @@ export function getColumn<T extends object, Literal extends SpecialFields<T, Fie
     const fieldName: string = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, creator.prototype)
         ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, creator.prototype)
         : field as string;
-    const target: string = `${tableAlias}.${fieldName}`;
-
-    if (alias === undefined)
-        alias = fieldName;
-    return `${target} AS \`${alias}\``;
+    return [tableAlias, fieldName];
 }
 
 /* -----------------------------------------------------------
@@ -221,7 +230,7 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
-        param: Field.ValueType<T[Literal]>
+        param: Field.MemberType<T, Literal>
     ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
 /**
@@ -254,7 +263,7 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: Operator,
-        param: Field.ValueType<T[Literal]>
+        param: Field.MemberType<T, Literal>
     ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
 /**
@@ -287,7 +296,7 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: "IN",
-        parameters: Array<Field.ValueType<T[Literal]>>
+        parameters: Array<Field.MemberType<T, Literal>>
     ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
 /**
@@ -321,8 +330,8 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: "BETWEEN",
-        minimum: Field.ValueType<T[Literal]>,
-        maximum: Field.ValueType<T[Literal]>
+        minimum: Field.MemberType<T, Literal>,
+        maximum: Field.MemberType<T, Literal>
     ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
 export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
@@ -332,13 +341,14 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
         ...rest: any[]
     ): [string, any]
 {
-    const column: string = getColumn(creator, fieldLike);
+    const tuple: [string, string] = _Get_column(creator, fieldLike);
+    const column: string = `${tuple[0]}.${tuple[1]}`;
 
     // MOST OPERATORS
     if (rest.length <= 2)
     {
-        const uuid: string = crypto.randomBytes(64).toString("hex");
-        let operator: Operator;
+        // SPECIALIZE OPERATOR AND PARAMETER
+        let operator: Operator | "IN";
         let param: Field.ValueType<T[Literal]>
 
         if (rest.length === 1)
@@ -351,18 +361,49 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
             operator = rest[0];
             param = rest[1];
         }
-        return [`${column} ${operator} :${uuid}`, { [uuid]: param }];
+        param = _Decompose_parameter(param);
+
+        // RETURNS WITH BINDING
+        const uuid: string = crypto.randomBytes(64).toString("hex");
+        const binding: string = (operator === "IN")
+            ? `(:${uuid})`
+            : `:${uuid}`;
+        return [`${column} ${operator} ${binding}`, { [uuid]: param }];
     }
 
     // BETWEEN OPERATOR
     const from: string = crypto.randomBytes(64).toString("hex");
     const to: string = crypto.randomBytes(64).toString("hex");;
-    const minimum: Field.ValueType<T[Literal]> = rest[1];
-    const maximum: Field.ValueType<T[Literal]> = rest[2];
+    const minimum: Field.ValueType<T[Literal]> = _Decompose_entity(rest[1]);
+    const maximum: Field.ValueType<T[Literal]> = _Decompose_entity(rest[2]);
 
     return [`${column} BETWEEN :${from} AND :${to}`, 
     {
         [from]: minimum,
         [to]: maximum
     }];
+}
+
+function _Decompose_parameter(param: any): any
+{
+    if (param instanceof Array && param.length !== 0)
+        return param.map(p => _Decompose_entity(p));
+    else
+        return _Decompose_entity(param);
+}
+
+function _Decompose_entity(param: any): any
+{
+    if (param instanceof Object && !(param instanceof Date))
+    {
+        if (param instanceof Belongs.HELPER_TYPE)
+            param = param.id;
+        else
+        {
+            const pkField: string | undefined = orm.getRepository(param.constructor).metadata.primaryColumns[0]?.propertyName;
+            if (pkField !== undefined)
+                param = param[pkField];
+        }
+    }
+    return param;
 }

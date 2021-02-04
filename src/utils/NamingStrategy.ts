@@ -30,5 +30,17 @@ export class NamingStrategy extends DefaultNamingStrategy
 
 function pascal_to_snake(name: string): string
 {
-    return name.split(/(?=[A-Z])/).map(str => str.toLowerCase()).join("_");
+    let elements: string[] = name.split(/(?=[A-Z])/);
+    if (elements.length > 1 && is_underscore_prefixed(elements[0]) === true)
+        elements = [ elements[0] + elements[1], ...elements.slice(2) ];
+
+    return elements.map(str => str.toLowerCase()).join("_");
+}
+
+function is_underscore_prefixed(str: string): boolean
+{
+    for (let ch of str)
+        if (ch !== "_")
+            return false;
+    return true;
 }
