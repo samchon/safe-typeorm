@@ -20,11 +20,11 @@ export namespace Field
         : Type extends Belongs.ManyToOne<infer Target, infer KeyType, infer Options> 
             ? Options extends { nullable: true }
                 ? (ModelLike<Target, KeyType, any> | PrimaryGeneratedColumnValueType<KeyType> | null)
-                : (ModelLike<Target, KeyType, false|undefined> | PrimaryGeneratedColumnValueType<KeyType>)
+                : (ModelLike<Target, KeyType, false> | PrimaryGeneratedColumnValueType<KeyType>)
         : Type extends Belongs.OneToOne<infer Target, infer KeyType, infer Options>
             ? Options extends { nullable: true }
                 ? (ModelLike<Target, KeyType, any> | PrimaryGeneratedColumnValueType<KeyType> | null)
-                : (ModelLike<Target, KeyType, false|undefined> | PrimaryGeneratedColumnValueType<KeyType>)
+                : (ModelLike<Target, KeyType, false> | PrimaryGeneratedColumnValueType<KeyType>)
         : Type extends Date ? (string | Date)
         : Type;
 
