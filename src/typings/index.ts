@@ -5,6 +5,6 @@ export * from "./Initialized";
 export * from "./ModelLike";
 export * from "./OmitNever";
 export * from "./Operator";
-export * from "./PrimaryGeneratedColumnValueType";
+export * from "./PrimaryGeneratedColumn";
 export * from "./Relationship";
 export * from "./SpecialFields";

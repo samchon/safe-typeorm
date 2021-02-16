@@ -1,7 +1,7 @@
 import { Belongs } from "../decorators/Belongs"
 
 import { OmitNever } from "./OmitNever";
-import { PrimaryGeneratedColumnValueType } from "./PrimaryGeneratedColumnValueType"
+import { PrimaryGeneratedColumn } from "./PrimaryGeneratedColumn";
 
 import { DEFAULT } from "../DEFAULT"
 
@@ -18,11 +18,11 @@ export namespace Initialized
             : T[P] extends Belongs.OneToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
                     ? never
-                    : Entity | PrimaryGeneratedColumnValueType<Primary>
+                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
             : T[P] extends Belongs.ManyToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
                     ? never
-                    : Entity | PrimaryGeneratedColumnValueType<Primary>
+                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
             : never;
     };
 
@@ -32,11 +32,11 @@ export namespace Initialized
             ? (T[P] | DEFAULT | null)
             : T[P] extends Belongs.OneToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
-                    ? Entity | PrimaryGeneratedColumnValueType<Primary> | null
+                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
                     : never
             : T[P] extends Belongs.ManyToOne<infer Entity, infer Primary, infer Options>
             ? Options extends { nullable: true }
-                ? Entity | PrimaryGeneratedColumnValueType<Primary> | null
+                ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
                 : never
             : never;
     };

@@ -6,8 +6,7 @@ import { ClosureProxy } from "./internal/ClosureProxy";
 import { CapsuleNullable } from "../typings/CapsuleNullable";
 import { Creator } from "../typings/Creator";
 import { SpecialFields } from "../typings/SpecialFields";
-import { PrimaryGeneratedColumnType } from "typeorm/driver/types/ColumnTypes";
-import { PrimaryGeneratedColumnValueType } from "../typings/PrimaryGeneratedColumnValueType";
+import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
 
 /**
  * Decorators for the "belongs" relationship.
@@ -30,7 +29,7 @@ export namespace Belongs
      */
     export type ManyToOne<
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType, 
+            Type extends PrimaryGeneratedColumn, 
             Options extends Partial<ManyToOne.IOptions<Type>> = {}> 
         = Helper<Target, Type, Options>;
 
@@ -50,7 +49,7 @@ export namespace Belongs
      */
     export function ManyToOne<
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType,
+            Type extends PrimaryGeneratedColumn,
             Options extends Partial<ManyToOne.IOptions<Type>>>
         (
             targetGen: Creator.Generator<Target>, 
@@ -79,7 +78,7 @@ export namespace Belongs
     export function ManyToOne<
             Mine extends object,
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType,
+            Type extends PrimaryGeneratedColumn,
             Options extends Partial<ManyToOne.IOptions<Type>>>
         (
             targetGen: Creator.Generator<Target>, 
@@ -101,7 +100,7 @@ export namespace Belongs
         /**
          * 
          */
-        export interface IOptions<Type extends PrimaryGeneratedColumnType>
+        export interface IOptions<Type extends PrimaryGeneratedColumn>
             extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
         {
             index: boolean;
@@ -121,7 +120,7 @@ export namespace Belongs
      */
     export type OneToOne<
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType, 
+            Type extends PrimaryGeneratedColumn, 
             Options extends Partial<OneToOne.IOptions<Type>> = {}> 
         = Helper<Target, Type, Options>;
 
@@ -141,7 +140,7 @@ export namespace Belongs
      */
     export function OneToOne<
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType,
+            Type extends PrimaryGeneratedColumn,
             Options extends Partial<OneToOne.IOptions<Type>>>
         (
             targetGen: Creator.Generator<Target>, 
@@ -170,7 +169,7 @@ export namespace Belongs
     export function OneToOne<
             Mine extends object, 
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType,
+            Type extends PrimaryGeneratedColumn,
             Options extends Partial<OneToOne.IOptions<Type>>>
         (
             targetGen: Creator.Generator<Target>, 
@@ -191,7 +190,7 @@ export namespace Belongs
         /**
          * 
          */
-        export interface IOptions<Type extends PrimaryGeneratedColumnType>
+        export interface IOptions<Type extends PrimaryGeneratedColumn>
             extends ManyToOne.IOptions<Type>
         {
             unique: boolean;
@@ -205,7 +204,7 @@ export namespace Belongs
     function _Belongs_to<
             Mine extends object, 
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType, 
+            Type extends PrimaryGeneratedColumn, 
             Options extends OneToOne.IOptions<Type>>
         (
             relation: typeof orm.ManyToOne | typeof orm.OneToOne,
@@ -267,7 +266,7 @@ export namespace Belongs
         };
     }
 
-    function _Take_relation_options<Type extends PrimaryGeneratedColumnType>
+    function _Take_relation_options<Type extends PrimaryGeneratedColumn>
         (options: OneToOne.IOptions<Type>): OneToOne.IOptions<Type>
     {
         const ret: OneToOne.IOptions<Type> = { ...options };
@@ -278,7 +277,7 @@ export namespace Belongs
         return ret;
     }
 
-    function _Take_column_options<Type extends PrimaryGeneratedColumnType>
+    function _Take_column_options<Type extends PrimaryGeneratedColumn>
         (options: OneToOne.IOptions<Type>): Omit<OneToOne.IOptions<Type>, keyof orm.RelationOptions>
     {
         const ret: any = { ...options };
@@ -304,7 +303,7 @@ export namespace Belongs
     ----------------------------------------------------------- */
     class Helper<
             Target extends object, 
-            Type extends PrimaryGeneratedColumnType, 
+            Type extends PrimaryGeneratedColumn, 
             Options extends Partial<ManyToOne.IOptions<Type>>>
     {
         private readonly target_: Creator<Target>;
@@ -329,7 +328,7 @@ export namespace Belongs
          */
         public static create<
                 Target extends object, 
-                Type extends PrimaryGeneratedColumnType, 
+                Type extends PrimaryGeneratedColumn, 
                 Options extends Partial<ManyToOne.IOptions<Type>>>
             (target: Creator<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string): Helper<Target, Type, Options>
         {
@@ -339,13 +338,13 @@ export namespace Belongs
         /**
          * 
          */
-        public get id(): CapsuleNullable<PrimaryGeneratedColumnValueType<Type>, Options>
+        public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
         {
             return this.source_[this.field_];
         }
-        public set id(value: CapsuleNullable<PrimaryGeneratedColumnValueType<Type>, Options>)
+        public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
         {
-            const previous: CapsuleNullable<PrimaryGeneratedColumnValueType<Type>, Options> = this.source_[this.field_];
+            const previous: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.source_[this.field_];
             this.source_[this.field_] = value;
 
             if (previous !== value)
@@ -361,7 +360,7 @@ export namespace Belongs
          */
         public async get(): Promise<CapsuleNullable<Target, Options>>
         {
-            const id: CapsuleNullable<PrimaryGeneratedColumnValueType<Type>, Options> = this.id;
+            const id: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.id;
             if (id === null)
                 return null!;
 
