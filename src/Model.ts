@@ -170,7 +170,7 @@ export abstract class Model extends orm.BaseEntity
         (
             this: Model.Creator<T>, 
             fieldLike: `${Literal}` | `${string}.${Literal}`,
-            alias?: string
+            alias?: string | null
         ): string
     {
         return functional.getColumn<T, Literal>(this, fieldLike, alias);

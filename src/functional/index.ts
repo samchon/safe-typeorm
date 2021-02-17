@@ -226,14 +226,17 @@ export function getColumn<T extends object, Literal extends SpecialFields<T, Fie
     (
         creator: Creator<T>, 
         fieldLike: `${Literal}` | `${string}.${Literal}`,
-        alias?: string
+        alias?: string | null
     ): string
 {
     const tuple: [string, string] = _Get_column(creator, fieldLike);
     if (alias === undefined)
         alias = tuple[1];
 
-    return `${tuple[0]}.${tuple[1]} AS \`${alias}\``;
+    const target: string = `${tuple[0]}.${tuple[1]}`;
+    return (alias === null)
+        ? target
+        : `${target} AS \`${alias}\``;
 }
 
 function _Get_column<T extends object, Literal extends SpecialFields<T, Field>>
