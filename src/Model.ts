@@ -62,8 +62,10 @@ export abstract class Model extends orm.BaseEntity
      * In such reason, when type of a primary is not the {@link PrimaryGeneratedColumn}, you have 
      * to distinguish `INSERT` and `UPDATE` queries by calling one of the {@link save} and 
      * {@link update} method by yourself.
+     * 
+     * @param manager EntityManager instance if you're in a transaction scope
      */
-    public async update(): Promise<void>
+    public async update(manager?: orm.EntityManager): Promise<void>
     {
         const columnList = orm.getRepository(this.constructor).metadata.columns;
         const props: any = {};
@@ -75,7 +77,9 @@ export abstract class Model extends orm.BaseEntity
         }
 
         const field: string = Has.getPrimaryField(`${this.constructor.name}.update`, this.constructor as any);
-        await orm.getRepository(this.constructor).update((this as any)[field], props);
+        const helper: orm.EntityManager = (manager !== undefined ? manager : orm) as orm.EntityManager;
+
+        await helper.getRepository(this.constructor).update((this as any)[field], props);
     }
 
     /* -----------------------------------------------------------
