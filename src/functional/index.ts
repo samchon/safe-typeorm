@@ -1,5 +1,6 @@
 import * as crypto from "crypto";
 import * as orm from "typeorm";
+import { InvalidArgument } from "tstl";
 
 import { Belongs } from "../decorators/Belongs";
 import { JoinQueryBuilder } from "../JoinQueryBuilder";
@@ -429,6 +430,17 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
             param = rest[1];
         }
         param = _Decompose_parameter(param);
+
+        // IS NULL || IS-NOT-NULL
+        if (param === null)
+        {
+            if (operator === "=")
+                return [`${column} IS NULL`] as any;
+            else if (operator === "!=" || operator === "<>")
+                return [`${column} IS NOT NULL`] as any;
+            else
+                throw new InvalidArgument(`Error on ${creator.name}.getColumn(): unable to bind null value for the ${operator} operator.`);
+        }
 
         // RETURNS WITH BINDING
         const uuid: string = crypto.randomBytes(64).toString("hex");

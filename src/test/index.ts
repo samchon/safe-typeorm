@@ -256,6 +256,14 @@ async function test_join(): Promise<void>
         ]);
     console.log(stmt.getSql());
     console.log(await stmt.getRawMany());
+
+    console.log
+    (
+        BbsArticle
+            .createQueryBuilder()
+            .andWhere(...BbsArticle.getWhereArguments("parent", null!))
+            .getSql()
+    );
 }
 
 /* -----------------------------------------------------------
