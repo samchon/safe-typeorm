@@ -27,8 +27,9 @@ export namespace Has
      * Type for a variable using the `Has.OneToOne` decorator.
      * 
      * @template Target Type of the target model class who belongs to this model class *Mine* as 1: 1
+     * @template Ensure Whether existence of the 1:1 owned record can be assured.
      */
-    export type OneToOne<Target extends object> = Helper<Target, Target | null>;
+    export type OneToOne<Target extends object, Ensure extends boolean = false> = Helper<Target, Ensure extends true ? Target : Target | null>;
 
     /**
      * Decorator function for the "1: 1 has" relationship.

@@ -7,8 +7,8 @@ import { Has } from "./decorators/Has";
 
 import { Creator as _Creator } from "./typings/Creator";
 import { Field } from "./typings/Field";
-import { OmitNever } from "./typings/OmitNever";
 import { Initialized } from "./typings/Initialized";
+import { OmitNever } from "./typings/OmitNever";
 import { Operator } from "./typings/Operator";
 import { SpecialFields } from "./typings/SpecialFields";
 
@@ -328,14 +328,50 @@ export abstract class Model extends orm.BaseEntity
      * 
      * @return The primitive object
      */
-    public toPrimitive(): Model.Primitive<this>
+    public toPrimitive(): Model.Primitive<this>;
+
+    /**
+     * Convert to the primitive object with special ommissions.
+     * 
+     * @param omits Fields to be ommitted
+     * @return The primitive object with ommission
+     */
+    public toPrimitive<OmitField extends keyof Model.Primitive<this>>
+        (...omits: OmitField[]): OmitNever<Omit<Model.Primitive<this>, OmitField>>;
+
+    public toPrimitive(...omits: string[]): object
     {
+        if (Model.to_primitive_omit_dicts_.has(this.constructor as Model.Creator<this>) === false)
+        {
+            const dict: Set<string> = new Set();
+            const metadata: orm.EntityMetadata = orm.getRepository(this.constructor).metadata;
+
+            for (const foreign of metadata.foreignKeys)
+                for (const column of foreign.columns)
+                {
+                    const property: string = column.propertyName;
+                    if (dict.has(property) === true)
+                        continue;
+
+                    const primary = metadata.primaryColumns.find(elem => elem.propertyName === property);
+                    if (primary === undefined)
+                        dict.add(property);
+                }
+            Model.to_primitive_omit_dicts_.set(this.constructor as Model.Creator<this>, dict);
+        }
+
+        const omitDict: Set<string> = Model.to_primitive_omit_dicts_.get(this.constructor as Model.Creator<this>)!;
         const ret: Record<string, any> = {};
+
         for (const tuple of Object.entries(this))
         {
             const key: string = tuple[0];
-            const value: any = tuple[1];
+            if (omitDict.has(key) === true)
+                continue;
+            else if (omits && omits.find(str => str === key) !== undefined)
+                continue;
 
+            const value: any = tuple[1];
             if (key[0] === "_" || key[key.length - 1] === "_")
                 if (key.substr(0, 8) === "__m_enc_")
                 {
@@ -352,9 +388,10 @@ export abstract class Model extends orm.BaseEntity
             else
                 ret[key] = value;
         }
-
         return ret as Model.Primitive<this>;
     }
+
+    private static readonly to_primitive_omit_dicts_: WeakMap<Model.Creator<any>, Set<string>> = new WeakMap();
 }
 
 export namespace Model
@@ -378,7 +415,7 @@ export namespace Model
                 : T[P] extends (Date|null) 
                     ? (string|null)
                     : T[P]
-                : T[P];
+            : never;
     }>;
 
     export type IProps<T extends Model> = Initialized<T>;

@@ -11,8 +11,8 @@ import { BbsArticleFilePair } from "./models/BbsArticleFilePair";
 import { BbsComment } from "./models/BbsComment";
 import { BbsGroup } from "./models/BbsGroup";
 
-import { validate_equality } from "./internal/validate_equality";
 import { DEFAULT } from "../DEFAULT";
+import { validate_equality } from "./internal/validate_equality";
 
 /* -----------------------------------------------------------
     RAW DATA
@@ -232,7 +232,7 @@ async function validate(original: IBbsGroup[], records: BbsGroup[]): Promise<voi
     const article = (await group.articles.get())[0];
     const comment = (await article.comments.get())[0];
 
-    console.log(group?.toPrimitive(), article?.toPrimitive(), comment?.toPrimitive());
+    console.log(group?.toPrimitive("id"), article?.toPrimitive("id"), comment?.toPrimitive("id"));
     console.log("article.bbs_group_id", article?.group.id);
 
     const deserialized: IBbsGroup[] = await serialize(records);
