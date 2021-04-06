@@ -234,7 +234,9 @@ export function getColumn<T extends object, Literal extends SpecialFields<T, Fie
     if (alias === undefined)
         alias = tuple[1];
 
-    const target: string = `${tuple[0]}.${tuple[1]}`;
+    const target: string = tuple[0] 
+        ? `${tuple[0]}.${tuple[1]}`
+        : tuple[1];
     return (alias === null)
         ? target
         : `${target} AS \`${alias}\``;
@@ -410,7 +412,9 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
     ): [string, any]
 {
     const tuple: [string, string] = _Get_column(creator, fieldLike);
-    const column: string = `${tuple[0]}.${tuple[1]}`;
+    const column: string = tuple[0]
+        ? `${tuple[0]}.${tuple[1]}`
+        : tuple[1];
 
     // MOST OPERATORS
     if (rest.length <= 2)
