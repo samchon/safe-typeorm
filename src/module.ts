@@ -6,4 +6,6 @@ export * from "./utils";
 
 export * from "./JoinQueryBuilder";
 export * from "./Model";
+export * from "./Transaction";
+
 export * from "./DEFAULT";
