@@ -191,7 +191,7 @@ export function createJoinQueryBuilder<T extends object>
         closure = args[1];
     }
 
-    const stmt: orm.SelectQueryBuilder<T> = orm
+    const stmt: orm.SelectQueryBuilder<T> = (manager !== null ? manager : orm)
         .getRepository(creator)
         .createQueryBuilder(alias);
     const builder: JoinQueryBuilder<T> = new JoinQueryBuilder(stmt, creator);
