@@ -15,7 +15,7 @@ export type Field
 export namespace Field
 {
     export type ValueType<Type extends Field> 
-        = Type extends string ? string
+        = Type extends string ? Type
         : Type extends Belongs.ManyToOne<infer Target, infer KeyType, infer Options> 
             ? Options extends { nullable: true }
                 ? (ModelLike<Target, KeyType, true> | PrimaryGeneratedColumn.ValueType<KeyType> | null)
