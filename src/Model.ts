@@ -207,7 +207,7 @@ export abstract class Model extends orm.BaseEntity
         (
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
-            param: Field.MemberType<T, Literal>
+            param: Field.MemberType<T, Literal> | null
         ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
     /**
@@ -234,12 +234,16 @@ export abstract class Model extends orm.BaseEntity
      * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods,
      *         which never can be the runtime error
      */
-    public static getWhereArguments<T extends Model, Literal extends SpecialFields<T, Field>>
+    public static getWhereArguments<T extends Model, 
+            Literal extends SpecialFields<T, Field>,
+            OperatorType extends Operator>
         (
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
-            operator: Operator,
-            param: Field.MemberType<T, Literal>
+            operator: OperatorType,
+            param: OperatorType extends "="|"!="|"<>" 
+                ? Field.MemberType<T, Literal> | null
+                : Field.MemberType<T, Literal>
         ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
     /**

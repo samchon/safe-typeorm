@@ -33,5 +33,6 @@ export namespace Field
             : ValueType<T[Member]>;
 
     type PrimaryType<T extends object, Member extends SpecialFields<T, Field>>
-        = ValueType<T[Member]> | ModelLike<T, T[Member] extends string ? "uuid" : "int", false>;
+        = ValueType<T[Member]> 
+        | ModelLike<T, T[Member] extends string ? "uuid" : "int", false>;
 }

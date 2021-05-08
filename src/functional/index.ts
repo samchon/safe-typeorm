@@ -300,7 +300,7 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
-        param: Field.MemberType<T, Literal>
+        param: Field.MemberType<T, Literal> | null
     ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
 /**
@@ -328,12 +328,17 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
+export function getWhereArguments<
+        T extends object, 
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator>
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
-        operator: Operator,
-        param: Field.MemberType<T, Literal>
+        operator: OperatorType,
+        param: OperatorType extends "="|"!="|"<>"
+            ? Field.MemberType<T, Literal> | null
+            : Field.MemberType<T, Literal> 
     ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
 
 /**
