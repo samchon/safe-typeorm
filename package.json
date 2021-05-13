@@ -1,6 +1,6 @@
 {
   "name": "safe-typeorm",
-  "version": "0.0.55",
+  "version": "0.0.67",
   "description": "Safe Relationship Decorators for the TypeORM",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -31,12 +31,14 @@
     "bcryptjs": "^2.4.3",
     "pluralize": "^8.0.0",
     "tstl": "^2.4.14",
-    "typeorm": "^0.2.30"
+    "typeorm": "^0.2.30",
+    "uuid": "^8.3.2"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.2",
     "@types/node": "^14.14.21",
     "@types/pluralize": "^0.0.29",
+    "@types/uuid": "^8.3.0",
     "mysql": "^2.18.1",
     "sloc": "^0.2.1",
     "ts-node": "^9.1.1",

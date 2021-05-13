@@ -14,19 +14,19 @@ export class BbsComment extends BbsContentBase
     ----------------------------------------------------------- */
     @Belongs.ManyToOne(() => BbsArticle,
         article => article.comments,
-        "int",
+        "uuid",
         "bbs_article_id",
         { index: true }
     )
-    public article!: Belongs.ManyToOne<BbsArticle, "int">;
+    public article!: Belongs.ManyToOne<BbsArticle, "uuid">;
 
     @Belongs.ManyToOne(() => BbsComment, 
         parent => parent.children, 
-        "int",
+        "uuid",
         "pid", 
         { index: true, nullable: true }
     )
-    public parent!: Belongs.ManyToOne<BbsComment, "int", { nullable: true }>;
+    public parent!: Belongs.ManyToOne<BbsComment, "uuid", { nullable: true }>;
 
     /* -----------------------------------------------------------
         HAS

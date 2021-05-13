@@ -1,4 +1,5 @@
 import * as orm from "typeorm";
+import { v4 } from "uuid";
 import { Has } from "../../decorators/Has";
 import { Model } from "../../Model";
 
@@ -11,8 +12,8 @@ export class AttachmentFile extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @orm.PrimaryGeneratedColumn()
-    public id!: number;
+    @orm.PrimaryGeneratedColumn("uuid")
+    public id: string = v4();
 
     @orm.Column("varchar")
     public name!: string;

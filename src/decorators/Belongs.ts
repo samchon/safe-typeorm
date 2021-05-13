@@ -195,6 +195,7 @@ export namespace Belongs
         {
             unique: boolean;
             primary: boolean;
+            length: number;
         }
     }
 
@@ -217,7 +218,10 @@ export namespace Belongs
     {
         if (options === undefined)
             options = {} as Options;
+        if (type === "uuid" && options.length === undefined)
+            options.length = 36;
         options = _Take_relation_options(options) as Options;
+        
 
         return function ($class, $property)
         {
@@ -311,6 +315,8 @@ export namespace Belongs
         private readonly source_: any;
         private readonly getter_: string;
         private readonly field_: string;
+
+        private assigned_: Target | null;
         private changed_: boolean;
 
         private constructor(target: Creator<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string)
@@ -320,6 +326,8 @@ export namespace Belongs
             this.source_ = source;
             this.getter_ = getGetterField<any>(property);
             this.field_ = field;
+
+            this.assigned_ = null;
             this.changed_ = false;
         }
 
@@ -340,6 +348,10 @@ export namespace Belongs
          */
         public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
         {
+            if (this.source_[this.field_] === null 
+                && this.assigned_ !== null 
+                && (this.assigned_ as any)[this.target_primary_field_] !== undefined)
+                this.source_[this.field_] = (this.assigned_ as any)[this.target_primary_field_];
             return this.source_[this.field_];
         }
         public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
@@ -369,7 +381,7 @@ export namespace Belongs
                 const loaded: Target | undefined = await orm.getRepository(this.target_).findOne(this.id!);
                 this.source_[this.getter_] = Promise.resolve(loaded ? loaded : null);
 
-                this.changed_ = true;
+                this.changed_ = false;
             }
             return await this.source_[this.getter_];
         }
@@ -380,7 +392,9 @@ export namespace Belongs
          */
         public set(obj: CapsuleNullable<Target, Options>): void
         {
+            this.assigned_ = obj;
             this.changed_ = false;
+
             this.source_[this.field_] = (obj !== null) ? (obj as any)[this.target_primary_field_] : null!;
             this.source_[this.getter_] = Promise.resolve(obj);
         }

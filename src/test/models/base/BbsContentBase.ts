@@ -1,4 +1,5 @@
 import * as orm from "typeorm";
+import { v4 } from "uuid";
 
 import { EncryptedColumn } from "../../../decorators/EncryptedColumn";
 import { Model } from "../../../Model";
@@ -9,8 +10,8 @@ export abstract class BbsContentBase extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @orm.PrimaryGeneratedColumn()
-    public readonly id!: number;
+    @orm.PrimaryGeneratedColumn("uuid")
+    public id: string = v4();
 
     @EncryptedColumn("varchar", {
         index: true,

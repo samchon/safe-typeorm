@@ -5,6 +5,7 @@ import { Belongs } from "../../decorators/Belongs";
 
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
+import { v4 } from "uuid";
 
 @orm.Entity()
 export class BbsArticleFilePair extends Model
@@ -12,19 +13,19 @@ export class BbsArticleFilePair extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @orm.PrimaryGeneratedColumn()
-    public id!: number;
+    @orm.PrimaryGeneratedColumn("uuid")
+    public id: string = v4();
 
     @Belongs.ManyToOne(() => BbsArticle, 
-        "int",
+        "uuid",
         "bbs_article_id"
     )
-    public article!: Belongs.ManyToOne<BbsArticle, "int">;
+    public article!: Belongs.ManyToOne<BbsArticle, "uuid">;
 
     @Belongs.ManyToOne(() => AttachmentFile,
-        "int",
+        "uuid",
         "attachment_file_id",
         { index: true }
     )
-    public file!: Belongs.ManyToOne<AttachmentFile, "int">;
+    public file!: Belongs.ManyToOne<AttachmentFile, "uuid">;
 }

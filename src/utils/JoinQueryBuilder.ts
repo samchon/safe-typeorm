@@ -1,10 +1,10 @@
 import * as orm from "typeorm";
-import { Belongs } from "./decorators/Belongs";
-import { Has } from "./decorators/Has";
+import { Belongs } from "../decorators/Belongs";
+import { Has } from "../decorators/Has";
 
-import { Creator } from "./typings/Creator";
-import { Relationship } from "./typings/Relationship";
-import { SpecialFields } from "./typings/SpecialFields";
+import { Creator } from "../typings/Creator";
+import { Relationship } from "../typings/Relationship";
+import { SpecialFields } from "../typings/SpecialFields";
 
 export class JoinQueryBuilder<Mine extends object>
 {

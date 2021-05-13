@@ -1,11 +1,11 @@
-import { PrimaryGeneratedColumnType } from "typeorm/driver/types/ColumnTypes";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
+import { PrimaryGeneratedColumn } from "./PrimaryGeneratedColumn";
 import { SpecialFields } from "./SpecialFields";
 
 export type Relationship<T extends object> 
-    = Belongs.ManyToOne<T, PrimaryGeneratedColumnType, any> 
-    | Belongs.OneToOne<T, PrimaryGeneratedColumnType, any> 
+    = Belongs.ManyToOne<T, PrimaryGeneratedColumn, any> 
+    | Belongs.OneToOne<T, PrimaryGeneratedColumn, any> 
     | Has.OneToOne<T> 
     | Has.OneToMany<T>;
 

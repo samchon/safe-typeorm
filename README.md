@@ -1,11 +1,15 @@
 # Safe-TypeORM
-Ultimate safe query builder for the TypeORM.
+With `safe-typeorm`, use `TypeORM` much safely.
 
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/samchon/safe-typeorm/blob/master/LICENSE)
 [![npm version](https://badge.fury.io/js/safe-typeorm.svg)](https://www.npmjs.com/package/safe-typeorm)
 [![Downloads](https://img.shields.io/npm/dm/safe-typeorm.svg)](https://www.npmjs.com/package/safe-typeorm)
 [![Build Status](https://github.com/samchon/safe-typeorm/workflows/build/badge.svg)](https://github.com/samchon/safe-typeorm/actions?query=workflow%3Abuild)
 
+
+
+
+## Demonstration
 ![safe-typeorm-example-fastest](https://user-images.githubusercontent.com/13158709/117546527-ccdaaa00-b065-11eb-928c-082a84507431.gif)
 
 <details>

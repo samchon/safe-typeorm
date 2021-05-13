@@ -1,4 +1,6 @@
 import * as orm from "typeorm";
+import { v4 } from "uuid";
+
 import { Model } from "../../Model";
 
 import { BbsArticle } from "./BbsArticle";
@@ -11,16 +13,16 @@ export class BbsGroup extends Model
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @orm.PrimaryGeneratedColumn()
-    public readonly id!: number;
+    @orm.PrimaryGeneratedColumn("uuid")
+    public id: string = v4();
 
     @Belongs.ManyToOne(() => BbsGroup, 
         parent => parent.children,
-        "int",
+        "uuid",
         "pid",
         { index: true, nullable: true }
     )
-    public parent!: Belongs.ManyToOne<BbsGroup, "int", { nullable: true }>;
+    public parent!: Belongs.ManyToOne<BbsGroup, "uuid", { nullable: true }>;
 
     @orm.Index({ unique: true })
     @orm.Column("varchar")

@@ -1,5 +1,6 @@
 import * as orm from "typeorm";
 import { Singleton } from "tstl/thread/Singleton";
+import { sort } from "tstl/ranges/algorithm";
 
 import { Creator } from "../typings/Creator";
 
@@ -74,15 +75,17 @@ export namespace Has
      * @param inverse A closure funnction returning the {@link Belongs.ManyToOne} typed member 
      *                variable, who is pointing this model class *Mine*, from the *Target* model 
      *                class
+     * @param comp Comparator for sorting if required.
      * @return The *PropertyDecorator* function
      */
     export function OneToMany<Mine extends object, Target extends object>
         (
             targetGen: Creator.Generator<Target>,
-            inverse: (input: Target) => Belongs.ManyToOne<Mine, any>
+            inverse: (input: Target) => Belongs.ManyToOne<Mine, any>,
+            comp?: (x: Target, y: Target) => boolean
         ): PropertyDecorator
     {
-        return _Has_one_to(orm.OneToMany, targetGen, inverse);
+        return _Has_one_to(orm.OneToMany, targetGen, inverse, comp);
     }
 
     /* -----------------------------------------------------------
@@ -92,7 +95,8 @@ export namespace Has
     {
         private readonly mine_: any;
         private readonly getter_: string;
-        private readonly stmt_: orm.QueryBuilder<Target>
+        private readonly stmt_: orm.QueryBuilder<Target>;
+        private comp_?: (x: Target, y: Target) => boolean;
 
         private constructor
             (
@@ -100,7 +104,8 @@ export namespace Has
                 primaryField: string,
                 target: Creator<Target>, 
                 inverseField: string,
-                getter: string
+                getter: string,
+                comp?: (x: Target, y: Target) => boolean
             )
         {
             this.mine_ = mine;
@@ -108,6 +113,7 @@ export namespace Has
             this.stmt_ = orm.getRepository(target)
                 .createQueryBuilder(target.name)
                 .andWhere(`${target.name}.${inverseField} = :id`, { id: this.mine_[primaryField] });
+            this.comp_ = comp;
         }
 
         /**
@@ -119,18 +125,25 @@ export namespace Has
                 primaryField: string,
                 target: Creator<Target>, 
                 inverseField: string,
-                getter: string
+                getter: string,
+                comp?: (x: Target, y: Target) => boolean
             ): Helper<Target, Ret>
         {
-            return new Helper(mine, primaryField, target, inverseField, getter);
+            return new Helper(mine, primaryField, target, inverseField, getter, comp);
         }
 
         /**
          * 
          */
-        public get(): Promise<Ret>
+        public async get(): Promise<Ret>
         {
-            return this.mine_[this.getter_];
+            const ret: Ret = await this.mine_[this.getter_];
+            if (this.comp_ !== undefined)
+            {
+                sort(<any>ret as Target[], this.comp_);
+                delete this.comp_;
+            }
+            return ret;
         }
 
         /**
@@ -158,7 +171,8 @@ export namespace Has
         (
             relation: typeof orm.OneToMany,
             targetGen: Creator.Generator<Target>,
-            inverseClosure: (input: Target) => Belongs.ManyToOne<Mine, any>
+            inverseClosure: (input: Target) => Belongs.ManyToOne<Mine, any>,
+            comp?: (x: Target, y: Target) => boolean
         ): PropertyDecorator
     {
         return function ($class, $property)
@@ -185,7 +199,7 @@ export namespace Has
                             primaryField = getPrimaryField(`Has.${relation.name}`, targetGen());
 
                         const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverse}`, targetGen());
-                        this[label] = Helper.create(this, primaryField, targetGen(), inverseField, getter)
+                        this[label] = Helper.create(this, primaryField, targetGen(), inverseField, getter, comp)
                     }
                     return this[label];
                 }

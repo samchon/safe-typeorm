@@ -1,9 +1,7 @@
 import * as orm from "typeorm";
 
-import * as functional from "./functional";
-import { JoinQueryBuilder } from "./JoinQueryBuilder";
 import { EncryptedColumn } from "./decorators/EncryptedColumn";
-import { Has } from "./decorators/Has";
+import { JoinQueryBuilder } from "./utils/JoinQueryBuilder";
 
 import { Creator as _Creator } from "./typings/Creator";
 import { Field } from "./typings/Field";
@@ -11,6 +9,13 @@ import { Initialized } from "./typings/Initialized";
 import { OmitNever } from "./typings/OmitNever";
 import { Operator } from "./typings/Operator";
 import { SpecialFields } from "./typings/SpecialFields";
+
+import { createJoinQueryBuilder } from "./functional/createJoinQueryBuilder";
+import { getColumn } from "./functional/getColumn";
+import { getWhereArguments } from "./functional/getWhereArguments";
+import { initialize } from "./functional/initialize";
+import { insert } from "./functional/insert";
+import { update } from "./functional/update";
 
 /**
  * The basic model class.
@@ -45,7 +50,12 @@ export abstract class Model extends orm.BaseEntity
             input: Initialized<T>
         ): T
     {
-        return functional.initialize(this, input);
+        return initialize(this, input);
+    }
+
+    public async insert(manager: orm.EntityManager): Promise<void>
+    {
+        await insert(manager || orm.getManager(), this);
     }
 
     /**
@@ -67,19 +77,7 @@ export abstract class Model extends orm.BaseEntity
      */
     public async update(manager?: orm.EntityManager): Promise<void>
     {
-        const columnList = orm.getRepository(this.constructor).metadata.columns;
-        const props: any = {};
-        
-        for (const column of columnList)
-        {
-            const key: string = column.propertyName;
-            props[key] = (this as any)[key];
-        }
-
-        const field: string = Has.getPrimaryField(`${this.constructor.name}.update`, this.constructor as any);
-        const helper: orm.EntityManager = (manager !== undefined ? manager : orm) as orm.EntityManager;
-
-        await helper.getRepository(this.constructor).update((this as any)[field], props);
+        await update(manager || orm.getManager(), this);
     }
 
     /* -----------------------------------------------------------
@@ -143,7 +141,7 @@ export abstract class Model extends orm.BaseEntity
             ...args: any[]
         ): orm.SelectQueryBuilder<T>
     {
-        return functional.createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
+        return createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
     }
 
     /* -----------------------------------------------------------
@@ -177,7 +175,7 @@ export abstract class Model extends orm.BaseEntity
             alias?: string | null
         ): string
     {
-        return functional.getColumn<T, Literal>(this, fieldLike, alias);
+        return getColumn<T, Literal>(this, fieldLike, alias);
     }
 
     /**
@@ -321,7 +319,7 @@ export abstract class Model extends orm.BaseEntity
             ...rest: any[]
         ): [string, any]
     {
-        return functional.getWhereArguments(this, fieldLike, ...(rest as [ Operator, Field.MemberType<T, Literal> ]));
+        return getWhereArguments(this, fieldLike, ...(rest as [ Operator, Field.MemberType<T, Literal> ]));
     }
 
     /* -----------------------------------------------------------

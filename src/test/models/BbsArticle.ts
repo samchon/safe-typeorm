@@ -18,19 +18,19 @@ export class BbsArticle extends BbsContentBase
     ----------------------------------------------------------- */
     @Belongs.ManyToOne(() => BbsGroup, 
         group => group.articles,
-        "int", 
+        "uuid", 
         "bbs_group_id",
         { index: true }
     )
-    public group!: Belongs.ManyToOne<BbsGroup, "int">;
+    public group!: Belongs.ManyToOne<BbsGroup, "uuid">;
 
     @Belongs.ManyToOne(() => BbsArticle,
         parent => parent.children,
-        "int",
+        "uuid",
         "pid",
         { index: true, nullable: true }
     )
-    public parent!: Belongs.ManyToOne<BbsArticle, "int", { nullable: true }>;
+    public parent!: Belongs.ManyToOne<BbsArticle, "uuid", { nullable: true }>;
 
     @orm.Column("varchar")
     public title!: string;
