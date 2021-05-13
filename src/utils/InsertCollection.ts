@@ -20,10 +20,10 @@ export class InsertCollection
         this.afters_ = [];
     }
 
-    public push<T extends object>(...records: T[]): void
+    public push<T extends object>(...records: T[]): T[]
     {
         if (records.length === 0)
-            return;
+            return records;
 
         const creator: Creator<T> = records[0].constructor as Creator<T>;
         let it: HashMap.Iterator<Creator<object>, object[]> = this.dict_.find(creator);
@@ -37,6 +37,12 @@ export class InsertCollection
             it = this.dict_.emplace(creator, []).first;
         }
         it.second.push(...records);
+        return records;
+    }
+
+    public push_back<T extends object>(record: T): T
+    {
+        return this.push(record)[0];
     }
 
     public before(process: InsertPocket.Process): void
