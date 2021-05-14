@@ -33,7 +33,7 @@ export function initialize<T extends object>
     for (const tuple of Object.entries(input))
     {
         const value: any = tuple[1];
-        if (value === DEFAULT || value === null)
+        if (value === DEFAULT)
             continue;
 
         const key: string = tuple[0];
@@ -46,7 +46,7 @@ export function initialize<T extends object>
             else
                 output[key].id = value;
         }
-        else if (type === "boolean" || type === "number" || type === "string" || value instanceof Date)
+        else if (value === null || type === "boolean" || type === "number" || type === "string" || value instanceof Date)
             output[key] = value;
     }
     if (info.uuid && !output[info.primaryColumn])

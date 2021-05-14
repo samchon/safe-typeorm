@@ -8,13 +8,16 @@ import { ITableInfo } from "./internal/ITableInfo";
 export function insert<T extends object>(records: T | T[]): Promise<void>;
 export function insert<T extends object>(manager: orm.EntityManager, records: T | T[]): Promise<void>;
 
-export function insert<T extends object>
+export async function insert<T extends object>
     (...args: [T|T[]] | [orm.EntityManager, T|T[]]): Promise<void>
 {
     if (args.length === 1)
-        return _Insert(orm.getManager(), args[0]);
+        await orm.getManager().transaction
+        (
+            manager => _Insert(manager, args[0])
+        );
     else
-        return _Insert(...args);
+        await _Insert(...args);
 }
 
 async function _Insert<T extends object>
