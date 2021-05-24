@@ -6,13 +6,15 @@ import { Creator } from "../typings/Creator";
 import { ITableInfo } from "../functional/internal/ITableInfo";
 
 import { insert } from "../functional/insert";
-import { DomainError, Mutex, UniqueLock, Vector } from "tstl";
+import { DomainError, Mutex, Pair, UniqueLock, Vector } from "tstl";
 
 export class InsertCollection
 {
     private readonly dict_: HashMap<Creator<object>, object[]>;
     private readonly befores_: Vector<InsertPocket.Process>;
     private readonly afters_: Vector<InsertPocket.Process>;
+
+    private readonly prequisites_: Pair<Creator<object>, Creator<object>>[];
     private readonly mutex_: Mutex;
 
     public constructor()
@@ -20,7 +22,15 @@ export class InsertCollection
         this.dict_ = new HashMap();
         this.befores_ = new Vector();
         this.afters_ = new Vector();
+
+        this.prequisites_ = [];
         this.mutex_ = new Mutex();
+    }
+
+    public prequisite<T extends object, Precede extends object>
+        (target: Creator<T>, precede: Creator<Precede>): void
+    {
+        this.prequisites_.push(new Pair(target, precede));
     }
 
     /* -----------------------------------------------------------
@@ -87,11 +97,8 @@ export class InsertCollection
         {
             for (const process of this.befores_)
                 await process(manager);
-            for (const tuple of this.dict_)
-            {
-                const records: object[] = tuple.second;
-                await insert(manager, records);
-            }
+            for (const row of this._Get_records())
+                await insert(manager, row);
             for (const process of this.afters_)
                 await process(manager);
 
@@ -101,6 +108,31 @@ export class InsertCollection
         });
         if (success === false)
             throw new DomainError("Error on InsertCollection.execute(): it's already on executing.");
+    }
+
+    private _Get_records(): object[][]
+    {
+        const output: Vector<object[]> = new Vector();
+        for (const it of this.dict_)
+            output.push_back(it.second);
+
+        for (const tuple of this.prequisites_)
+        {
+            const indexes: Pair<number, number> = new Pair
+            (
+                output.data().findIndex(row => row[0].constructor === tuple.first),
+                output.data().findIndex(row => row[0].constructor === tuple.second)
+            );
+            if (indexes.first !== -1 
+                && indexes.second !== -1 
+                && indexes.first < indexes.second)
+            {
+                const row: object[] = output.at(indexes.second);
+                output.erase(output.nth(indexes.second));
+                output.insert(output.nth(indexes.first), row);
+            }
+        }
+        return output.data();
     }
 }
 
