@@ -14,7 +14,7 @@ export class InsertCollection
     private readonly befores_: Vector<InsertPocket.Process>;
     private readonly afters_: Vector<InsertPocket.Process>;
 
-    private readonly prequisites_: Pair<Creator<object>, Creator<object>>[];
+    private readonly prerequisites_: Pair<Creator<object>, Creator<object>>[];
     private readonly mutex_: Mutex;
 
     public constructor()
@@ -23,14 +23,14 @@ export class InsertCollection
         this.befores_ = new Vector();
         this.afters_ = new Vector();
 
-        this.prequisites_ = [];
+        this.prerequisites_ = [];
         this.mutex_ = new Mutex();
     }
 
-    public prequisite<T extends object, Precede extends object>
+    public prerequisite<T extends object, Precede extends object>
         (target: Creator<T>, precede: Creator<Precede>): void
     {
-        this.prequisites_.push(new Pair(target, precede));
+        this.prerequisites_.push(new Pair(target, precede));
     }
 
     /* -----------------------------------------------------------
@@ -116,7 +116,7 @@ export class InsertCollection
         for (const it of this.dict_)
             output.push_back(it.second);
 
-        for (const tuple of this.prequisites_)
+        for (const tuple of this.prerequisites_)
         {
             const indexes: Pair<number, number> = new Pair
             (
