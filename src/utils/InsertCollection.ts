@@ -1,12 +1,17 @@
 import * as orm from "typeorm";
 import { HashMap } from "tstl/container/HashMap";
+import { HashSet } from "tstl/container/HashSet";
 import { InvalidArgument } from "tstl/exception/InvalidArgument";
+import { Mutex } from "tstl/thread/Mutex";
+import { Vector } from "tstl/container/Vector";
 
 import { Creator } from "../typings/Creator";
 import { ITableInfo } from "../functional/internal/ITableInfo";
-
 import { insert } from "../functional/insert";
-import { DomainError, Mutex, Pair, UniqueLock, Vector } from "tstl";
+import { UniqueLock } from "tstl/thread/UniqueLock";
+import { DomainError } from "tstl/exception/DomainError";
+import { Pair } from "tstl/utility/Pair";
+
 
 export class InsertCollection
 {
@@ -14,7 +19,7 @@ export class InsertCollection
     private readonly befores_: Vector<InsertPocket.Process>;
     private readonly afters_: Vector<InsertPocket.Process>;
 
-    private readonly prerequisites_: Pair<Creator<object>, Creator<object>>[];
+    private readonly prerequisites_: HashMap<Creator<object>, HashSet<Creator<object>>>;
     private readonly mutex_: Mutex;
 
     public constructor()
@@ -23,14 +28,18 @@ export class InsertCollection
         this.befores_ = new Vector();
         this.afters_ = new Vector();
 
-        this.prerequisites_ = [];
+        this.prerequisites_ = new HashMap();
         this.mutex_ = new Mutex();
     }
 
     public prerequisite<T extends object, Precede extends object>
         (target: Creator<T>, precede: Creator<Precede>): void
     {
-        this.prerequisites_.push(new Pair(target, precede));
+        let it = this.prerequisites_.find(target);
+        if (it.equals(this.prerequisites_.end()) === true)
+            it = this.prerequisites_.emplace(target, new HashSet()).first;
+        
+        it.second.insert(precede);
     }
 
     /* -----------------------------------------------------------
@@ -118,18 +127,22 @@ export class InsertCollection
 
         for (const tuple of this.prerequisites_)
         {
-            const indexes: Pair<number, number> = new Pair
-            (
-                output.data().findIndex(row => row[0].constructor === tuple.first),
-                output.data().findIndex(row => row[0].constructor === tuple.second)
-            );
-            if (indexes.first !== -1 
-                && indexes.second !== -1 
-                && indexes.first < indexes.second)
+            const target: Creator<object> = tuple.first;
+            for (const precede of tuple.second)
             {
-                const row: object[] = output.at(indexes.second);
-                output.erase(output.nth(indexes.second));
-                output.insert(output.nth(indexes.first), row);
+                const indexes: Pair<number, number> = new Pair
+                (
+                    output.data().findIndex(row => row[0].constructor === target),
+                    output.data().findIndex(row => row[0].constructor === precede)
+                );
+                if (indexes.first !== -1 
+                    && indexes.second !== -1 
+                    && indexes.first < indexes.second)
+                {
+                    const row: object[] = output.at(indexes.second);
+                    output.erase(output.nth(indexes.second));
+                    output.insert(output.nth(indexes.first), row);
+                }
             }
         }
         return output.data();
