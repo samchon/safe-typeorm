@@ -1,6 +1,6 @@
 {
   "name": "safe-typeorm",
-  "version": "0.0.77",
+  "version": "0.0.78",
   "description": "Safe Relationship Decorators for the TypeORM",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -39,6 +39,7 @@
     "@types/node": "^14.14.21",
     "@types/pluralize": "^0.0.29",
     "@types/uuid": "^8.3.0",
+    "cagen": "^1.0.0",
     "mysql": "^2.18.1",
     "sloc": "^0.2.1",
     "ts-node": "^9.1.1",

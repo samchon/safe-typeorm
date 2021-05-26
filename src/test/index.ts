@@ -12,6 +12,8 @@ import { BbsComment } from "./models/BbsComment";
 import { BbsGroup } from "./models/BbsGroup";
 
 import { DEFAULT } from "../DEFAULT";
+import { test_get_column } from "./features/test_get_column";
+import { test_insert_collection } from "./features/test_insert_collection";
 // import { validate_equality } from "./internal/validate_equality";
 
 /* -----------------------------------------------------------
@@ -309,7 +311,7 @@ async function main(): Promise<void>
 
     //----
     // ACTIONS
-    //----
+    //---- 
     // CREATE RAW DATA
     const rawGroups: IBbsGroup[] = create_raw_groups();
     await fs.promises.writeFile(__dirname + "/../../assets/raw.json", JSON.stringify(rawGroups, null, 4), "utf8");
@@ -328,6 +330,9 @@ async function main(): Promise<void>
     // validate_equality(rawGroups, output);
     await test_join();
     test_copmplicate_join();
+
+    test_get_column();
+    await test_insert_collection();
 
     await connection.close();
 }

@@ -1,45 +1,32 @@
 import * as orm from "typeorm";
-import { HashMap } from "tstl/container/HashMap";
-import { HashSet } from "tstl/container/HashSet";
+import { DomainError } from "tstl/exception/DomainError";
 import { InvalidArgument } from "tstl/exception/InvalidArgument";
 import { Mutex } from "tstl/thread/Mutex";
+import { UniqueLock } from "tstl/thread/UniqueLock";
 import { Vector } from "tstl/container/Vector";
+import { sort } from "tstl/ranges/algorithm/sorting";
 
 import { Creator } from "../typings/Creator";
 import { ITableInfo } from "../functional/internal/ITableInfo";
 import { insert } from "../functional/insert";
-import { UniqueLock } from "tstl/thread/UniqueLock";
-import { DomainError } from "tstl/exception/DomainError";
-import { Pair } from "tstl/utility/Pair";
-
 
 export class InsertCollection
 {
-    private readonly dict_: HashMap<Creator<object>, object[]>;
+    private dict_: Map<Creator<object>, object[]>;
+
     private readonly befores_: Vector<InsertPocket.Process>;
     private readonly afters_: Vector<InsertPocket.Process>;
 
-    private readonly prerequisites_: HashMap<Creator<object>, HashSet<Creator<object>>>;
     private readonly mutex_: Mutex;
 
     public constructor()
     {
-        this.dict_ = new HashMap();
+        this.dict_ = new Map();
+
         this.befores_ = new Vector();
         this.afters_ = new Vector();
 
-        this.prerequisites_ = new HashMap();
         this.mutex_ = new Mutex();
-    }
-
-    public prerequisite<T extends object, Precede extends object>
-        (target: Creator<T>, precede: Creator<Precede>): void
-    {
-        let it = this.prerequisites_.find(target);
-        if (it.equals(this.prerequisites_.end()) === true)
-            it = this.prerequisites_.emplace(target, new HashSet()).first;
-        
-        it.second.insert(precede);
     }
 
     /* -----------------------------------------------------------
@@ -72,17 +59,18 @@ export class InsertCollection
             return records;
 
         const creator: Creator<T> = records[0].constructor as Creator<T>;
-        let it: HashMap.Iterator<Creator<object>, object[]> = this.dict_.find(creator);
+        let container: object[] | undefined = this.dict_.get(creator);
 
-        if (it.equals(this.dict_.end()) === true)
+        if (container === undefined)
         {
             const info: ITableInfo = ITableInfo.get(creator);
             if (info.incremental === true)
                 throw new InvalidArgument("Error on safe.InsertPocket.push(): primary key of the target table is incremental.");
 
-            it = this.dict_.emplace(creator, []).first;
+            container = [];
+            this.dict_.set(creator, container);
         }
-        it.second.push(...records);
+        container.push(...records);
         return records;
     }
 
@@ -106,7 +94,7 @@ export class InsertCollection
         {
             for (const process of this.befores_)
                 await process(manager);
-            for (const row of this._Get_records())
+            for (const row of this._Get_records(orm.getConnection()))
                 await insert(manager, row);
             for (const process of this.afters_)
                 await process(manager);
@@ -119,32 +107,19 @@ export class InsertCollection
             throw new DomainError("Error on InsertCollection.execute(): it's already on executing.");
     }
 
-    private _Get_records(): object[][]
+    private _Get_records(connection: orm.Connection): object[][]
     {
-        const output: Vector<object[]> = new Vector();
-        for (const it of this.dict_)
-            output.push_back(it.second);
-
-        for (const tuple of this.prerequisites_)
+        function compare(x: object[], y: object[]): boolean
         {
-            const target: Creator<object> = tuple.first;
-            for (const precede of tuple.second)
-            {
-                const indexes: Pair<number, number> = new Pair
-                (
-                    output.data().findIndex(row => row[0].constructor === target),
-                    output.data().findIndex(row => row[0].constructor === precede)
-                );
-                if (indexes.first !== -1 
-                    && indexes.second !== -1 
-                    && indexes.first < indexes.second)
-                {
-                    const row: object[] = output.at(indexes.second);
-                    output.erase(output.nth(indexes.second));
-                    output.insert(output.nth(indexes.first), row);
-                }
-            }
+            const children: Set<Creator<object>> = getDependencies(connection, y[0].constructor as Creator<object>);
+            return !children.has(x[0].constructor as Creator<object>);
         }
+
+        const output: Vector<object[]> = new Vector();
+        for (const [_, record] of this.dict_)
+            output.push_back(record);
+        
+        sort(output, compare);
         return output.data();
     }
 }
@@ -153,3 +128,32 @@ export namespace InsertPocket
 {
     export type Process = (manager: orm.EntityManager) => Promise<any>;
 }
+
+function getDependencies<T extends object>
+    (connection: orm.Connection, target: Creator<T>): Set<Creator<object>>
+{
+    let output: Set<Creator<object>> | undefined = dependencies.get(target);
+    if (output === undefined)
+    {
+        output = new Set();
+        for (const meta of connection.entityMetadatas)
+        {
+            const child: Creator<object> = meta.target as Creator<object>;
+            if (child === target)
+                continue;
+
+            for (const foreign of meta.foreignKeys)
+                if (foreign.referencedEntityMetadata.target === target)
+                {
+                    output.add(child);
+                    for (const grand of getDependencies(connection, child))
+                        output.add(grand);
+                    break;
+                }
+        }
+        dependencies.set(target, output);
+    }
+    return output;
+}
+
+const dependencies: WeakMap<Creator<object>, Set<Creator<object>>> = new WeakMap();
