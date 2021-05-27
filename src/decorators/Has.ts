@@ -220,8 +220,9 @@ export namespace Has
      * 
      * @template Target Type of the target model, who has the N: N relationship with this model 
      *                  class *Mine*, through the *Route* model class
+     * @tempalte Router Type of the router model, who intermediates the M: N relationship.
      */
-    export type ManyToMany<Target extends object> = RouterHelper<Target>;
+    export type ManyToMany<Target extends object, Router extends object> = RouterHelper<Target, Router>;
 
     /**
      * Decorator function for the "N:N has" relationship.
@@ -241,6 +242,7 @@ export namespace Has
      * @param myInverse A closure function returning the {@link Belongs.ManyToOne} typed member
      *                  variable, who is poining the target model class *Target*, from the *Rote*
      *                  mode class
+     * @param comp Comparator for sorting if required.
      * @return The *PropertyDecorator* function
      */
     export function ManyToMany<Mine extends object, Target extends object, Router extends object>
@@ -248,7 +250,8 @@ export namespace Has
             targetGen: Creator.Generator<Target>,
             routerGen: Creator.Generator<Router>,
             targetInverse: (router: Router) => Belongs.ManyToOne<Target, any>,
-            myInverse: (router: Router) => Belongs.ManyToOne<Mine, any>
+            myInverse: (router: Router) => Belongs.ManyToOne<Mine, any>,
+            comp?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
         ): PropertyDecorator
     {
         return function ($class, $property)
@@ -258,7 +261,7 @@ export namespace Has
 
             Object.defineProperty($class, $property,
             {
-                get: function (): RouterHelper<Target>
+                get: function (): RouterHelper<Target, Router>
                 {
                     if (this[label] === undefined)
                     {
@@ -270,9 +273,11 @@ export namespace Has
                             this, 
                             targetGen(), 
                             routerGen(), 
+                            ClosureProxy.steal(targetInverse),
                             Reflect.getMetadata(`SafeTypeORM:Belongs:${ClosureProxy.steal(targetInverse)}:field`, routerGen().prototype), 
                             Reflect.getMetadata(`SafeTypeORM:Belongs:${ClosureProxy.steal(myInverse)}:field`, routerGen().prototype),
-                            primaryFieldTuple
+                            primaryFieldTuple,
+                            comp
                         );
                     }
                     return this[label];
@@ -280,30 +285,53 @@ export namespace Has
             });
         };
     }
+    export namespace ManyToMany
+    {
+        export interface ITuple<Target extends object, Router extends object>
+        {
+            target: Target;
+            router: Router;
+        }
+    }
 
     /* -----------------------------------------------------------
         BACKGROUND
     ----------------------------------------------------------- */
-    class RouterHelper<Target extends object>
+    class RouterHelper<Target extends object, Router extends object>
     {
-        private readonly stmt_: orm.SelectQueryBuilder<Target>;
+        private readonly stmt_: orm.SelectQueryBuilder<Router>;
         private readonly getter_: Singleton<Target[]>;
 
         public constructor
             (
                 mine: any, 
                 targetFactory: Creator<Target>,
-                routerFactory: Creator<object>,
+                routerFactory: Creator<Router>,
+                targetField: string,
                 targetInverseField: string,
                 myInverseField: string,
-                primaryKeyTuple: [string, string]
+                primaryKeyTuple: [string, string],
+                comp?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
             )
         {
-            this.stmt_ = orm.getRepository(targetFactory)
-                .createQueryBuilder()
-                .innerJoin(routerFactory, routerFactory.name, `${targetFactory.name}.${primaryKeyTuple[1]} = ${routerFactory.name}.${targetInverseField}`)
+            this.stmt_ = orm.getRepository(routerFactory)
+                .createQueryBuilder(routerFactory.name)
+                .innerJoin(targetFactory, targetFactory.name, `${targetFactory.name}.${primaryKeyTuple[1]} = ${routerFactory.name}.${targetInverseField}`)
                 .andWhere(`${routerFactory.name}.${myInverseField} = :my_id`, { my_id: mine[primaryKeyTuple[0]] });
-            this.getter_ = new Singleton(() => this.stmt_.getMany());
+            this.getter_ = new Singleton(async () => 
+            {
+                const routerList: Router[] = await this.stmt_.getMany();
+                const tupleList: ManyToMany.ITuple<Target, Router>[] = [];
+                for (const router of routerList)
+                    tupleList.push({
+                        router,
+                        target: await (router as any)[targetField].get()
+                    });
+                if (comp)
+                    sort(tupleList, comp);
+
+                return tupleList.map(({ target }) => target);
+            });
         }
 
         public get(): Promise<Target[]>
@@ -311,9 +339,9 @@ export namespace Has
             return this.getter_.get();
         }
 
-        public statement(): orm.SelectQueryBuilder<Target>
+        public statement(): orm.SelectQueryBuilder<Router>
         {
-            return this.stmt_.clone();
+            return this.stmt_;
         }
     }
 

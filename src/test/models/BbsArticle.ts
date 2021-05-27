@@ -46,7 +46,7 @@ export class BbsArticle extends BbsContentBase
         router => router.file, 
         router => router.article
     )
-    public files!: Has.ManyToMany<AttachmentFile>;
+    public files!: Has.ManyToMany<AttachmentFile, BbsArticleFilePair>;
 
     @Has.OneToOne(() => BbsArticleCover, cover => cover.article)
     public cover!: Has.OneToOne<BbsArticleCover>;
