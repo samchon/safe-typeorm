@@ -104,6 +104,7 @@ export namespace Belongs
             extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
         {
             index: boolean;
+            primary: boolean;
             unsigned: Type extends "uuid" ? never : boolean;
         }
     }
@@ -194,7 +195,6 @@ export namespace Belongs
             extends ManyToOne.IOptions<Type>
         {
             unique: boolean;
-            primary: boolean;
             length: number;
         }
     }
