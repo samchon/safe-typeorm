@@ -3,6 +3,7 @@ import { DomainError } from "tstl/exception/DomainError";
 import { InvalidArgument } from "tstl/exception/InvalidArgument";
 import { Mutex } from "tstl/thread/Mutex";
 import { UniqueLock } from "tstl/thread/UniqueLock";
+import { Pair } from "tstl/utility/Pair";
 import { Vector } from "tstl/container/Vector";
 import { sort } from "tstl/ranges/algorithm/sorting";
 
@@ -12,35 +13,35 @@ import { insert } from "../functional/insert";
 
 export class InsertCollection
 {
-    private dict_: Map<Creator<object>, object[]>;
+    private dict_: Map<Creator<object>, Pair<object[], boolean>>;
 
     private readonly befores_: Vector<InsertPocket.Process>;
     private readonly afters_: Vector<InsertPocket.Process>;
-
     private readonly mutex_: Mutex;
+    private readonly limit_: number;
 
-    public constructor()
+    public constructor(limit: number = 1000)
     {
         this.dict_ = new Map();
 
         this.befores_ = new Vector();
         this.afters_ = new Vector();
-
         this.mutex_ = new Mutex();
+        this.limit_ = limit;
     }
 
     /* -----------------------------------------------------------
         ELEMENTS I/O
     ----------------------------------------------------------- */
-    public push<T extends object>(record: T): T;
-    public push<T extends object>(records: T[]): T[];
+    public push<T extends object>(record: T, ignore?: boolean): T;
+    public push<T extends object>(records: T[], ignore?: boolean): T[];
 
-    public push<T extends object>(input: T | T[]): T | T[]
+    public push<T extends object>(input: T | T[], ignore: boolean = false): T | T[]
     {
         if (input instanceof Array)
-            return this._Push(input);
+            return this._Push(input, ignore);
         else
-            return this._Push([input])[0];
+            return this._Push([input], ignore)[0];
     }
 
     public before(process: InsertPocket.Process): void
@@ -53,24 +54,28 @@ export class InsertCollection
         this.afters_.push_back(process);
     }
 
-    private _Push<T extends object>(records: T[]): T[]
+    private _Push<T extends object>(records: T[], ignore: boolean): T[]
     {
         if (records.length === 0)
             return records;
 
         const creator: Creator<T> = records[0].constructor as Creator<T>;
-        let container: object[] | undefined = this.dict_.get(creator);
+        let tuple: Pair<object[], boolean> | undefined = this.dict_.get(creator);
 
-        if (container === undefined)
+        if (tuple === undefined)
         {
             const info: ITableInfo = ITableInfo.get(creator);
             if (info.incremental === true)
                 throw new InvalidArgument("Error on safe.InsertPocket.push(): primary key of the target table is incremental.");
 
-            container = [];
-            this.dict_.set(creator, container);
+            tuple = new Pair([], ignore);
+            this.dict_.set(creator, tuple);
         }
-        container.push(...records);
+        else if (tuple.second === false && ignore === true)
+            tuple.second = true
+
+        for (const elem of records)
+            tuple.first.push(elem);
         return records;
     }
 
@@ -94,8 +99,12 @@ export class InsertCollection
         {
             for (const process of this.befores_)
                 await process(manager);
-            for (const row of this._Get_records(orm.getConnection()))
-                await insert(manager, row);
+            for (const tuple of this._Get_record_tuples(orm.getConnection()))
+                while (tuple.first.length !== 0)
+                {
+                    const pieces: object[] = tuple.first.splice(0, this.limit_);
+                    await insert(manager, pieces, tuple.second);
+                }
             for (const process of this.afters_)
                 await process(manager);
 
@@ -107,17 +116,17 @@ export class InsertCollection
             throw new DomainError("Error on InsertCollection.execute(): it's already on executing.");
     }
 
-    private _Get_records(connection: orm.Connection): object[][]
+    private _Get_record_tuples(connection: orm.Connection): Pair<object[], boolean>[]
     {
-        function compare(x: object[], y: object[]): boolean
+        function compare(x: Pair<object[], boolean>, y: Pair<object[], boolean>): boolean
         {
-            const children: Set<Creator<object>> = getDependencies(connection, y[0].constructor as Creator<object>);
-            return !children.has(x[0].constructor as Creator<object>);
+            const children: Set<Creator<object>> = getDependencies(connection, y.first[0].constructor as Creator<object>);
+            return !children.has(x.first[0].constructor as Creator<object>);
         }
 
-        const output: Vector<object[]> = new Vector();
-        for (const [_, record] of this.dict_)
-            output.push_back(record);
+        const output: Vector<Pair<object[], boolean>> = new Vector();
+        for (const [_, tuple] of this.dict_)
+            output.push_back(tuple);
         
         sort(output, compare);
         return output.data();

@@ -269,7 +269,7 @@ async function test_join(): Promise<void>
     );
 }
 
-function test_copmplicate_join(): void
+function test_complicate_join(): void
 {
     BbsGroup.createJoinQueryBuilder(group => group
         .leftJoin("articles", article =>
@@ -302,7 +302,8 @@ async function main(): Promise<void>
         password: "root",
         database: "safe_typeorm_test",
         namingStrategy: new NamingStrategy(),
-        entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`]
+        entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
+        logging: true
     });
     
     // RESET SCHEMA AND CREATE TABLES
@@ -329,7 +330,7 @@ async function main(): Promise<void>
     // COMPARE RAW & MODEL
     // validate_equality(rawGroups, output);
     await test_join();
-    test_copmplicate_join();
+    test_complicate_join();
 
     test_get_column();
     await test_insert_collection();

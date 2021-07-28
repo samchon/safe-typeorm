@@ -61,7 +61,7 @@ async function test(indexes: number[]): Promise<void>
 
     const recordList = [group, article, file, cover, comment];
     for (const index of indexes)
-        collection.push(recordList[index]);
+        collection.push(recordList[index], true);
 
     await collection.execute();
 }

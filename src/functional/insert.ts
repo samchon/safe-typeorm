@@ -5,24 +5,26 @@ import { v4 } from "uuid";
 import { Creator } from "../typings";
 import { ITableInfo } from "./internal/ITableInfo";
 
-export function insert<T extends object>(records: T | T[]): Promise<void>;
-export function insert<T extends object>(manager: orm.EntityManager, records: T | T[]): Promise<void>;
+export function insert<T extends object>(records: T | T[], ignore?: boolean): Promise<void>;
+export function insert<T extends object>(manager: orm.EntityManager, records: T | T[], ignore?: boolean): Promise<void>;
 
 export async function insert<T extends object>
     (...args: [T|T[]] | [orm.EntityManager, T|T[]]): Promise<void>
 {
-    if (args.length === 1)
+    if (args[0] instanceof orm.EntityManager)
+        await (_Insert as any)(...args);
+    else
         await orm.getManager().transaction
         (
-            manager => _Insert(manager, args[0])
+            manager => _Insert(manager, args[0], (args as any)[1])
         );
-    else
-        await _Insert(...args);
 }
 
 async function _Insert<T extends object>
-    (manager: orm.EntityManager, records: T | T[]): Promise<void>
+    (manager: orm.EntityManager, records: T | T[], ignore?: boolean): Promise<void>
 {
+    if (ignore === undefined)
+        ignore = false;
     if (!(records instanceof Array))
         records = [records];
     else if (records.length === 0)
@@ -44,10 +46,13 @@ async function _Insert<T extends object>
         if (info.updateDateColumn)
             elem[info.updateDateColumn] = time;
     }
-    await manager.getRepository(creator)
+    
+    const stmt: orm.InsertQueryBuilder<T> = manager.getRepository(creator)
         .createQueryBuilder()
         .insert()
         .values(records)
-        .updateEntity(false)
-        .execute();
+        .updateEntity(false);
+    if (ignore === true)
+        stmt.orIgnore();
+    await stmt.execute();
 }

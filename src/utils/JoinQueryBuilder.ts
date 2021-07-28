@@ -1,6 +1,7 @@
 import * as orm from "typeorm";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
+import { ITableInfo } from "../functional/internal/ITableInfo";
 
 import { Creator } from "../typings/Creator";
 import { Relationship } from "../typings/Relationship";
@@ -99,14 +100,14 @@ export class JoinQueryBuilder<Mine extends object>
         {
             // WHEN BELONGS TO PARENT
             myField = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, this.mine_.prototype);
-            targetField = "id";
+            targetField = get_primary_column(asset.target);
         }
         else
         {
             // WHEN HAS CHILDREN
             const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Has:${field}:inverse`, this.mine_.prototype);
             targetField = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverseField}:field`, asset.target.prototype);
-            myField = "id";
+            myField = get_primary_column(this.mine_);
         }
 
         // DO JOIN
@@ -253,4 +254,9 @@ function get_parametric_tuple<Func extends Function>
     return (typeof x === "string")
         ? [x, y]
         : [undefined, x];
+}
+
+function get_primary_column(creator: Creator<object>): string
+{
+    return ITableInfo.get(creator).primaryColumn;
 }
