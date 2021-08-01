@@ -37,8 +37,6 @@ export function initialize<T extends object>
             continue;
 
         const key: string = tuple[0];
-        const type = typeof value;
-
         if (output[key] instanceof Belongs.HELPER_TYPE)
         {
             if (value instanceof Object)
@@ -46,7 +44,7 @@ export function initialize<T extends object>
             else
                 output[key].id = value;
         }
-        else if (value === null || type === "boolean" || type === "number" || type === "string" || value instanceof Date)
+        else
             output[key] = value;
     }
     if (info.uuid && !output[info.primaryColumn])

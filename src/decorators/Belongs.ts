@@ -106,6 +106,7 @@ export namespace Belongs
             index: boolean;
             primary: boolean;
             unsigned: Type extends "uuid" ? never : boolean;
+            length: number;
         }
     }
 
