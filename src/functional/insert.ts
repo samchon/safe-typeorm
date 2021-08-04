@@ -54,5 +54,6 @@ async function _Insert<T extends object>
         .updateEntity(false);
     if (ignore === true)
         stmt.orIgnore();
+    
     await stmt.execute();
 }

@@ -30,13 +30,12 @@ export function initialize<T extends object>
     const info: ITableInfo = ITableInfo.get(creator);
     const output: any = new creator();
 
-    for (const tuple of Object.entries(input))
+    for (const [key, value] of Object.entries(input))
     {
-        const value: any = tuple[1];
         if (value === DEFAULT)
             continue;
 
-        const key: string = tuple[0];
+        const type = typeof value;
         if (output[key] instanceof Belongs.HELPER_TYPE)
         {
             if (value instanceof Object)
@@ -44,7 +43,7 @@ export function initialize<T extends object>
             else
                 output[key].id = value;
         }
-        else
+        else if (value === null || type === "boolean" || type === "number" || type === "string" || value instanceof Date)
             output[key] = value;
     }
     if (info.uuid && !output[info.primaryColumn])
