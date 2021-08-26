@@ -1,4 +1,7 @@
 import * as orm from "typeorm";
+import { SharedMutex } from "tstl/thread/SharedMutex";
+import { SharedLock } from "tstl/thread/SharedLock";
+import { UniqueLock } from "tstl/thread/UniqueLock";
 
 import { Has } from "./Has";
 import { ClosureProxy } from "./internal/ClosureProxy";
@@ -31,7 +34,7 @@ export namespace Belongs
             Target extends object, 
             Type extends PrimaryGeneratedColumn, 
             Options extends Partial<ManyToOne.IOptions<Type>> = {}> 
-        = Helper<Target, Type, Options>;
+        = ManyToOne.Accessor<Target, Type, Options>;
 
     /**
      * Decorator function for the "N: 1 belongs" relationship.
@@ -97,9 +100,6 @@ export namespace Belongs
 
     export namespace ManyToOne
     {
-        /**
-         * 
-         */
         export interface IOptions<Type extends PrimaryGeneratedColumn>
             extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
         {
@@ -107,6 +107,131 @@ export namespace Belongs
             primary: boolean;
             unsigned: Type extends "uuid" ? never : boolean;
             length: number;
+        }
+
+        export class Accessor<
+                Target extends object, 
+                Type extends PrimaryGeneratedColumn, 
+                Options extends Partial<ManyToOne.IOptions<Type>>>
+        {
+            private readonly source_: any;
+            private readonly getter_: string;
+            private readonly mutex_: SharedMutex;
+
+            private assigned_: Target | null;
+            private changed_: boolean;
+
+            private constructor
+                (
+                    private readonly target_: Creator<Target>, 
+                    private readonly target_primary_field_: string, 
+                    source: ManyToOne.IOptions<Type>, 
+                    property: string, 
+                    private readonly field_: string
+                )
+            {
+                this.source_ = source;
+                this.getter_ = getGetterField<any>(property);
+                this.mutex_ = new SharedMutex();
+
+                this.assigned_ = null;
+                this.changed_ = false;
+            }
+
+            /**
+             * @internal
+             */
+            public static create<
+                    Target extends object, 
+                    Type extends PrimaryGeneratedColumn, 
+                    Options extends Partial<ManyToOne.IOptions<Type>>>
+                (
+                    target: Creator<Target>, 
+                    targetPrimaryField: string, 
+                    source: ManyToOne.IOptions<Type>, 
+                    property: string, 
+                    field: string
+                ): Accessor<Target, Type, Options>
+            {
+                return new Accessor(target, targetPrimaryField, source, property, field);
+            }
+
+            /**
+             * 
+             */
+            public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
+            {
+                if (this.source_[this.field_] === null 
+                    && this.assigned_ !== null 
+                    && (this.assigned_ as any)[this.target_primary_field_] !== undefined)
+                    this.source_[this.field_] = (this.assigned_ as any)[this.target_primary_field_];
+                return this.source_[this.field_];
+            }
+            public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
+            {
+                const previous: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.source_[this.field_];
+                this.source_[this.field_] = value;
+
+                if (previous !== value)
+                {
+                    delete this.source_[`__${this.getter_}__`];
+                    delete this.source_[`__has_${this.getter_}__`];
+                    this.changed_ = true;
+                }
+            }
+
+            /**
+             * 
+             */
+            public async get(): Promise<CapsuleNullable<Target, Options>>
+            {
+                const id: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.id;
+                if (id === null)
+                    return null!;
+
+                let output: CapsuleNullable<Target, Options>;
+                if (this.changed_ === true)
+                    await UniqueLock.lock(this.mutex_, async () =>
+                    {
+                        const loaded: Target | undefined = await orm.getRepository(this.target_).findOne(this.id!);
+                        output = (loaded || null) as any;
+
+                        this.changed_ = false;
+                        this.source_[this.getter_] = Promise.resolve(output);
+                    });
+                else
+                    await SharedLock.lock(this.mutex_, async () =>
+                    {
+                        output = await this.source_[this.getter_];
+                    });
+                return output!;
+            }
+
+            /**
+             * 
+             * @param obj 
+             */
+            public async set(obj: CapsuleNullable<Target, Options>): Promise<void>
+            {
+                await UniqueLock.lock(this.mutex_, async () =>
+                {
+                    this.assigned_ = obj;
+                    this.changed_ = false;
+
+                    this.source_[this.field_] = (obj !== null) ? (obj as any)[this.target_primary_field_] : null!;
+                    this.source_[this.getter_] = Promise.resolve(obj);
+                });
+            }
+
+            /**
+             * 
+             */
+            public statement(): orm.QueryBuilder<Target>
+            {
+                return orm.getRepository(this.target_)
+                    .createQueryBuilder(this.target_.name)
+                    .andWhere(`${this.target_.name}.id = :id`, { id: this.id });
+            }
         }
     }
 
@@ -124,7 +249,7 @@ export namespace Belongs
             Target extends object, 
             Type extends PrimaryGeneratedColumn, 
             Options extends Partial<OneToOne.IOptions<Type>> = {}> 
-        = Helper<Target, Type, Options>;
+        = OneToOne.Accessor<Target, Type, Options>;
 
     /**
      * Decorator function for the "1: 1 belongs" relationship.
@@ -189,15 +314,14 @@ export namespace Belongs
     }
     export namespace OneToOne
     {
-        /**
-         * 
-         */
         export interface IOptions<Type extends PrimaryGeneratedColumn>
             extends ManyToOne.IOptions<Type>
         {
             unique: boolean;
             length: number;
         }
+
+        export import Accessor = ManyToOne.Accessor;
     }
 
     /* -----------------------------------------------------------
@@ -257,13 +381,21 @@ export namespace Belongs
             // DEFINE THE ACCESSOR PROPERTY
             Object.defineProperty($class, $property,
             {
-                get: function (): Helper<Target, Type, Options>
+                get: function (): ManyToOne.Accessor<Target, Type, Options>
                 {
                     if (this[label] === undefined)
                     {
                         if (targetPrimaryField === null)
                             targetPrimaryField = Has.getPrimaryField(`Belongs.${relation.name}`, targetGen());
-                        this[label] = Helper.create(targetGen(), targetPrimaryField, this, $property as string, field);
+                        
+                        this[label] = ManyToOne.Accessor.create
+                        (
+                            targetGen(), 
+                            targetPrimaryField, 
+                            this, 
+                            $property as string, 
+                            field
+                        );
                     }
                     return this[label];
                 }
@@ -304,121 +436,8 @@ export namespace Belongs
     ];
 
     /* -----------------------------------------------------------
-        HELPER
-    ----------------------------------------------------------- */
-    class Helper<
-            Target extends object, 
-            Type extends PrimaryGeneratedColumn, 
-            Options extends Partial<ManyToOne.IOptions<Type>>>
-    {
-        private readonly target_: Creator<Target>;
-        private readonly target_primary_field_: string;
-        private readonly source_: any;
-        private readonly getter_: string;
-        private readonly field_: string;
-
-        private assigned_: Target | null;
-        private changed_: boolean;
-
-        private constructor(target: Creator<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string)
-        {
-            this.target_ = target;
-            this.target_primary_field_ = targetPrimaryField;
-            this.source_ = source;
-            this.getter_ = getGetterField<any>(property);
-            this.field_ = field;
-
-            this.assigned_ = null;
-            this.changed_ = false;
-        }
-
-        /**
-         * @internal
-         */
-        public static create<
-                Target extends object, 
-                Type extends PrimaryGeneratedColumn, 
-                Options extends Partial<ManyToOne.IOptions<Type>>>
-            (target: Creator<Target>, targetPrimaryField: string, source: ManyToOne.IOptions<Type>, property: string, field: string): Helper<Target, Type, Options>
-        {
-            return new Helper(target, targetPrimaryField, source, property, field);
-        }
-
-        /**
-         * 
-         */
-        public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
-        {
-            if (this.source_[this.field_] === null 
-                && this.assigned_ !== null 
-                && (this.assigned_ as any)[this.target_primary_field_] !== undefined)
-                this.source_[this.field_] = (this.assigned_ as any)[this.target_primary_field_];
-            return this.source_[this.field_];
-        }
-        public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
-        {
-            const previous: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.source_[this.field_];
-            this.source_[this.field_] = value;
-
-            if (previous !== value)
-            {
-                delete this.source_[`__${this.getter_}__`];
-                delete this.source_[`__has_${this.getter_}__`];
-                this.changed_ = true;
-            }
-        }
-
-        /**
-         * 
-         */
-        public async get(): Promise<CapsuleNullable<Target, Options>>
-        {
-            const id: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.id;
-            if (id === null)
-                return null!;
-
-            if (this.changed_ === true)
-            {
-                const loaded: Target | undefined = await orm.getRepository(this.target_).findOne(this.id!);
-                this.source_[this.getter_] = Promise.resolve(loaded ? loaded : null);
-
-                this.changed_ = false;
-            }
-            return await this.source_[this.getter_];
-        }
-
-        /**
-         * 
-         * @param obj 
-         */
-        public set(obj: CapsuleNullable<Target, Options>): void
-        {
-            this.assigned_ = obj;
-            this.changed_ = false;
-
-            this.source_[this.field_] = (obj !== null) ? (obj as any)[this.target_primary_field_] : null!;
-            this.source_[this.getter_] = Promise.resolve(obj);
-        }
-
-        /**
-         * 
-         */
-        public statement(): orm.QueryBuilder<Target>
-        {
-            return orm.getRepository(this.target_)
-                .createQueryBuilder(this.target_.name)
-                .andWhere(`${this.target_.name}.id = :id`, { id: this.id });
-        }
-    }
-
-    /* -----------------------------------------------------------
         HIDDEN ACCESSORS
     ----------------------------------------------------------- */
-    /**
-     * @internal
-     */
-    export const HELPER_TYPE = Helper;
-
     /**
      * @internal
      */

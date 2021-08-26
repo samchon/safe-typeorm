@@ -303,7 +303,7 @@ async function main(): Promise<void>
         database: "safe_typeorm_test",
         namingStrategy: new NamingStrategy(),
         entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
-        logging: true
+        // logging: true
     });
     
     // RESET SCHEMA AND CREATE TABLES

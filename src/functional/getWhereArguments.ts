@@ -222,7 +222,7 @@ function _Decompose_entity(param: any): any
 {
     if (param instanceof Object && !(param instanceof Date))
     {
-        if (param instanceof Belongs.HELPER_TYPE)
+        if (param instanceof Belongs.ManyToOne.Accessor)
             param = param.id;
         else
         {

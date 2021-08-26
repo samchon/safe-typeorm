@@ -36,7 +36,7 @@ export function initialize<T extends object>
             continue;
 
         const type = typeof value;
-        if (output[key] instanceof Belongs.HELPER_TYPE)
+        if (output[key] instanceof Belongs.ManyToOne.Accessor)
         {
             if (value instanceof Object)
                 output[key].set(value);
