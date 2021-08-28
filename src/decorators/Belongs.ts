@@ -10,6 +10,7 @@ import { CapsuleNullable } from "../typings/CapsuleNullable";
 import { Creator } from "../typings/Creator";
 import { SpecialFields } from "../typings/SpecialFields";
 import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
+import { ReflectConstant } from "./internal/ReflectConstant";
 
 /**
  * Decorators for the "belongs" relationship.
@@ -351,20 +352,19 @@ export namespace Belongs
         return function ($class, $property)
         {
             // LIST UP LABELS
-            Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}`, $property, $class);
-            Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}:field`, field, $class);
-            Reflect.defineMetadata(`SafeTypeORM:Belongs:${$property as string}:target`, targetGen, $class);
-
             const getter: string = getGetterField<any>($property as string);
             const label: string = getHelperField($property as string);
             let targetPrimaryField: string | null = null;
             
             // JOIN RELATIONSHIP
-            if (typeof inverse === "function")
+            const inverseField: string | null = (inverse !== undefined)
+                ? ClosureProxy.steal(inverse)
+                : null
+            if (inverseField !== null)
                 relation
                 (
                     targetGen, 
-                    Has.getGetterField(ClosureProxy.steal(inverse)), 
+                    Has.getGetterField(inverseField), 
                     { ...options, lazy: true })
                 ($class, getter);
             else
@@ -377,6 +377,12 @@ export namespace Belongs
                 orm.PrimaryColumn(<any>type, columnOptions)($class, field);
             else
                 orm.Column(<any>type, columnOptions)($class, field);
+            
+            // DEFINE METADATAS
+            Reflect.defineMetadata(ReflectConstant.type($property), `Belongs.${relation}`, $class);
+            Reflect.defineMetadata(ReflectConstant.foreign_key_field($property), field, $class);
+            Reflect.defineMetadata(ReflectConstant.target($property), targetGen, $class);
+            Reflect.defineMetadata(ReflectConstant.inverse($property), inverseField, $class);
 
             // DEFINE THE ACCESSOR PROPERTY
             Object.defineProperty($class, $property,

@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
 
 import { Creator } from "../typings/Creator";
-import { JoinQueryBuilder } from "../utils/JoinQueryBuilder";
+import { JoinQueryBuilder } from "../builders/JoinQueryBuilder";
 
 /**
  * Create join query builder.

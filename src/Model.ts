@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
 
 import { EncryptedColumn } from "./decorators/EncryptedColumn";
-import { JoinQueryBuilder } from "./utils/JoinQueryBuilder";
+import { JoinQueryBuilder } from "./builders/JoinQueryBuilder";
 
 import { Creator as _Creator } from "./typings/Creator";
 import { Field } from "./typings/Field";

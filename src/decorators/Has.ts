@@ -1,14 +1,15 @@
 import * as orm from "typeorm";
 import { Singleton } from "tstl/thread/Singleton";
+import { SharedMutex } from "tstl/thread/SharedMutex";
+import { SharedLock } from "tstl/thread/SharedLock";
+import { UniqueLock } from "tstl/thread/UniqueLock";
 import { sort } from "tstl/ranges/algorithm";
 
 import { Creator } from "../typings/Creator";
 
 import { Belongs } from "./Belongs";
 import { ClosureProxy } from "./internal/ClosureProxy";
-import { SharedMutex } from "tstl/thread/SharedMutex";
-import { SharedLock } from "tstl/thread/SharedLock";
-import { UniqueLock } from "tstl/thread/UniqueLock";
+import { ReflectConstant } from "./internal/ReflectConstant";
 
 /**
  * Decorators for the "has" relationship.
@@ -270,8 +271,9 @@ export namespace Has
         return function ($class, $property)
         {
             const inverse: string = ClosureProxy.steal(inverseClosure);
-            Reflect.defineMetadata(`SafeTypeORM:Has:${$property as string}:target`, targetGen, $class);
-            Reflect.defineMetadata(`SafeTypeORM:Has:${$property as string}:inverse`, inverse, $class);
+            Reflect.defineMetadata(ReflectConstant.type($property), `Has.${relation.name}`, $class);
+            Reflect.defineMetadata(ReflectConstant.target($property), targetGen, $class);
+            Reflect.defineMetadata(ReflectConstant.inverse($property), inverse, $class);
 
             const label: string = getHelperField($property as string);
             const getter: string = getGetterField($property as string);
@@ -290,8 +292,7 @@ export namespace Has
                         if (primaryField === null)
                             primaryField = getPrimaryField(`Has.${relation.name}`, targetGen());
 
-                        const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverse}`, targetGen());
-                        this[label] = accessorGen(this, primaryField, getter, inverseField)
+                        this[label] = accessorGen(this, primaryField, getter, inverse)
                     }
                     return this[label];
                 }
@@ -346,6 +347,9 @@ export namespace Has
             const label: string = getHelperField($property as string);
             let primaryFieldTuple: [string, string] | null = null;
 
+            Reflect.defineMetadata(ReflectConstant.target($property), targetGen, $class);
+            Reflect.defineMetadata(ReflectConstant.router($property), routerGen, $class);
+
             Object.defineProperty($class, $property,
             {
                 get: function (): ManyToMany.Accessor<Target, Router>
@@ -361,8 +365,8 @@ export namespace Has
                             targetGen(), 
                             routerGen(), 
                             ClosureProxy.steal(targetInverse),
-                            Reflect.getMetadata(`SafeTypeORM:Belongs:${ClosureProxy.steal(targetInverse)}:field`, routerGen().prototype), 
-                            Reflect.getMetadata(`SafeTypeORM:Belongs:${ClosureProxy.steal(myInverse)}:field`, routerGen().prototype),
+                            Reflect.getMetadata(ReflectConstant.foreign_key_field(ClosureProxy.steal(targetInverse)), routerGen().prototype), 
+                            Reflect.getMetadata(ReflectConstant.foreign_key_field(ClosureProxy.steal(myInverse)), routerGen().prototype),
                             primaryFieldTuple,
                             comp
                         );

@@ -2,7 +2,7 @@ import * as fs from "fs";
 import * as orm from "typeorm";
 import { randint } from "tstl/algorithm/random";
 
-import { NamingStrategy } from "../utils/NamingStrategy";
+import { SnakeCaseStrategy } from "../strategies/SnakeCaseStrategy";
 import { RandomGenerator } from "./internal/RandomGenerator";
 import { AttachmentFile } from "./models/AttachmentFile";
 import { BbsArticle } from "./models/BbsArticle";
@@ -301,7 +301,7 @@ async function main(): Promise<void>
         username: "root",
         password: "root",
         database: "safe_typeorm_test",
-        namingStrategy: new NamingStrategy(),
+        namingStrategy: new SnakeCaseStrategy(),
         entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
         // logging: true
     });

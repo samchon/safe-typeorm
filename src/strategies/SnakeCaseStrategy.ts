@@ -1,7 +1,7 @@
 import { DefaultNamingStrategy } from "typeorm";
 import pluralize from "pluralize";
 
-export class NamingStrategy extends DefaultNamingStrategy
+export class SnakeCaseStrategy extends DefaultNamingStrategy
 {
     public tableName(targetName: string, userSpecifiedName: string | undefined): string
     {

@@ -1,7 +1,7 @@
 import { Factorial } from "cagen";
 
 import { DEFAULT } from "../../DEFAULT";
-import { InsertCollection } from "../../utils";
+import { InsertCollection } from "../../transactions/InsertCollection";
 
 import { AttachmentFile } from "../models/AttachmentFile";
 import { BbsArticle } from "../models/BbsArticle";

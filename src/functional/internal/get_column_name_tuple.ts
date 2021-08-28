@@ -1,3 +1,4 @@
+import { ReflectConstant } from "../../decorators/internal/ReflectConstant";
 import { Creator } from "../../typings/Creator";
 import { Field } from "../../typings/Field";
 import { SpecialFields } from "../../typings/SpecialFields";
@@ -23,8 +24,6 @@ export function get_column_name_tuple<T extends object, Literal extends SpecialF
         field = (<string>fieldLike).substr(index + 1) as Literal;
     }
 
-    const fieldName: string = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, creator.prototype)
-        ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, creator.prototype)
-        : field as string;
+    const fieldName: string = Reflect.getMetadata(ReflectConstant.foreign_key_field(field), creator.prototype) || field;
     return [tableAlias, fieldName];
 }

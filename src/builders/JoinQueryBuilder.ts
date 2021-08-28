@@ -1,6 +1,7 @@
 import * as orm from "typeorm";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
+import { ReflectConstant } from "../decorators/internal/ReflectConstant";
 import { ITableInfo } from "../functional/internal/ITableInfo";
 
 import { Creator } from "../typings/Creator";
@@ -99,14 +100,14 @@ export class JoinQueryBuilder<Mine extends object>
         if (asset.belongs === true)
         {
             // WHEN BELONGS TO PARENT
-            myField = Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:field`, this.mine_.prototype);
+            myField = Reflect.getMetadata(ReflectConstant.foreign_key_field(field), this.mine_.prototype);
             targetField = get_primary_column(asset.target);
         }
         else
         {
             // WHEN HAS CHILDREN
-            const inverseField: string = Reflect.getMetadata(`SafeTypeORM:Has:${field}:inverse`, this.mine_.prototype);
-            targetField = Reflect.getMetadata(`SafeTypeORM:Belongs:${inverseField}:field`, asset.target.prototype);
+            const inverseField: string = Reflect.getMetadata(ReflectConstant.inverse(field), this.mine_.prototype);
+            targetField = Reflect.getMetadata(ReflectConstant.foreign_key_field(inverseField), asset.target.prototype);
             myField = get_primary_column(this.mine_);
         }
 
@@ -221,10 +222,10 @@ function prepare_asset<
     ): IAsset<Mine, Field>
 {
     // FIND TARGET
-    const belongs: boolean = Reflect.hasMetadata(`SafeTypeORM:Belongs:${field}`, mine.prototype);
-    const target: Creator<Relationship.TargetType<Mine, Field>> = (belongs === true)
-        ? Reflect.getMetadata(`SafeTypeORM:Belongs:${field}:target`, mine.prototype)()
-        : Reflect.getMetadata(`SafeTypeORM:Has:${field}:target`, mine.prototype)();
+    const belongs: boolean = Reflect
+        .getMetadata(ReflectConstant.type(field), mine.prototype)
+        .indexOf("Belongs.") === 0;
+    const target: Creator<Relationship.TargetType<Mine, Field>> = Reflect.getMetadata(ReflectConstant.target(field), mine.prototype)();
 
     // DETERMINE THE ALIAS
     if (alias === undefined)
