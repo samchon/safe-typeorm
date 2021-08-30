@@ -1,17 +1,26 @@
 import { AppJoinBuilder } from "../builders/AppJoinBuilder";
+import { Creator } from "../typings/Creator";
+
+export function appJoin<T extends object>(source: T[], closure: AppJoinBuilder.Closure<T>): Promise<void>;
+export function appJoin<T extends object>(source: T, closure: AppJoinBuilder.Closure<T>): Promise<void>;
 
 export function appJoin<T extends object>
-    (source: T, closure: () => void): Promise<void>;
-
-export function appJoin<T extends object>
-    (source: T[], closure: () => void): Promise<void>;
-
-export async function appJoin<T extends object>
+    (source: T[] | T, closure: AppJoinBuilder.Closure<T>): Promise<void>
+{
+    return _App_join
     (
-        from: T | T[], 
+        source instanceof Array ? source : [source],
+        closure
+    );
+}
+
+async function _App_join<T extends object>
+    (
+        from: T[], 
         closure: AppJoinBuilder.Closure<T>
     ): Promise<void>
 {
-    from;
-    closure;
+    const builder: AppJoinBuilder<T> = new AppJoinBuilder(from[0].constructor as Creator<T>);
+    closure(builder);
+    await builder.mount(from);
 }

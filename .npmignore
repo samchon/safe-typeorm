@@ -11,3 +11,4 @@ lib/test/
 package-lock.json
 tsconfig.api.json
 tsconfig.json
+*.log

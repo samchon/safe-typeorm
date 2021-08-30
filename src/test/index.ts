@@ -14,6 +14,8 @@ import { BbsGroup } from "./models/BbsGroup";
 import { DEFAULT } from "../DEFAULT";
 import { test_get_column } from "./features/test_get_column";
 import { test_insert_collection } from "./features/test_insert_collection";
+import { appJoin } from "../functional";
+import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
 // import { validate_equality } from "./internal/validate_equality";
 
 /* -----------------------------------------------------------
@@ -282,6 +284,26 @@ function test_complicate_join(): void
         ])
 }
 
+async function test_app_join(): Promise<void>
+{
+    const groupList: BbsGroup[] = await BbsGroup.find();
+
+    console.log("------------------------------------------------------");
+    console.log(" TEST APP-JOIN");
+    console.log("------------------------------------------------------");
+    await appJoin(groupList, group =>
+    {
+        group.join("articles", article =>
+        {
+            article.join("comments");
+            article.join("files");
+            article.join("cover").join("file");
+        });
+    });
+    console.log("------------------------------------------------------");
+    console.log(await serialize(groupList));
+}
+
 /* -----------------------------------------------------------
     THE MAIN FUNCTION
 ----------------------------------------------------------- */
@@ -294,7 +316,7 @@ async function main(): Promise<void>
     try { await fs.promises.mkdir(__dirname + "/../../assets") } catch {}
 
     // CONNECT TO THE DB
-    const connection: orm.Connection = await orm.createConnection({
+    const options: MysqlConnectionOptions = {
         type: "mariadb",
         host: "127.0.0.1",
         port: 3306,
@@ -303,8 +325,9 @@ async function main(): Promise<void>
         database: "safe_typeorm_test",
         namingStrategy: new SnakeCaseStrategy(),
         entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
-        // logging: true
-    });
+        logging: false
+    };
+    let connection: orm.Connection = await orm.createConnection(options);
     
     // RESET SCHEMA AND CREATE TABLES
     await connection.dropDatabase();
@@ -334,7 +357,16 @@ async function main(): Promise<void>
 
     test_get_column();
     await test_insert_collection();
-
+    await connection.close();
+    
+    //----
+    // RE-CONNECT
+    //----
+    connection = await orm.createConnection({
+        ...options,
+        logging: true
+    });
+    await test_app_join();
     await connection.close();
 }
 main();

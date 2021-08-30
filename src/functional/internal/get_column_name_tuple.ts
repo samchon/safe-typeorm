@@ -1,9 +1,12 @@
-import { ReflectConstant } from "../../decorators/internal/ReflectConstant";
+import { Belongs } from "../../decorators";
+import { ReflectAdaptor } from "../../decorators/internal/ReflectAdaptor";
 import { Creator } from "../../typings/Creator";
 import { Field } from "../../typings/Field";
 import { SpecialFields } from "../../typings/SpecialFields";
 
-export function get_column_name_tuple<T extends object, Literal extends SpecialFields<T, Field>>
+export function get_column_name_tuple<
+        T extends object, 
+        Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>, 
         fieldLike: `${Literal}` | `${string}.${Literal}`
@@ -24,6 +27,7 @@ export function get_column_name_tuple<T extends object, Literal extends SpecialF
         field = (<string>fieldLike).substr(index + 1) as Literal;
     }
 
-    const fieldName: string = Reflect.getMetadata(ReflectConstant.foreign_key_field(field), creator.prototype) || field;
+    const metadata: ReflectAdaptor.Metadata<T, any> | undefined = ReflectAdaptor.get(creator.prototype, field);
+    const fieldName: string = (metadata as Belongs.ManyToOne.IMetadata<T>)?.foreign_key_field || field;
     return [tableAlias, fieldName];
 }

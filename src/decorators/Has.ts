@@ -9,7 +9,7 @@ import { Creator } from "../typings/Creator";
 
 import { Belongs } from "./Belongs";
 import { ClosureProxy } from "./internal/ClosureProxy";
-import { ReflectConstant } from "./internal/ReflectConstant";
+import { ReflectAdaptor } from "./internal/ReflectAdaptor";
 
 /**
  * Decorators for the "has" relationship.
@@ -68,6 +68,16 @@ export namespace Has
 
     export namespace OneToOne
     {
+        /**
+         * @internal
+         */
+        export interface IMetadata<T extends object>
+        {
+            type: "Has.OneToOne";
+            target: () => Creator<T>;
+            inverse: string;
+        }
+
         export class Accessor<Target extends object, Output extends Target | null>
         {
             private readonly stmt_: orm.QueryBuilder<Target>;
@@ -179,6 +189,17 @@ export namespace Has
 
     export namespace OneToMany
     {
+        /**
+         * @internal
+         */
+        export interface IMetadata<T extends object>
+        {
+            type: "Has.OneToMany";
+            target: () => Creator<T>;
+            inverse: string;
+            comparator?: (x: T, y: T) => boolean;
+        }
+
         export class Accessor<Target extends object>
         {
             private readonly stmt_: orm.QueryBuilder<Target>;
@@ -265,15 +286,20 @@ export namespace Has
                     primaryField: string, 
                     getter: string, 
                     inverseField: string
-                ) => Accessor
+                ) => Accessor,
+            comparator?: (x: Target, y: Target) => boolean
         ): PropertyDecorator
     {
         return function ($class, $property)
         {
             const inverse: string = ClosureProxy.steal(inverseClosure);
-            Reflect.defineMetadata(ReflectConstant.type($property), `Has.${relation.name}`, $class);
-            Reflect.defineMetadata(ReflectConstant.target($property), targetGen, $class);
-            Reflect.defineMetadata(ReflectConstant.inverse($property), inverse, $class);
+            const metadata: OneToMany.IMetadata<Target> = {
+                type: `Has.${relation.name as "OneToMany"}`,
+                target: targetGen,
+                inverse: inverse,
+                comparator: comparator
+            };
+            ReflectAdaptor.set($class, $property, metadata);
 
             const label: string = getHelperField($property as string);
             const getter: string = getGetterField($property as string);
@@ -330,16 +356,19 @@ export namespace Has
      * @param myInverse A closure function returning the {@link Belongs.ManyToOne} typed member
      *                  variable, who is poining the target model class *Target*, from the *Rote*
      *                  mode class
-     * @param comp Comparator for sorting if required.
+     * @param comparator Comparator for sorting if required.
      * @return The *PropertyDecorator* function
      */
-    export function ManyToMany<Mine extends object, Target extends object, Router extends object>
+    export function ManyToMany<
+            Mine extends object, 
+            Target extends object, 
+            Router extends object>
         (
             targetGen: Creator.Generator<Target>,
             routerGen: Creator.Generator<Router>,
             targetInverse: (router: Router) => Belongs.ManyToOne<Target, any>,
             myInverse: (router: Router) => Belongs.ManyToOne<Mine, any>,
-            comp?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
+            comparator?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
         ): PropertyDecorator
     {
         return function ($class, $property)
@@ -347,8 +376,15 @@ export namespace Has
             const label: string = getHelperField($property as string);
             let primaryFieldTuple: [string, string] | null = null;
 
-            Reflect.defineMetadata(ReflectConstant.target($property), targetGen, $class);
-            Reflect.defineMetadata(ReflectConstant.router($property), routerGen, $class);
+            const metadata: ManyToMany.IMetadata<Target, Router> = {
+                type: "Has.ManyToMany",
+                target: targetGen,
+                router: routerGen,
+                target_inverse: ClosureProxy.steal(targetInverse),
+                my_inverse: ClosureProxy.steal(myInverse),
+                comparator
+            };
+            ReflectAdaptor.set($class, $property, metadata as any);
 
             Object.defineProperty($class, $property,
             {
@@ -359,16 +395,17 @@ export namespace Has
                         if (primaryFieldTuple === null)
                             primaryFieldTuple = [ getPrimaryField("Has.ManyToMany", this.constructor), getPrimaryField("Has.ManyToMany", targetGen()) ];
 
+                        const router: Creator<Router> = routerGen();
                         this[label] = ManyToMany.Accessor.create
                         (
                             this, 
                             targetGen(), 
-                            routerGen(), 
-                            ClosureProxy.steal(targetInverse),
-                            Reflect.getMetadata(ReflectConstant.foreign_key_field(ClosureProxy.steal(targetInverse)), routerGen().prototype), 
-                            Reflect.getMetadata(ReflectConstant.foreign_key_field(ClosureProxy.steal(myInverse)), routerGen().prototype),
+                            router, 
+                            metadata.target_inverse,
+                            (ReflectAdaptor.get(routerGen().prototype, metadata.target_inverse) as Belongs.ManyToOne.IMetadata<Router>).foreign_key_field,
+                            (ReflectAdaptor.get(routerGen().prototype, metadata.my_inverse) as Belongs.ManyToOne.IMetadata<Router>).foreign_key_field,
                             primaryFieldTuple,
-                            comp
+                            comparator
                         );
                     }
                     return this[label];
@@ -378,6 +415,19 @@ export namespace Has
     }
     export namespace ManyToMany
     {
+        /**
+         * @internal
+         */
+        export interface IMetadata<T extends object, Router extends object>
+        {
+            type: "Has.ManyToMany";
+            target: () => Creator<T>;
+            router: () => Creator<Router>;
+            target_inverse: string;
+            my_inverse: string;
+            comparator?: (x: ITuple<T, Router>, y: ITuple<T, Router>) => boolean;
+        }
+
         export interface ITuple<Target extends object, Router extends object>
         {
             target: Target;

@@ -10,7 +10,7 @@ import { CapsuleNullable } from "../typings/CapsuleNullable";
 import { Creator } from "../typings/Creator";
 import { SpecialFields } from "../typings/SpecialFields";
 import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
-import { ReflectConstant } from "./internal/ReflectConstant";
+import { ReflectAdaptor } from "./internal/ReflectAdaptor";
 
 /**
  * Decorators for the "belongs" relationship.
@@ -101,6 +101,17 @@ export namespace Belongs
 
     export namespace ManyToOne
     {
+        /**
+         * @internal
+         */
+        export interface IMetadata<T extends object>
+        {
+            type: "Belongs.ManyToOne";
+            target: () => Creator<T>;
+            foreign_key_field: string;
+            inverse: string | null;
+        }
+        
         export interface IOptions<Type extends PrimaryGeneratedColumn>
             extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
         {
@@ -315,6 +326,17 @@ export namespace Belongs
     }
     export namespace OneToOne
     {
+        /**
+         * @internal
+         */
+        export interface IMetadata<T extends object>
+        {
+            type: "Belongs.OneToOne";
+            target: () => Creator<T>;
+            foreign_key_field: string;
+            inverse: string | null;
+        }
+
         export interface IOptions<Type extends PrimaryGeneratedColumn>
             extends ManyToOne.IOptions<Type>
         {
@@ -379,10 +401,13 @@ export namespace Belongs
                 orm.Column(<any>type, columnOptions)($class, field);
             
             // DEFINE METADATAS
-            Reflect.defineMetadata(ReflectConstant.type($property), `Belongs.${relation}`, $class);
-            Reflect.defineMetadata(ReflectConstant.foreign_key_field($property), field, $class);
-            Reflect.defineMetadata(ReflectConstant.target($property), targetGen, $class);
-            Reflect.defineMetadata(ReflectConstant.inverse($property), inverseField, $class);
+            const metadata: ManyToOne.IMetadata<Target> = {
+                type: `Belongs.${relation.name as "ManyToOne"}`,
+                target: targetGen,
+                foreign_key_field: field,
+                inverse: inverseField,
+            }
+            ReflectAdaptor.set($class, $property, metadata);
 
             // DEFINE THE ACCESSOR PROPERTY
             Object.defineProperty($class, $property,

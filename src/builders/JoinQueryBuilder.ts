@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
-import { ReflectConstant } from "../decorators/internal/ReflectConstant";
+import { ReflectAdaptor } from "../decorators/internal/ReflectAdaptor";
 import { ITableInfo } from "../functional/internal/ITableInfo";
 
 import { Creator } from "../typings/Creator";
@@ -99,24 +99,29 @@ export class JoinQueryBuilder<Mine extends object>
 
         if (asset.belongs === true)
         {
-            // WHEN BELONGS TO PARENT
-            myField = Reflect.getMetadata(ReflectConstant.foreign_key_field(field), this.mine_.prototype);
-            targetField = get_primary_column(asset.target);
+            // WHEN BELONGED
+            myField = asset.metadata.foreign_key_field;
+            targetField = get_primary_column(asset.metadata.target());
         }
         else
         {
             // WHEN HAS CHILDREN
-            const inverseField: string = Reflect.getMetadata(ReflectConstant.inverse(field), this.mine_.prototype);
-            targetField = Reflect.getMetadata(ReflectConstant.foreign_key_field(inverseField), asset.target.prototype);
+            const inverseMetadata: Belongs.ManyToOne.IMetadata<Mine> = ReflectAdaptor.get
+            (
+                asset.metadata.target().prototype, 
+                asset.metadata.inverse
+            ) as Belongs.ManyToOne.IMetadata<Mine>;
+
+            targetField = inverseMetadata.foreign_key_field;
             myField = get_primary_column(this.mine_);
         }
 
         // DO JOIN
         const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
-        joiner(asset.target, asset.alias, condition);
+        joiner(asset.metadata.target(), asset.alias, condition);
 
         // CALL-BACK
-        return call_back(this.stmt_, asset.target, asset.alias, closure);
+        return call_back(this.stmt_, asset.metadata.target(), asset.alias, closure);
     }
 
     /* -----------------------------------------------------------
@@ -196,21 +201,26 @@ export class JoinQueryBuilder<Mine extends object>
         joiner(`${this.alias_}.${index}`, asset.alias);
 
         // CALL-BACK
-        return call_back(this.stmt_, asset.target, asset.alias, closure);
+        return call_back(this.stmt_, asset.metadata.target(), asset.alias, closure);
     }
 }
 
 /* -----------------------------------------------------------
     BACKGROUND
 ----------------------------------------------------------- */
-interface IAsset<
+type IAsset<
         Mine extends object, 
-        Field extends SpecialFields<Mine, Relationship<any>>>
+        Field extends SpecialFields<Mine, Relationship<any>>> =
 {
-    target: Creator<Relationship.TargetType<Mine, Field>>;
+    belongs: true;
     alias: string;
-    belongs: boolean;
-}
+    metadata: Belongs.ManyToOne.IMetadata<Relationship.TargetType<Mine, Field>>;
+} | 
+{
+    belongs: false;
+    alias: string;
+    metadata: Has.OneToMany.IMetadata<Relationship.TargetType<Mine, Field>>;
+};
 
 function prepare_asset<
         Mine extends object, 
@@ -221,18 +231,19 @@ function prepare_asset<
         alias: string | undefined
     ): IAsset<Mine, Field>
 {
-    // FIND TARGET
-    const belongs: boolean = Reflect
-        .getMetadata(ReflectConstant.type(field), mine.prototype)
-        .indexOf("Belongs.") === 0;
-    const target: Creator<Relationship.TargetType<Mine, Field>> = Reflect.getMetadata(ReflectConstant.target(field), mine.prototype)();
+    const metadata: ReflectAdaptor.Metadata<Relationship.TargetType<Mine, Field>> = ReflectAdaptor.get(mine.prototype, field)!;
+    const belongs: boolean = metadata.type.indexOf("Belongs.") === 0;
 
     // DETERMINE THE ALIAS
     if (alias === undefined)
-        alias = target.name;
+        alias = metadata.target().name;
     
     // RETURNS
-    return { target, alias, belongs };
+    return { 
+        belongs: belongs as true, 
+        metadata: metadata as Belongs.ManyToOne.IMetadata<Relationship.TargetType<Mine, Field>>,
+        alias, 
+    };
 }
 
 function call_back<Target extends object>
