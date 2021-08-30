@@ -5,11 +5,10 @@ import { v4 } from "uuid";
 import { Creator } from "../typings";
 import { ITableInfo } from "./internal/ITableInfo";
 
-export function insert<T extends object>(records: T | T[], ignore?: boolean): Promise<void>;
+export function insert<T extends object>(records: T | T[]): Promise<void>;
 export function insert<T extends object>(manager: orm.EntityManager, records: T | T[], ignore?: boolean): Promise<void>;
 
-export async function insert<T extends object>
-    (...args: [T|T[]] | [orm.EntityManager, T|T[]]): Promise<void>
+export async function insert(...args: any[]): Promise<void>
 {
     if (args[0] instanceof orm.EntityManager)
         await (_Insert as any)(...args);

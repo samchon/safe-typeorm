@@ -21,7 +21,7 @@ export class Transaction
         catch (exp) 
         {
             transaction.success_ = false;
-            error = exp;
+            error = exp as Error;
         }
 
         await transaction.cv_.notify_all();
