@@ -3,9 +3,9 @@ import { Singleton } from "tstl/thread/Singleton";
 import { SharedMutex } from "tstl/thread/SharedMutex";
 import { SharedLock } from "tstl/thread/SharedLock";
 import { UniqueLock } from "tstl/thread/UniqueLock";
-import { sort } from "tstl/ranges/algorithm";
 
 import { Creator } from "../typings/Creator";
+import { Comparator } from "../typings/Comparator";
 
 import { Belongs } from "./Belongs";
 import { ClosureProxy } from "./internal/ClosureProxy";
@@ -167,7 +167,7 @@ export namespace Has
         (
             targetGen: Creator.Generator<Target>,
             inverse: (input: Target) => Belongs.ManyToOne<Mine, any>,
-            comp?: (x: Target, y: Target) => boolean
+            comp?: Comparator<Target>
         ): PropertyDecorator
     {
         return _Has_one_to
@@ -192,12 +192,12 @@ export namespace Has
         /**
          * @internal
          */
-        export interface IMetadata<T extends object>
+        export interface IMetadata<Target extends object>
         {
             type: "Has.OneToMany";
-            target: () => Creator<T>;
+            target: () => Creator<Target>;
             inverse: string;
-            comparator?: (x: T, y: T) => boolean;
+            comparator?: Comparator<Target>;
         }
 
         export class Accessor<Target extends object>
@@ -213,7 +213,7 @@ export namespace Has
                     target: Creator<Target>, 
                     private readonly getter_: string,
                     inverseField: string,
-                    private readonly comp_: ((x: Target, y: Target) => boolean) | undefined,
+                    private readonly comp_: Comparator<Target> | undefined,
                 )
             {
                 this.stmt_ = orm.getRepository(target)
@@ -235,7 +235,7 @@ export namespace Has
                     target: Creator<Target>, 
                     getter: string,
                     inverseField: string,
-                    comp: ((x: Target, y: Target) => boolean) | undefined,
+                    comp: Comparator<Target> | undefined,
                 ): Accessor<Target>
             {
                 return new Accessor(mine, primaryField, target, getter, inverseField, comp);
@@ -249,7 +249,7 @@ export namespace Has
                     output = await this.mine_[this.getter_];
                     if (this.comp_ !== undefined && this.sorted_ === false)
                     {
-                        sort(output, this.comp_);
+                        output = output.sort(this.comp_);
                         this.sorted_ = true;
                     }
                 });
@@ -287,7 +287,7 @@ export namespace Has
                     getter: string, 
                     inverseField: string
                 ) => Accessor,
-            comparator?: (x: Target, y: Target) => boolean
+            comparator?: Comparator<Target>
         ): PropertyDecorator
     {
         return function ($class, $property)
@@ -297,7 +297,7 @@ export namespace Has
                 type: `Has.${relation.name as "OneToMany"}`,
                 target: targetGen,
                 inverse: inverse,
-                comparator: comparator
+                comparator
             };
             ReflectAdaptor.set($class, $property, metadata);
 
@@ -368,7 +368,7 @@ export namespace Has
             routerGen: Creator.Generator<Router>,
             targetInverse: (router: Router) => Belongs.ManyToOne<Target, any>,
             myInverse: (router: Router) => Belongs.ManyToOne<Mine, any>,
-            comparator?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
+            comparator?: Comparator<ManyToMany.ITuple<Target, Router>>
         ): PropertyDecorator
     {
         return function ($class, $property)
@@ -418,14 +418,14 @@ export namespace Has
         /**
          * @internal
          */
-        export interface IMetadata<T extends object, Router extends object>
+        export interface IMetadata<Target extends object, Router extends object>
         {
             type: "Has.ManyToMany";
-            target: () => Creator<T>;
+            target: () => Creator<Target>;
             router: () => Creator<Router>;
             target_inverse: string;
             my_inverse: string;
-            comparator?: (x: ITuple<T, Router>, y: ITuple<T, Router>) => boolean;
+            comparator?: Comparator<ManyToMany.ITuple<Target, Router>>;
         }
 
         export interface ITuple<Target extends object, Router extends object>
@@ -448,7 +448,7 @@ export namespace Has
                     targetInverseField: string,
                     myInverseField: string,
                     primaryKeyTuple: [string, string],
-                    comp?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
+                    comp?: Comparator<ITuple<Target, Router>>
                 )
             {
                 this.stmt_ = orm.getRepository(routerFactory)
@@ -458,7 +458,7 @@ export namespace Has
                 this.getter_ = new Singleton(async () => 
                 {
                     const routerList: Router[] = await this.stmt_.getMany();
-                    const tupleList: ManyToMany.ITuple<Target, Router>[] = [];
+                    let tupleList: ManyToMany.ITuple<Target, Router>[] = [];
 
                     for (const router of routerList)
                         tupleList.push({
@@ -466,7 +466,7 @@ export namespace Has
                             target: await (router as any)[targetField].get()
                         });
                     if (comp)
-                        sort(tupleList, comp);
+                        tupleList = tupleList.sort(comp);
 
                     return tupleList.map(({ target }) => target);
                 });
@@ -481,7 +481,7 @@ export namespace Has
                     targetInverseField: string,
                     myInverseField: string,
                     primaryKeyTuple: [string, string],
-                    comp?: (x: ManyToMany.ITuple<Target, Router>, y: ManyToMany.ITuple<Target, Router>) => boolean
+                    comp?: Comparator<ITuple<Target, Router>>
                 ): Accessor<Target, Router>
             {
                 return new Accessor<Target, Router>(mine, targetFactory, routerFactory, targetField, targetInverseField, myInverseField, primaryKeyTuple, comp);

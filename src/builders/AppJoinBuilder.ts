@@ -1,14 +1,17 @@
 import * as orm from "typeorm";
 import { Pair } from "tstl/utility/Pair";
-import { Belongs, Has } from "../decorators";
 
+import { Belongs } from "../decorators/Belongs";
+import { Has } from "../decorators/Has";
 import { ReflectAdaptor } from "../decorators/internal/ReflectAdaptor";
 
 import { Creator } from "../typings/Creator";
 import { Relationship } from "../typings/Relationship";
 import { SpecialFields } from "../typings/SpecialFields";
+
 import { ITableInfo } from "../functional/internal/ITableInfo";
-import { getWhereArguments } from "../functional";
+import { getWhereArguments } from "../functional/getWhereArguments";
+
 import { JoinQueryBuilder } from "./JoinQueryBuilder";
 
 export class AppJoinBuilder<Mine extends object>
@@ -16,13 +19,16 @@ export class AppJoinBuilder<Mine extends object>
     private readonly mine_: Creator<Mine>;
     private readonly children_: Map<SpecialFields<Mine, Relationship<any>>, IChild<Mine>>;
 
+    /* -----------------------------------------------------------
+        CONSTRUCTORS
+    ----------------------------------------------------------- */
     public constructor(mine: Creator<Mine>)
     {
         this.mine_ = mine;
         this.children_ = new Map();
     }
 
-    public join<Field extends SpecialFields<Mine, Relationship<any>>>
+    public join<Field extends AppJoinBuilder.Key<Mine>>
         (
             field: Field,
             closure?: AppJoinBuilder.Closure<Relationship.TargetType<Mine, Field>>
@@ -47,13 +53,11 @@ export class AppJoinBuilder<Mine extends object>
         return child.builder;
     }
 
-    /**
-     * @internal
-     */
-    public async mount(data: Mine[]): Promise<void>
+    public async execute(data: Mine[]): Promise<void>
     {
         for (const [field, child] of this.children_.entries())
         {
+            // JOIN WITH RELATED ENTITIES
             let output: Relationship.TargetType<Mine, any>[];
             if (child.metadata.type === "Belongs.ManyToOne" || child.metadata.type === "Belongs.OneToOne")
                 output = await join_belongs_to(child as any, data, field);
@@ -64,15 +68,97 @@ export class AppJoinBuilder<Mine extends object>
             else
                 output = await join_has_many_to_many(this.mine_, child as any, data, field);
             
+            // HIERARCHICAL CALL
             if (output.length !== 0)
-                await child.builder.mount(output);
+                await child.builder.execute(output);
         }
+    }
+
+    /* -----------------------------------------------------------
+        ACCESSORS
+    ----------------------------------------------------------- */
+    public get size(): number
+    {
+        return this.children_.size;
+    }
+
+    public keys(): IterableIterator<AppJoinBuilder.Key<Mine>>
+    {
+        return this.children_.keys();
+    }
+
+    public values(): IterableIterator<AppJoinBuilder.Value<Mine>>
+    {
+        return new ValueIterator(this.children_.values());
+    }
+
+    public entries(): IterableIterator<AppJoinBuilder.Entry<Mine>>
+    {
+        return new EntryIterator(this.children_.entries());
+    }
+
+    public [Symbol.iterator](): IterableIterator<AppJoinBuilder.Entry<Mine>>
+    {
+        return this.entries();
+    }
+
+    public forEach
+        (
+            closure: 
+                (
+                    value: AppJoinBuilder.Value<Mine>, 
+                    key: AppJoinBuilder.Key<Mine>, 
+                    thisArg: AppJoinBuilder<Mine>
+                ) => void
+        ): void
+    {
+        for (const tuple of this)
+            closure(tuple[1], tuple[0], this);
+    }
+
+    /* -----------------------------------------------------------
+        ELEMENTS I/O
+    ----------------------------------------------------------- */
+    public has(key: SpecialFields<Mine, Relationship<any>>): boolean
+    {
+        return this.children_.has(key);
+    }
+
+    public get(key: AppJoinBuilder.Key<Mine>): AppJoinBuilder.Value<Mine> | undefined
+    {
+        const child: IChild<Mine> | undefined = this.children_.get(key);
+        return child !== undefined
+            ? child.builder
+            : undefined;
+    }
+
+    public set<Field extends AppJoinBuilder.Key<Mine>>
+        (
+            field: Field,
+            builder: AppJoinBuilder<Relationship.TargetType<Mine, Field>>
+        ): this
+    {
+        const metadata: ReflectAdaptor.Metadata<Relationship.TargetType<Mine, Field>> = ReflectAdaptor.get(this.mine_.prototype, field)!;
+        this.children_.set(field, {
+            metadata,
+            builder
+        });
+        return this;
+    }
+
+    public delete<Field extends AppJoinBuilder.Key<Mine>>
+        (field: Field): boolean
+    {
+        return this.children_.delete(field);
     }
 }
 
 export namespace AppJoinBuilder
 {
     export type Closure<T extends object> = (builder: AppJoinBuilder<T>) => void;
+    export type Key<T extends object> = SpecialFields<T, Relationship<any>>;
+    export type Value<T extends object> = AppJoinBuilder<Relationship.TargetType<T, any>>;
+    export type Entry<T extends object> = [Key<T>, Value<T>];
 }
 
 /**
@@ -188,8 +274,11 @@ async function join_has_one_to_many
         await targetRecord[child.metadata.inverse].set(tuple.first);
     }
     for (const tuple of myDict.values())
+    {
+        if (child.metadata.comparator)
+            tuple.second.sort(child.metadata.comparator);
         await tuple.first[field].set(tuple.second);
-
+    }
     return output;
 }
 
@@ -227,7 +316,11 @@ async function join_has_many_to_many
         output.push(targetRecord);
     }
     for (const tuple of myDict.values())
+    {
+        if (child.metadata.comparator)
+            tuple.second = tuple.second.sort(child.metadata.comparator);
         await tuple.first[field].set(tuple.second);
+    }
 
     return output;
 }
@@ -260,4 +353,66 @@ function associate
     for (const elem of records)
         dict.set(elem[info.primaryColumn], valueGen(elem));
     return dict;
+}
+
+/**
+ * @internal
+ */
+class ValueIterator<Mine extends object>
+    implements IterableIterator<AppJoinBuilder.Value<Mine>>
+{
+    public constructor
+        (
+            private readonly values_: IterableIterator<IChild<Mine>>
+        )
+    {
+    }
+
+    public next(): IteratorResult<AppJoinBuilder.Value<Mine>>
+    {
+        const it = this.values_.next();
+        if (it.done === true)
+            return it;
+
+        return {
+            done: false,
+            value: it.value.builder
+        };
+    }
+
+    public [Symbol.iterator](): IterableIterator<AppJoinBuilder.Value<Mine>>
+    {
+        return this;
+    }
+}
+
+/**
+ * @internal
+ */
+class EntryIterator<T extends object>
+    implements IterableIterator<AppJoinBuilder.Entry<T>>
+{
+    public constructor
+        (
+            private readonly entries_: IterableIterator<[AppJoinBuilder.Key<T>, IChild<T>]>
+        )
+    {
+    }
+
+    public next(): IteratorResult<AppJoinBuilder.Entry<T>>
+    {
+        const it = this.entries_.next();
+        if (it.done === true)
+            return it;
+
+        return {
+            done: false,
+            value: [ it.value[0], it.value[1].builder ]
+        };
+    }
+
+    public [Symbol.iterator](): IterableIterator<AppJoinBuilder.Entry<T>>
+    {
+        return this;
+    }
 }

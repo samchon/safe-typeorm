@@ -1,2 +1,2 @@
-// export * from "./AppJoinBuilder";
+export * from "./AppJoinBuilder";
 export * from "./JoinQueryBuilder";

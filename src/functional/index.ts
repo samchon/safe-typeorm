@@ -1,4 +1,4 @@
-export * from "./appJoin";
+export * from "./createAppJoinBuilder";
 export * from "./createJoinQueryBuilder";
 export * from "./getColumn";
 export * from "./getWhereArguments";

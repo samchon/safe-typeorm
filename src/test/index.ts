@@ -14,8 +14,9 @@ import { BbsGroup } from "./models/BbsGroup";
 import { DEFAULT } from "../DEFAULT";
 import { test_get_column } from "./features/test_get_column";
 import { test_insert_collection } from "./features/test_insert_collection";
-import { appJoin } from "../functional";
 import { MysqlConnectionOptions } from "typeorm/driver/mysql/MysqlConnectionOptions";
+import { AppJoinBuilder } from "../builders";
+import { createAppJoinBuilder } from "../functional";
 // import { validate_equality } from "./internal/validate_equality";
 
 /* -----------------------------------------------------------
@@ -291,7 +292,8 @@ async function test_app_join(): Promise<void>
     console.log("------------------------------------------------------");
     console.log(" TEST APP-JOIN");
     console.log("------------------------------------------------------");
-    await appJoin(groupList, group =>
+
+    const builder: AppJoinBuilder<BbsGroup> = createAppJoinBuilder(BbsGroup, group =>
     {
         group.join("articles", article =>
         {
@@ -300,6 +302,8 @@ async function test_app_join(): Promise<void>
             article.join("cover").join("file");
         });
     });
+    await builder.execute(groupList);
+
     console.log("------------------------------------------------------");
     console.log(await serialize(groupList));
 }
