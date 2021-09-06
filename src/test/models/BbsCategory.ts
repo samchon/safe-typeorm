@@ -4,7 +4,7 @@ import safe from "../..";
 import { BbsArticle } from "./BbsArticle";
 
 @orm.Entity()
-export class BbsGroup extends safe.Model
+export class BbsCategory extends safe.Model
 {
     /* -----------------------------------------------------------
         COLUMNS
@@ -32,7 +32,7 @@ export class BbsGroup extends safe.Model
     @safe.Has.OneToMany
     (
         () => BbsArticle, 
-        article => article.group,
+        article => article.category,
         (x, y) => x.created_at.getTime() - y.created_at.getTime()
     )
     public readonly articles!: safe.Has.OneToMany<BbsArticle>;

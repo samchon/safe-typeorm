@@ -5,7 +5,7 @@ import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
 import { BbsGroup } from "../models/BbsGroup";
 import { collect_random_bbs_article_content } from "./collect_random_bbs_article_content";
-import { prepare_random_bbs_article } from "./prepare_random_bbs_article";
+import { prepare_random_bbs_article } from "../preparations/prepare_random_bbs_article";
 
 export async function collect_random_bbs_article
     (

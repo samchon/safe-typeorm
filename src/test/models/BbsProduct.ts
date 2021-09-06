@@ -1,10 +1,9 @@
 import * as orm from "typeorm";
 import safe from "../..";
-
-import { BbsArticle } from "./BbsArticle";
+import { BbsReviewArticle } from "./BbsReviewArticle";
 
 @orm.Entity()
-export class BbsGroup extends safe.Model
+export class BbsProduct extends safe.Model 
 {
     /* -----------------------------------------------------------
         COLUMNS
@@ -12,28 +11,22 @@ export class BbsGroup extends safe.Model
     @orm.PrimaryGeneratedColumn("uuid")
     public readonly id!: string;
 
-    @orm.Index({ unique: true })
     @orm.Column("varchar")
-    public readonly code!: string;
+    public readonly manufacturer!: string;
 
     @orm.Column("varchar")
     public readonly name!: string;
 
-    @orm.Index()
-    @orm.CreateDateColumn()
-    public readonly created_at!: Date;
-
-    @orm.DeleteDateColumn()
-    public readonly deleted_at!: Date | null;
+    @orm.Column("double")
+    public readonly price!: number;
 
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @safe.Has.OneToMany
+    @safe.Has.OneToOne
     (
-        () => BbsArticle, 
-        article => article.group,
-        (x, y) => x.created_at.getTime() - y.created_at.getTime()
+        () => BbsReviewArticle,
+        review => review.product
     )
-    public readonly articles!: safe.Has.OneToMany<BbsArticle>;
+    public readonly review!: safe.Has.OneToOne<BbsReviewArticle>;
 }

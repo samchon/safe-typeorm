@@ -5,8 +5,8 @@ import { AttachmentFile } from "../models/AttachmentFile";
 import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
 import { BbsArticleContentFilePair } from "../models/BbsArticleContentFilePair";
-import { prepare_random_attachment_file } from "./prepare_random_attachment_file";
-import { prepare_random_bbs_article_content } from "./prepare_random_bbs_article_content";
+import { prepare_random_attachment_file } from "../preparations/prepare_random_attachment_file";
+import { prepare_random_bbs_article_content } from "../preparations/prepare_random_bbs_article_content";
 
 export async function collect_random_bbs_article_content
     (

@@ -1,11 +1,11 @@
 {
   "name": "safe-typeorm",
-  "version": "0.0.95",
+  "version": "0.0.96",
   "description": "Safe Relationship Decorators for the TypeORM",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "rm -rf && tsc",
+    "build": "rm -rf lib && tsc",
     "dev": "npm run build -- --watch",
     "test": "node lib/test"
   },

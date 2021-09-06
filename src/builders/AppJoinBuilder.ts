@@ -203,7 +203,7 @@ interface IChild<
  */
 async function join_belongs_to
     (
-        child: IChild<any, Belongs.ManyToOne.IMetadata<any>>,
+        child: IChild<any, Belongs.ManyToOne.IMetadata<any> | Belongs.OneToOne.IMetadata<any>>,
         data: any[], 
         field: any,
     ): Promise<any[]>
@@ -220,6 +220,7 @@ async function join_belongs_to
     // THE TARGET INFO
     const target: Creator<any> = child.metadata.target();
     const table: ITableInfo = ITableInfo.get(target);
+    const isOneToOne = child.metadata.type === "Belongs.OneToOne";
 
     // LOAD TARGET DATA
     const output: any[] = await orm.getRepository(target)
@@ -237,6 +238,9 @@ async function join_belongs_to
 
         const reference: any = dict.get(id)!;
         await elem[field].set(reference);
+
+        if (isOneToOne === true && child.metadata.inverse !== null)
+            await reference[child.metadata.inverse].set(elem);
     }
     return output;
 }

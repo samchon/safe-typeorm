@@ -1,31 +1,31 @@
 import safe from "../..";
 import { must_not_query_anything } from "../internal/must_not_query_anything";
 import { BbsGroup } from "../models/BbsGroup";
-import { iterate_bbs_group } from "../preparations/iterate_bbs_group";
-import { test_insert_collection } from "./test_insert_collection";
+import { iterate_bbs_group } from "../iterators/iterate_bbs_group";
+import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
 
-async function get_clean_group(): Promise<BbsGroup>
+export async function test_create_app_join_builder(): Promise<void>
 {
-    const group: BbsGroup = await test_insert_collection();
-    return await BbsGroup.findOneOrFail(group.id);
-}
-
-export async function test_app_join(): Promise<void>
-{
-    const group: BbsGroup = await get_clean_group();
     const builder: safe.AppJoinBuilder<BbsGroup> = safe.createAppJoinBuilder(BbsGroup, group =>
     {
         group.join("articles", article =>
         {
+            article.join("review").join("product");
             article.join("contents").join("files");
             article.join("comments").join("files");
         });
     });
-    await builder.execute([ group ]);
+
+    const groupList: BbsGroup[] = await generate_random_clean_groups();
+    await builder.execute(groupList);
 
     await must_not_query_anything
     (
-        "AppJoinBuilder.execute()", 
-        () => iterate_bbs_group(group)
+        "createAppJoinBuilder()", 
+        async () =>
+        {
+            for (const group of groupList)
+                await iterate_bbs_group(group);
+        }
     );
 }

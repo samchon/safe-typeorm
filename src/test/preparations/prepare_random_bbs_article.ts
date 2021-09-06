@@ -8,6 +8,7 @@ export function prepare_random_bbs_article(group: BbsGroup, created_at: Date): B
     return BbsArticle.initialize({
         id: safe.DEFAULT,
         group,
+        category: null,
         writer: RandomGenerator.name(),
         ip: RandomGenerator.ip(),
         created_at,
