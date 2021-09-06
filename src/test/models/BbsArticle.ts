@@ -1,56 +1,42 @@
 import * as orm from "typeorm";
-
-import { Belongs } from "../../decorators/Belongs";
-import { Has } from "../../decorators/Has";
-import { AttachmentFile } from "./AttachmentFile";
-
-import { BbsContentBase } from "./base/BbsContentBase";
-import { BbsArticleCover } from "./BbsArticleCover";
-import { BbsArticleFilePair } from "./BbsArticleFilePair";
+import safe from "../..";
+import { BbsArticleContent } from "./BbsArticleContent";
 import { BbsComment } from "./BbsComment";
-import { BbsGroup } from "./BbsGroup";
 
+import { BbsGroup } from "./BbsGroup";
+import { BbsWriterBase } from "./internal/BbsWriterBase";
+
+@orm.Index(["bbs_group_id", "created_at"])
 @orm.Entity()
-export class BbsArticle extends BbsContentBase
+export class BbsArticle extends BbsWriterBase
 {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @Belongs.ManyToOne(() => BbsGroup, 
+    @safe.Belongs.ManyToOne(() => BbsGroup,
         group => group.articles,
-        "uuid", 
-        "bbs_group_id",
-        { index: true }
-    )
-    public group!: Belongs.ManyToOne<BbsGroup, "uuid">;
-
-    @Belongs.ManyToOne(() => BbsArticle,
-        parent => parent.children,
         "uuid",
-        "pid",
-        { index: true, nullable: true }
+        "bbs_group_id",
+        // INDEXED
     )
-    public parent!: Belongs.ManyToOne<BbsArticle, "uuid", { nullable: true }>;
-
-    @orm.Column("varchar")
-    public title!: string;
+    public readonly group!: safe.Belongs.ManyToOne<BbsGroup, "uuid">;
 
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @Has.OneToMany(() => BbsArticle, child => child.parent)
-    public children!: Has.OneToMany<BbsArticle>;
-    
-    @Has.ManyToMany(() => AttachmentFile, 
-        () => BbsArticleFilePair, 
-        router => router.file, 
-        router => router.article
+    @safe.Has.OneToMany
+    (
+        () => BbsComment,
+        comment => comment.article,
+        (x, y) => x.created_at.getTime() - y.created_at.getTime(),
     )
-    public files!: Has.ManyToMany<AttachmentFile, BbsArticleFilePair>;
+    public readonly comments!: safe.Has.OneToMany<BbsComment>;
 
-    @Has.OneToOne(() => BbsArticleCover, cover => cover.article)
-    public cover!: Has.OneToOne<BbsArticleCover>;
-
-    @Has.OneToMany(() => BbsComment, comment => comment.article)
-    public comments!: Has.OneToMany<BbsComment>;
+    @safe.Has.OneToMany
+    (
+        () => BbsArticleContent,
+        content => content.article,
+        (x, y) => x.created_at.getTime() - y.created_at.getTime(),
+    )
+    public readonly contents!: safe.Has.OneToMany<BbsArticleContent>;
 }

@@ -13,6 +13,7 @@ import { ITableInfo } from "../functional/internal/ITableInfo";
 import { getWhereArguments } from "../functional/getWhereArguments";
 
 import { JoinQueryBuilder } from "./JoinQueryBuilder";
+import { OmitNever } from "../typings/OmitNever";
 
 export class AppJoinBuilder<Mine extends object>
 {
@@ -51,6 +52,25 @@ export class AppJoinBuilder<Mine extends object>
 
         // RETURNS BUILDER
         return child.builder;
+    }
+
+    public static initialize<Mine extends object>
+        (
+            creator: Creator<Mine>, 
+            input: AppJoinBuilder.Initialized<Mine>
+        ): AppJoinBuilder<Mine>
+    {
+        const builder: AppJoinBuilder<Mine> = new AppJoinBuilder(creator);
+        for (const [key, value] of Object.entries(input))
+            if (value === null)
+                continue;
+            else if (value === "join")
+                builder.join(key as AppJoinBuilder.Key<Mine>);
+            else if (typeof value === "function")
+                builder.join(key as AppJoinBuilder.Key<Mine>, value as AppJoinBuilder.Closure<Relationship.TargetType<Mine, any>>);
+            else
+                builder.set(key as AppJoinBuilder.Key<Mine>, value as AppJoinBuilder<any>);
+        return builder;
     }
 
     public async execute(data: Mine[]): Promise<void>
@@ -159,6 +179,12 @@ export namespace AppJoinBuilder
     export type Key<T extends object> = SpecialFields<T, Relationship<any>>;
     export type Value<T extends object> = AppJoinBuilder<Relationship.TargetType<T, any>>;
     export type Entry<T extends object> = [Key<T>, Value<T>];
+
+    export type Initialized<Mine extends object> = OmitNever<{
+        [P in keyof Mine]: Mine[P] extends Relationship<infer Target> 
+            ? (AppJoinBuilder<Target> | null | Closure<Target> | "join") 
+            : never;
+    }>;
 }
 
 /**
@@ -307,21 +333,24 @@ async function join_has_many_to_many
     const output: any[] = [];
 
     // LINK RELATIONSHIPS
-    for (const routerRecord of routeList)
+    for (const router of routeList)
     {
-        const tuple: any = myDict.get(routerRecord[child.metadata.my_inverse].id)!;
-        const targetRecord: any = await routerRecord[child.metadata.target_inverse].get();
+        const entry: any = myDict.get(router[child.metadata.my_inverse].id)!;
+        const target: any = await router[child.metadata.target_inverse].get();
 
-        tuple.second.push(targetRecord);
-        output.push(targetRecord);
+        const tuple: Has.ManyToMany.ITuple<any, any> = {
+            router: router,
+            target: target,
+        };
+        entry.second.push(tuple);
+        output.push(target);
     }
-    for (const tuple of myDict.values())
+    for (const entry of myDict.values())
     {
         if (child.metadata.comparator)
-            tuple.second = tuple.second.sort(child.metadata.comparator);
-        await tuple.first[field].set(tuple.second);
+            entry.second = entry.second.sort(child.metadata.comparator);
+        await entry.first[field].set(entry.second.map(elem => elem.target));
     }
-
     return output;
 }
 

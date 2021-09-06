@@ -1,42 +1,38 @@
 import * as orm from "typeorm";
-import { v4 } from "uuid";
-
-import { Model } from "../../Model";
-
+import safe from "../..";
 import { BbsArticle } from "./BbsArticle";
-import { Belongs } from "../../decorators/Belongs";
-import { Has } from "../../decorators/Has";
 
 @orm.Entity()
-export class BbsGroup extends Model
+export class BbsGroup extends safe.Model
 {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
     @orm.PrimaryGeneratedColumn("uuid")
-    public id: string = v4();
-
-    @Belongs.ManyToOne(() => BbsGroup, 
-        parent => parent.children,
-        "uuid",
-        "pid",
-        { index: true, nullable: true }
-    )
-    public parent!: Belongs.ManyToOne<BbsGroup, "uuid", { nullable: true }>;
+    public readonly id!: string;
 
     @orm.Index({ unique: true })
     @orm.Column("varchar")
-    public code!: string;
+    public readonly code!: string;
 
     @orm.Column("varchar")
-    public name!: string;
+    public readonly name!: string;
+
+    @orm.Index()
+    @orm.CreateDateColumn()
+    public readonly created_at!: Date;
+
+    @orm.DeleteDateColumn()
+    public readonly deleted_at!: Date | null;
 
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @Has.OneToMany(() => BbsGroup, child => child.parent)
-    public children!: Has.OneToMany<BbsGroup>;
-
-    @Has.OneToMany(() => BbsArticle, article => article.group)
-    public articles!: Has.OneToMany<BbsArticle>;
+    @safe.Has.OneToMany
+    (
+        () => BbsArticle, 
+        article => article.group,
+        (x, y) => x.created_at.getTime() - y.created_at.getTime()
+    )
+    public readonly articles!: safe.Has.OneToMany<BbsArticle>;
 }

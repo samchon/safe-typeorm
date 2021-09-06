@@ -1,36 +1,33 @@
 import * as orm from "typeorm";
+import safe from "../..";
+import { AttachmentFile } from "./AttachmentFile";
 
-import { Belongs } from "../../decorators/Belongs";
-import { Has } from "../../decorators/Has";
-
-import { BbsContentBase } from "./base/BbsContentBase";
 import { BbsArticle } from "./BbsArticle";
+import { BbsCommentFilePair } from "./BbsCommentFilePair";
+import { BbsWriterBase } from "./internal/BbsWriterBase";
 
+@orm.Index(["bbs_article_id", "created_at"])
 @orm.Entity()
-export class BbsComment extends BbsContentBase
+export class BbsComment extends BbsWriterBase
 {
-    /* -----------------------------------------------------------
-        COLUMNS
-    ----------------------------------------------------------- */
-    @Belongs.ManyToOne(() => BbsArticle,
+    @safe.Belongs.ManyToOne(() => BbsArticle,
         article => article.comments,
         "uuid",
         "bbs_article_id",
-        { index: true }
+        // INDEXED
     )
-    public article!: Belongs.ManyToOne<BbsArticle, "uuid">;
+    public readonly article!: safe.Belongs.ManyToOne<BbsArticle, "uuid">;
 
-    @Belongs.ManyToOne(() => BbsComment, 
-        parent => parent.children, 
-        "uuid",
-        "pid", 
-        { index: true, nullable: true }
+    @orm.Column("text")
+    public readonly content!: string;
+
+    @safe.Has.ManyToMany
+    (
+        () => AttachmentFile,
+        () => BbsCommentFilePair,
+        router => router.file,
+        router => router.comment,
+        (x, y) => x.router.sequence  - y.router.sequence
     )
-    public parent!: Belongs.ManyToOne<BbsComment, "uuid", { nullable: true }>;
-
-    /* -----------------------------------------------------------
-        HAS
-    ----------------------------------------------------------- */
-    @Has.OneToMany(() => BbsComment, child => child.parent)
-    public children!: Has.OneToMany<BbsComment>;
+    public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsCommentFilePair>;
 }
