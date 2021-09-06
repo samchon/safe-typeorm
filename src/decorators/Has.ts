@@ -183,7 +183,8 @@ export namespace Has
                     getter, 
                     inverse, 
                     comp
-                )
+                ),
+            comp
         );
     }
 

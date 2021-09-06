@@ -208,12 +208,20 @@ async function join_belongs_to
         field: any,
     ): Promise<any[]>
 {
+    // NO DATA
+    if (data.length === 0)
+        return [];
+
+    // NO REFERENCE
+    const idList: any[] = get_foreign_key_values(data, field);
+    if (idList.length === 0)
+        return [];
+
     // THE TARGET INFO
     const target: Creator<any> = child.metadata.target();
     const table: ITableInfo = ITableInfo.get(target);
 
     // LOAD TARGET DATA
-    const idList: any[] = get_foreign_key_values(data, field);
     const output: any[] = await orm.getRepository(target)
         .createQueryBuilder()
         .andWhere(...getWhereArguments(target, table.primaryColumn as "id", "IN", idList))
@@ -244,6 +252,9 @@ async function join_has_one_to_one
         field: any,
     ): Promise<any[]>
 {
+    if (data.length === 0)
+        return [];
+
     // MY TABLE & DATA
     const myTable: ITableInfo = ITableInfo.get(mine);
     const myDict: Map<any, Pair<any, any | null>> = associate(myTable, data, elem => new Pair(elem, null));
@@ -280,6 +291,9 @@ async function join_has_one_to_many
         field: any
     ): Promise<any[]>
 {
+    if (data.length === 0)
+        return [];
+
     // MY TABLE & DATA
     const myTable: ITableInfo = ITableInfo.get(mine);
     const myDict: Map<any, Pair<any, any[]>> = associate(myTable, data, elem => new Pair(elem, []));
@@ -302,7 +316,7 @@ async function join_has_one_to_many
     for (const tuple of myDict.values())
     {
         if (child.metadata.comparator)
-            tuple.second.sort(child.metadata.comparator);
+            tuple.second = tuple.second.sort(child.metadata.comparator);
         await tuple.first[field].set(tuple.second);
     }
     return output;
@@ -316,6 +330,9 @@ async function join_has_many_to_many
         field: any
     ): Promise<any[]>
 {
+    if (data.length === 0)
+        return [];
+
     // MY TABLE & DATA
     const myTable: ITableInfo = ITableInfo.get(mine);
     const myDict: Map<any, Pair<any, any[]>> = associate(myTable, data, elem => new Pair(elem, []));
