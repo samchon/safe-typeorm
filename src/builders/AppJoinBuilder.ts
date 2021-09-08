@@ -144,11 +144,14 @@ export class AppJoinBuilder<Mine extends object>
         return this.children_.has(key);
     }
 
-    public get(key: AppJoinBuilder.Key<Mine>): AppJoinBuilder.Value<Mine> | undefined
+    public get<Field extends AppJoinBuilder.Key<Mine>>
+        (
+            field: Field
+        ): AppJoinBuilder<Relationship.TargetType<Mine, Field>> | undefined
     {
-        const child: IChild<Mine> | undefined = this.children_.get(key);
+        const child = this.children_.get(field) as IChild<Relationship.TargetType<Mine, Field>> | undefined;
         return child !== undefined
-            ? child.builder
+            ? child.builder as any
             : undefined;
     }
 
