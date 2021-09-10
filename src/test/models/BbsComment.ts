@@ -4,12 +4,14 @@ import safe from "../..";
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
 import { BbsCommentFilePair } from "./BbsCommentFilePair";
-import { BbsWriterBase } from "./internal/BbsWriterBase";
 
 @orm.Index(["bbs_article_id", "created_at"])
 @orm.Entity()
-export class BbsComment extends BbsWriterBase
+export class BbsComment extends safe.Model
 {
+    @orm.PrimaryGeneratedColumn("uuid")
+    public readonly id!: string;
+
     @safe.Belongs.ManyToOne(() => BbsArticle,
         article => article.comments,
         "uuid",
@@ -30,4 +32,21 @@ export class BbsComment extends BbsWriterBase
         (x, y) => x.router.sequence  - y.router.sequence
     )
     public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsCommentFilePair>;
+
+    @orm.Index()
+    @orm.Column("varchar")
+    public readonly writer!: string;
+
+    @orm.Column(() => safe.Password, { prefix: "" })
+    public readonly password: safe.Password = new safe.Password();
+
+    @orm.Column()
+    public readonly ip!: string;
+
+    @orm.Index()
+    @orm.CreateDateColumn()
+    public readonly created_at!: Date;
+
+    @orm.DeleteDateColumn()
+    public readonly deleted_at!: Date | null;
 }

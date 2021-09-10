@@ -8,15 +8,17 @@ import { BbsComment } from "./BbsComment";
 
 import { BbsGroup } from "./BbsGroup";
 import { BbsReviewArticle } from "./BbsReviewArticle";
-import { BbsWriterBase } from "./internal/BbsWriterBase";
 
 @orm.Index(["bbs_group_id", "bbs_category_id", "created_at"])
 @orm.Entity()
-export class BbsArticle extends BbsWriterBase
+export class BbsArticle extends safe.Model
 {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
+    @orm.PrimaryGeneratedColumn("uuid")
+    public readonly id!: string;
+
     @safe.Belongs.ManyToOne(() => BbsGroup,
         group => group.articles,
         "uuid",
@@ -32,6 +34,23 @@ export class BbsArticle extends BbsWriterBase
         { index: true, nullable: true }
     )
     public readonly category!: safe.Belongs.ManyToOne<BbsCategory, "uuid", { nullable: true }>;
+
+    @orm.Index()
+    @orm.Column("varchar")
+    public readonly writer!: string;
+
+    @orm.Column(() => safe.Password, { prefix: "" })
+    public readonly password: safe.Password = new safe.Password();
+
+    @orm.Column()
+    public readonly ip!: string;
+
+    @orm.Index()
+    @orm.CreateDateColumn()
+    public readonly created_at!: Date;
+
+    @orm.DeleteDateColumn()
+    public readonly deleted_at!: Date | null;
 
     /* -----------------------------------------------------------
         HAS

@@ -183,7 +183,8 @@ export namespace AppJoinBuilder
     export type Value<T extends object> = AppJoinBuilder<Relationship.TargetType<T, any>>;
     export type Entry<T extends object> = [Key<T>, Value<T>];
 
-    export type Initialized<Mine extends object> = OmitNever<{
+    export type Initialized<Mine extends object> = OmitNever<
+    {
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target> 
             ? (AppJoinBuilder<Target> | null | Closure<Target> | "join") 
             : never;
