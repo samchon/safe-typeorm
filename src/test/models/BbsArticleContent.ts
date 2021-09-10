@@ -26,7 +26,7 @@ export class BbsArticleContent extends safe.Model
     @orm.Column("varchar")
     public readonly title!: string;
 
-    @orm.Column("longtext")
+    @orm.Column("text")
     public readonly body!: string;
 
     @orm.CreateDateColumn()

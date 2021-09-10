@@ -1,18 +1,12 @@
 import * as orm from "typeorm";
-import safe from "..";
 import { DynamicImportIterator } from "./internal/DynamicImportIterator";
 import { TestLogger } from "./internal/TesLogger";
 
 async function main(): Promise<void>
 {
     const connection: orm.Connection = await orm.createConnection({
-        type: "mariadb",
-        host: "127.0.0.1",
-        port: 3306,
-        username: "root",
-        password: "root",
-        database: "safe_typeorm_test",
-        namingStrategy: new safe.SnakeCaseStrategy(),
+        type: "sqlite",
+        database: __dirname + "/../../assets/db.dat",
         entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
         logger: TestLogger
     });
