@@ -1,6 +1,6 @@
 {
   "name": "safe-typeorm",
-  "version": "0.0.100",
+  "version": "0.0.101",
   "description": "Safe Relationship Decorators for the TypeORM",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

@@ -6,10 +6,9 @@ import { OmitNever } from "../typings/OmitNever";
 import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
 import { Relationship } from "../typings/Relationship";
 
-import { DEFAULT } from "../DEFAULT";
-import { AppJoinBuilder } from ".";
-import safe from "..";
+import { AppJoinBuilder } from "./AppJoinBuilder";
 import { ArrayUtil } from "../test/internal/ArrayUtil";
+import { DEFAULT } from "../DEFAULT";
 
 export class JsonSelectBuilder<
         Mine extends object, 
@@ -89,7 +88,7 @@ export class JsonSelectBuilder<
                 if (data instanceof Belongs.ManyToOne.Accessor)
                     data = data.id;
                 
-                if (plan === safe.DEFAULT)
+                if (plan === DEFAULT)
                     output[key] = data;
                 else if (plan instanceof Function)
                     output[key] = plan(data);
