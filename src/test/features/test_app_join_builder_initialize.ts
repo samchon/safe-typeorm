@@ -12,18 +12,18 @@ export async function test_app_join_builder_initialize(): Promise<void>
 {
     const builder: AppJoinBuilder<BbsGroup> = safe.AppJoinBuilder.initialize(BbsGroup, {
         articles: safe.AppJoinBuilder.initialize(BbsArticle, {
-            group: null,
+            group: undefined,
             review: safe.AppJoinBuilder.initialize(BbsReviewArticle, {
-                base: null,
+                base: undefined,
                 product: "join"
             }),
             category: "join",
             contents: safe.AppJoinBuilder.initialize(BbsArticleContent, {
-                article: null,
+                article: undefined,
                 files: "join"
             }),
             comments: safe.AppJoinBuilder.initialize(BbsComment, {
-                article: null,
+                article: undefined,
                 files: "join"
             }),
             tags: "join"

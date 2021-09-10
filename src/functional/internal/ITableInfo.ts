@@ -4,6 +4,7 @@ import { Creator } from "../../typings";
 
 export interface ITableInfo
     {
+        name: string;
         primaryColumn: string;
         uuid: boolean;
         incremental: boolean;
@@ -28,6 +29,7 @@ export namespace ITableInfo
         const primary = metadata.primaryColumns[0];
 
         info = {
+            name: metadata.tableName,
             primaryColumn: primary.propertyName,
             uuid: primary.generationStrategy === "uuid",
             incremental: primary.generationStrategy === "increment",

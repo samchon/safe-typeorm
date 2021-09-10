@@ -62,7 +62,7 @@ export class AppJoinBuilder<Mine extends object>
     {
         const builder: AppJoinBuilder<Mine> = new AppJoinBuilder(creator);
         for (const [key, value] of Object.entries(input))
-            if (value === null)
+            if (!value)
                 continue;
             else if (value === "join")
                 builder.join(key as AppJoinBuilder.Key<Mine>);
@@ -186,7 +186,7 @@ export namespace AppJoinBuilder
     export type Initialized<Mine extends object> = OmitNever<
     {
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target> 
-            ? (AppJoinBuilder<Target> | null | Closure<Target> | "join") 
+            ? (AppJoinBuilder<Target> | undefined | Closure<Target> | "join") 
             : never;
     }>;
 }
@@ -227,10 +227,7 @@ async function join_belongs_to
     const isOneToOne = child.metadata.type === "Belongs.OneToOne";
 
     // LOAD TARGET DATA
-    const output: any[] = await orm.getRepository(target)
-        .createQueryBuilder()
-        .andWhere(...getWhereArguments(target, table.primaryColumn as "id", "IN", idList))
-        .getMany();
+    const output: any[] = await get_records_by_where_in(target, table.primaryColumn, idList);
 
     // LINK RELATIONSHIPS
     const dict: Map<any, any> = associate(table, output);
@@ -270,10 +267,7 @@ async function join_has_one_to_one
     
     // LOAD TARGET DATA
     const target: Creator<any> = child.metadata.target();
-    const output: any[] = await orm.getRepository(target)
-        .createQueryBuilder()
-        .andWhere(...getWhereArguments(target, child.metadata.inverse as "id", "IN", myIdList))
-        .getMany();
+    const output: any[] = await get_records_by_where_in(target, child.metadata.inverse, myIdList);
 
     // LINK RELATIONSHIPS
     for (const targetRecord of output)
@@ -309,10 +303,7 @@ async function join_has_one_to_many
 
     // LOAD TARGET DATA
     const target: Creator<any> = child.metadata.target();
-    const output: any[] = await orm.getRepository(target)
-        .createQueryBuilder()
-        .andWhere(...getWhereArguments(target, child.metadata.inverse as "id", "IN", myIdList))
-        .getMany();
+    const output: any[] = await get_records_by_where_in(target, child.metadata.inverse, myIdList);
 
     // LINK RELATIONSHIPS
     for (const targetRecord of output)
@@ -350,11 +341,21 @@ async function join_has_many_to_many
     const router: Creator<any> = child.metadata.router();
     const stmt: orm.SelectQueryBuilder<any> = orm
         .getRepository(router)
-        .createQueryBuilder()
-        .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", myIdList));
+        .createQueryBuilder();
+        // .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", myIdList));
     new JoinQueryBuilder(stmt, router).innerJoinAndSelect(child.metadata.target_inverse);
 
-    const routeList: any[] = await stmt.getMany();
+    const routeList: any[] = [];
+    while (myIdList.length !== 0)
+    {
+        const some: any[] = myIdList.splice(0, 500);
+        routeList.push(...await stmt
+            .clone()
+            .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", some))
+            .getMany()
+        );
+    }
+
     const output: any[] = [];
 
     // LINK RELATIONSHIPS
@@ -391,6 +392,31 @@ function get_foreign_key_values<
         .map(elem => elem[field].id)
         .filter(id => id !== null);
     return [...new Set(idList)];
+}
+
+/**
+ * @internal
+ */
+async function get_records_by_where_in
+    (
+        target: Creator<any>, 
+        field: string, 
+        idList: any[]
+    ): Promise<any[]>
+{
+    // LOAD TARGET DATA
+    const output: any[] = [];
+    while (idList.length !== 0)
+    {
+        const some: any[] = idList.splice(0, 500);
+        output.push
+        (...await orm.getRepository(target)
+            .createQueryBuilder()
+            .andWhere(...getWhereArguments(target, field as "id", "IN", some))
+            .getMany()
+        );
+    }
+    return output;
 }
 
 /**

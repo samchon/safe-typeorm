@@ -5,4 +5,5 @@ export * from "./getColumn";
 export * from "./getWhereArguments";
 export * from "./initialize";
 export * from "./insert";
+export * from "./toPrimitive";
 export * from "./update";

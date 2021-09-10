@@ -1,6 +1,5 @@
 import * as orm from "typeorm";
 
-import { EncryptedColumn } from "./decorators/EncryptedColumn";
 import { JoinQueryBuilder } from "./builders/JoinQueryBuilder";
 
 import { Creator as _Creator } from "./typings/Creator";
@@ -8,6 +7,7 @@ import { Field } from "./typings/Field";
 import { Initialized } from "./typings/Initialized";
 import { OmitNever } from "./typings/OmitNever";
 import { Operator } from "./typings/Operator";
+import { Primitive } from "./typings/Primitive";
 import { SpecialFields } from "./typings/SpecialFields";
 
 import { createJoinQueryBuilder } from "./functional/createJoinQueryBuilder";
@@ -15,6 +15,7 @@ import { getColumn } from "./functional/getColumn";
 import { getWhereArguments } from "./functional/getWhereArguments";
 import { initialize } from "./functional/initialize";
 import { insert } from "./functional/insert";
+import { toPrimitive } from "./functional/toPrimitive";
 import { update } from "./functional/update";
 
 /**
@@ -330,7 +331,7 @@ export abstract class Model extends orm.BaseEntity
      * 
      * @return The primitive object
      */
-    public toPrimitive(): Model.Primitive<this>;
+    public toPrimitive(): Primitive<this>;
 
     /**
      * Convert to the primitive object with special ommissions.
@@ -338,62 +339,14 @@ export abstract class Model extends orm.BaseEntity
      * @param omits Fields to be ommitted
      * @return The primitive object with ommission
      */
-    public toPrimitive<OmitField extends keyof Model.Primitive<this>>
-        (...omits: OmitField[]): OmitNever<Omit<Model.Primitive<this>, OmitField>>;
+    public toPrimitive<OmitField extends keyof Primitive<this>>
+        (...omits: OmitField[]): OmitNever<Omit<Primitive<this>, OmitField>>;
 
-    public toPrimitive(...omits: string[]): object
+    public toPrimitive<OmitField extends keyof Primitive<this>>
+        (...omits: OmitField[]): OmitNever<Omit<Primitive<this>, OmitField>>
     {
-        if (Model.to_primitive_omit_dicts_.has(this.constructor as Model.Creator<this>) === false)
-        {
-            const dict: Set<string> = new Set();
-            const metadata: orm.EntityMetadata = orm.getRepository(this.constructor).metadata;
-
-            for (const foreign of metadata.foreignKeys)
-                for (const column of foreign.columns)
-                {
-                    const property: string = column.propertyName;
-                    if (dict.has(property) === true)
-                        continue;
-
-                    const primary = metadata.primaryColumns.find(elem => elem.propertyName === property);
-                    if (primary === undefined)
-                        dict.add(property);
-                }
-            Model.to_primitive_omit_dicts_.set(this.constructor as Model.Creator<this>, dict);
-        }
-
-        const omitDict: Set<string> = Model.to_primitive_omit_dicts_.get(this.constructor as Model.Creator<this>)!;
-        const ret: Record<string, any> = {};
-
-        for (const tuple of Object.entries(this))
-        {
-            const key: string = tuple[0];
-            if (omitDict.has(key) === true)
-                continue;
-            else if (omits && omits.find(str => str === key) !== undefined)
-                continue;
-
-            const value: any = tuple[1];
-            if (key[0] === "_" || key[key.length - 1] === "_")
-                if (key.substr(0, 8) === "__m_enc_")
-                {
-                    const property: string = EncryptedColumn.getFieldByIndex(key);
-                    ret[property] = (this as any)[property];
-                }
-                else
-                    continue;
-            else if (value instanceof Object)
-                if (value instanceof Date)
-                    ret[key] = value.toString();
-                else
-                    continue;
-            else
-                ret[key] = value;
-        }
-        return ret as Model.Primitive<this>;
+        return toPrimitive(this, ...omits);
     }
-
-    private static readonly to_primitive_omit_dicts_: WeakMap<Model.Creator<any>, Set<string>> = new WeakMap();
 }
 
 export namespace Model
@@ -404,21 +357,4 @@ export namespace Model
      * @template T Type of the target class that is derived from the {@link Model}
      */
     export type Creator<T extends Model> = _Creator<T> & typeof Model;
-
-    /**
-     * @template T Type of a derived class from the {@link Model}
-     * @return The new interface type that only pritimive properties are left
-     */
-    export type Primitive<T extends Model> = OmitNever<
-    {
-        [P in keyof T]: T[P] extends (number|string|boolean|Date|null)
-            ? T[P] extends Date
-                ? string
-                : T[P] extends (Date|null) 
-                    ? (string|null)
-                    : T[P]
-            : never;
-    }>;
-
-    export type IProps<T extends Model> = Initialized<T>;
 }

@@ -9,6 +9,8 @@ import { Relationship } from "../typings/Relationship";
 import { AppJoinBuilder } from "./AppJoinBuilder";
 import { ArrayUtil } from "../test/internal/ArrayUtil";
 import { DEFAULT } from "../DEFAULT";
+import { Primitive } from "../typings/Primitive";
+import { toPrimitive } from "../functional/toPrimitive";
 
 export class JsonSelectBuilder<
         Mine extends object, 
@@ -46,15 +48,17 @@ export class JsonSelectBuilder<
                 this.joiner_.set(key as any, value.joiner_);
     }
 
-    public async getOne(record: Mine): Promise<Destination>
+    public async getOne(record: Mine, skipAppJoin: boolean = false): Promise<Destination>
     {
-        const data: Destination[] = await this.getMany([ record ]);
+        const data: Destination[] = await this.getMany([ record ], skipAppJoin);
         return data[0];
     }
 
-    public async getMany(records: Mine[]): Promise<Destination[]>
+    public async getMany(records: Mine[], skipAppJoin: boolean = false): Promise<Destination[]>
     {
-        await this.joiner_.execute(records);
+        if (skipAppJoin === false)
+            await this.joiner_.execute(records);
+        
         const output: JsonSelectBuilder.Output<Mine, InputT>[] = await ArrayUtil.asyncMap
         (
             records,
@@ -67,7 +71,7 @@ export class JsonSelectBuilder<
 
     private async _Convert(record: Mine): Promise<JsonSelectBuilder.Output<Mine, InputT>>
     {
-        const output: any = {};
+        const output: any = toPrimitive(record);
         for (const [key, plan] of Object.entries(this.input_))
         {
             if (plan === undefined)
@@ -102,19 +106,16 @@ export namespace JsonSelectBuilder
 {
     export type Input<Mine extends object> = OmitNever<
     {
-        [P in keyof Mine]
-            : Mine[P] extends Relationship<infer Target>
-                ? Mine[P] extends Belongs.ManyToOne<Target, infer PrimaryKey, infer TargetOptions>
-                    ? TargetOptions extends { nullable: true }
-                        ? JsonSelectBuilder<Target, any, any> | ValueParam<PrimaryGeneratedColumn.ValueType<PrimaryKey> | null>
-                        : JsonSelectBuilder<Target, any, any> | ValueParam<PrimaryGeneratedColumn.ValueType<PrimaryKey>>
-                : JsonSelectBuilder<Target, Input<Target>> | JsonSelectBuilder<Target, Input<Target>, any> | undefined
-            : Mine[P] extends Function
-                ? never
-                : ValueParam<Mine[P]>;
+        [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
+            ? Mine[P] extends Belongs.ManyToOne<Target, any, infer TargetOptions>
+                ? TargetOptions extends { nullable: true }
+                    ? JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
+                    : JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
+            : JsonSelectBuilder<Target, any, any> | undefined
+            : never
     }>;
 
-    export type Output<Mine extends object, InputT extends object> = OmitNever<
+    export type Output<Mine extends object, InputT extends object> = Primitive<Mine> & OmitNever<
     {
         [P in keyof (Mine|InputT)]
             : InputT[P] extends JsonSelectBuilder<infer Target, any, infer Destination>
@@ -127,19 +128,15 @@ export namespace JsonSelectBuilder
                         ? Destination
                         : Destination | null
                 : Destination[]
-            : InputT[P] extends ValueClosure<Mine[P], infer Elem> ? Elem
             : InputT[P] extends DEFAULT 
                 ? Mine[P] extends Belongs.ManyToOne<any, infer PrimaryKey, infer Options>
                     ? Options extends { nullable: true }
                         ? PrimaryGeneratedColumn.ValueType<PrimaryKey> | null
                         : PrimaryGeneratedColumn.ValueType<PrimaryKey>
-                    : Mine[P]
+                    : never
             : never;
     }>;
     
     export type OutputMapper<Mine extends object, InputT extends Input<Mine>, Destination> 
         = (output: Output<Mine, InputT>, index: number, array: Output<Mine, InputT>[]) => Destination;
-
-    type ValueClosure<Elem, Output> = (elem: Elem) => Output;
-    type ValueParam<T> = undefined | DEFAULT | ValueClosure<T, any>;
 }

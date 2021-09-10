@@ -3,6 +3,7 @@ import { assertType } from "typescript-is";
 import safe from "../..";
 
 import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
+import { must_not_query_anything } from "../internal/must_not_query_anything";
 import { AttachmentFile } from "../models/AttachmentFile";
 import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
@@ -10,60 +11,41 @@ import { BbsArticleTag } from "../models/BbsArticleTag";
 import { BbsCategory } from "../models/BbsCategory";
 import { BbsGroup } from "../models/BbsGroup";
 
-export async function test_json_builder(): Promise<void>
+export async function test_json_select_builder(): Promise<void>
 {
-    const builder = safe.createJsonSelectBuilder(BbsGroup, {
-        id: safe.DEFAULT,
-        code: safe.DEFAULT,
-        name: safe.DEFAULT,
-        created_at: date => date.toString(),
-        deleted_at: date => date?.toString() || null,
-
-        articles: safe.createJsonSelectBuilder(BbsArticle, {
-            id: safe.DEFAULT,
-            writer: safe.DEFAULT,
-            ip: safe.DEFAULT,
-            password: undefined,
-            created_at: date => date.toString(),
-            deleted_at: date => date?.toString() || null,
-            
+    const builder = safe.createJsonSelectBuilder(BbsGroup, 
+    {
+        articles: safe.createJsonSelectBuilder(BbsArticle, 
+        {
             group: safe.DEFAULT,
-            category: safe.createJsonSelectBuilder(BbsCategory, {
-                id: safe.DEFAULT,
-                code: safe.DEFAULT,
-                name: safe.DEFAULT,
-                created_at: date => date.toString(),
-                deleted_at: date => date?.toString() || null,
-                articles: undefined
+            category: safe.createJsonSelectBuilder(BbsCategory, 
+            { 
+                articles: undefined 
             }),
             review: undefined,
-            tags: safe.createJsonSelectBuilder(BbsArticleTag, {
-                id: undefined,
-                article: undefined,
-                value: safe.DEFAULT
+            tags: safe.createJsonSelectBuilder(BbsArticleTag, 
+            {
+                article: undefined 
             }, tag => tag.value),
-            contents: safe.createJsonSelectBuilder(BbsArticleContent, {
-                id: safe.DEFAULT,
-                title: safe.DEFAULT,
-                body: safe.DEFAULT,
-                created_at: date => date.toString(),
-
+            contents: safe.createJsonSelectBuilder(BbsArticleContent, 
+            {
                 article: undefined,
-                files: safe.createJsonSelectBuilder(AttachmentFile, {
-                    id: undefined,
-                    name: safe.DEFAULT,
-                    extension: safe.DEFAULT,
-                    url: safe.DEFAULT,
-                })
+                files: safe.createJsonSelectBuilder(AttachmentFile, {})
             }),
             comments: undefined,
         })
     });
 
     const models: BbsGroup[] = await generate_random_clean_groups();
-    const data = await builder.getMany(models);
+    await builder["joiner_"].execute(models);
+
+    const data = await must_not_query_anything
+    (
+        "JsonSelectBuilder.getMany()",
+        () => builder.getMany(models, true)
+    );
     assertType<IGroup[]>(data);
-    
+
     for (let i: number = 0; i < data.length; ++i)
     {
         const modelGroup: BbsGroup = models[i];
