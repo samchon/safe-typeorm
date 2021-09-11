@@ -1,12 +1,10 @@
 .git/
 .github/
-
-assets/
 node_modules/
 src/
 lib/test/
-*.js.map
 
+*.js.map
 *.*ignore
 package-lock.json
 tsconfig.api.json

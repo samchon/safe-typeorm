@@ -23,6 +23,9 @@ export class JsonSelectBuilder<
 
     private readonly joiner_: AppJoinBuilder<Mine>;
 
+    /* -----------------------------------------------------------
+        CONSTRUCTORS
+    ----------------------------------------------------------- */
     public constructor(mine: Creator<Mine>, input: InputT);
     public constructor
         (
@@ -48,6 +51,14 @@ export class JsonSelectBuilder<
                 this.joiner_.set(key as any, value.joiner_);
     }
 
+    public async join(data: Mine | Mine[]): Promise<void>
+    {
+        await this.joiner_.execute(data as Mine[]);
+    }
+
+    /* -----------------------------------------------------------
+        JSON CONVERTERS
+    ----------------------------------------------------------- */
     public async getOne(record: Mine, skipAppJoin: boolean = false): Promise<Destination>
     {
         const data: Destination[] = await this.getMany([ record ], skipAppJoin);

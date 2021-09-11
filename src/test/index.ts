@@ -6,7 +6,12 @@ async function main(): Promise<void>
 {
     const connection: orm.Connection = await orm.createConnection({
         type: "sqlite",
-        database: __dirname + "/../../assets/db.dat",
+        database: ":memory:",
+        // type: "mariadb",
+        // database: "safe_typeorm_test",
+        // username: "root",
+        // password: "root",
+        // host: "127.0.0.1",
         entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
         logger: TestLogger
     });

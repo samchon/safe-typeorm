@@ -1,5 +1,5 @@
 import * as orm from "typeorm";
-import { Singleton } from "tstl/thread/Singleton";
+import { MutableSingleton } from "tstl/thread/MutableSingleton";
 import { SharedMutex } from "tstl/thread/SharedMutex";
 import { SharedLock } from "tstl/thread/SharedLock";
 import { UniqueLock } from "tstl/thread/UniqueLock";
@@ -438,7 +438,7 @@ export namespace Has
         export class Accessor<Target extends object, Router extends object>
         {
             private readonly stmt_: orm.SelectQueryBuilder<Router>;
-            private readonly getter_: Singleton<Target[]>;
+            private readonly getter_: MutableSingleton<Target[]>;
 
             private constructor
                 (
@@ -456,7 +456,7 @@ export namespace Has
                     .createQueryBuilder(routerFactory.name)
                     .innerJoin(targetFactory, targetFactory.name, `${targetFactory.name}.${primaryKeyTuple[1]} = ${routerFactory.name}.${targetInverseField}`)
                     .andWhere(`${routerFactory.name}.${myInverseField} = :my_id`, { my_id: mine[primaryKeyTuple[0]] });
-                this.getter_ = new Singleton(async () => 
+                this.getter_ = new MutableSingleton(async () => 
                 {
                     const routerList: Router[] = await this.stmt_.getMany();
                     let tupleList: ManyToMany.ITuple<Target, Router>[] = [];

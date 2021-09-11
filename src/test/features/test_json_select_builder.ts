@@ -1,5 +1,4 @@
 import { equal } from "tstl/ranges/algorithm";
-import { assertType } from "typescript-is";
 import safe from "../..";
 
 import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
@@ -44,7 +43,11 @@ export async function test_json_select_builder(): Promise<void>
         "JsonSelectBuilder.getMany()",
         () => builder.getMany(models, true)
     );
-    assertType<IGroup[]>(data);
+    
+    // TYPE CHECKING
+    const regular: IGroup[] = data;
+    const reverse: typeof data = regular;
+    reverse;
 
     for (let i: number = 0; i < data.length; ++i)
     {
@@ -126,6 +129,7 @@ interface IContent
 }
 interface IFile
 {
+    id: string;
     name: string;
     extension: string | null;
     url: string;

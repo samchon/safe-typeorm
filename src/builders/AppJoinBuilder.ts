@@ -189,6 +189,8 @@ export namespace AppJoinBuilder
             ? (AppJoinBuilder<Target> | undefined | Closure<Target> | "join") 
             : never;
     }>;
+
+    export let MAX_VARIABLE_COUNT: number = 32700;
 }
 
 /**
@@ -348,7 +350,7 @@ async function join_has_many_to_many
     const routeList: any[] = [];
     while (myIdList.length !== 0)
     {
-        const some: any[] = myIdList.splice(0, 500);
+        const some: any[] = myIdList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
         routeList.push(...await stmt
             .clone()
             .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", some))
@@ -408,7 +410,7 @@ async function get_records_by_where_in
     const output: any[] = [];
     while (idList.length !== 0)
     {
-        const some: any[] = idList.splice(0, 500);
+        const some: any[] = idList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
         output.push
         (...await orm.getRepository(target)
             .createQueryBuilder()
