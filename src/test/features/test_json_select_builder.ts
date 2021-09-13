@@ -19,7 +19,9 @@ export async function test_json_select_builder(): Promise<void>
             group: safe.DEFAULT,
             category: safe.createJsonSelectBuilder(BbsCategory, 
             { 
-                articles: undefined 
+                articles: undefined,
+                parent: undefined,
+                children: undefined
             }),
             review: undefined,
             tags: safe.createJsonSelectBuilder(BbsArticleTag, 

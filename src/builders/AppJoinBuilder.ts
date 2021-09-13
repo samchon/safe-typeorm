@@ -1,24 +1,20 @@
-import * as orm from "typeorm";
-import { Pair } from "tstl/utility/Pair";
-
-import { Belongs } from "../decorators/Belongs";
-import { Has } from "../decorators/Has";
 import { ReflectAdaptor } from "../decorators/internal/ReflectAdaptor";
 
 import { Creator } from "../typings/Creator";
+import { OmitNever } from "../typings/OmitNever";
 import { Relationship } from "../typings/Relationship";
 import { SpecialFields } from "../typings/SpecialFields";
 
-import { ITableInfo } from "../functional/internal/ITableInfo";
-import { getWhereArguments } from "../functional/getWhereArguments";
-
-import { JoinQueryBuilder } from "./JoinQueryBuilder";
-import { OmitNever } from "../typings/OmitNever";
+import { IAppJoinChildTuple } from "./internal/IAppJoinChildTuple";
+import { app_join_belongs_to } from "./internal/app_join_belongs_to";
+import { app_join_has_many_to_many } from "./internal/app_join_has_many_to_many";
+import { app_join_has_one_to_many } from "./internal/app_join_has_one_to_many";
+import { app_join_has_one_to_one } from "./internal/app_join_has_one_to_one";
 
 export class AppJoinBuilder<Mine extends object>
 {
     private readonly mine_: Creator<Mine>;
-    private readonly children_: Map<SpecialFields<Mine, Relationship<any>>, IChild<Mine>>;
+    private readonly children_: Map<SpecialFields<Mine, Relationship<any>>, IAppJoinChildTuple<Mine>>;
 
     /* -----------------------------------------------------------
         CONSTRUCTORS
@@ -36,7 +32,7 @@ export class AppJoinBuilder<Mine extends object>
         ): AppJoinBuilder<Relationship.TargetType<Mine, Field>>
     {
         // PREPARE BUILDER
-        let child: IChild<Mine> | undefined = this.children_.get(field);
+        let child: IAppJoinChildTuple<Mine> | undefined = this.children_.get(field);
         if (child === undefined)
         {
             const metadata: ReflectAdaptor.Metadata<Relationship.TargetType<Mine, Field>> = ReflectAdaptor.get(this.mine_.prototype, field)!;
@@ -80,13 +76,13 @@ export class AppJoinBuilder<Mine extends object>
             // JOIN WITH RELATED ENTITIES
             let output: Relationship.TargetType<Mine, any>[];
             if (child.metadata.type === "Belongs.ManyToOne" || child.metadata.type === "Belongs.OneToOne")
-                output = await join_belongs_to(child as any, data, field);
+                output = await app_join_belongs_to(this.mine_, child as any, data, field);
             else if (child.metadata.type === "Has.OneToOne")
-                output = await join_has_one_to_one(this.mine_, child as any, data, field);
+                output = await app_join_has_one_to_one(this.mine_, child as any, data, field);
             else if (child.metadata.type === "Has.OneToMany")
-                output = await join_has_one_to_many(this.mine_, child as any, data, field);
+                output = await app_join_has_one_to_many(this.mine_, child as any, data, field);
             else
-                output = await join_has_many_to_many(this.mine_, child as any, data, field);
+                output = await app_join_has_many_to_many(this.mine_, child as any, data, field);
             
             // HIERARCHICAL CALL
             if (output.length !== 0)
@@ -149,7 +145,7 @@ export class AppJoinBuilder<Mine extends object>
             field: Field
         ): AppJoinBuilder<Relationship.TargetType<Mine, Field>> | undefined
     {
-        const child = this.children_.get(field) as IChild<Relationship.TargetType<Mine, Field>> | undefined;
+        const child = this.children_.get(field) as IAppJoinChildTuple<Relationship.TargetType<Mine, Field>> | undefined;
         return child !== undefined
             ? child.builder as any
             : undefined;
@@ -193,250 +189,9 @@ export namespace AppJoinBuilder
     export let MAX_VARIABLE_COUNT: number = 32700;
 }
 
-/**
- * @internal
- */
-interface IChild<
-        Mine extends object, 
-        Metadata extends ReflectAdaptor.Metadata<Relationship.TargetType<Mine, any>> = ReflectAdaptor.Metadata<Relationship.TargetType<Mine, any>>>
-{
-    metadata: Metadata;
-    builder: AppJoinBuilder<Relationship.TargetType<Mine, any>>;
-}
-
-/**
- * @internal
- */
-async function join_belongs_to
-    (
-        child: IChild<any, Belongs.ManyToOne.IMetadata<any> | Belongs.OneToOne.IMetadata<any>>,
-        data: any[], 
-        field: any,
-    ): Promise<any[]>
-{
-    // NO DATA
-    if (data.length === 0)
-        return [];
-
-    // NO REFERENCE
-    const idList: any[] = get_foreign_key_values(data, field);
-    if (idList.length === 0)
-        return [];
-
-    // THE TARGET INFO
-    const target: Creator<any> = child.metadata.target();
-    const table: ITableInfo = ITableInfo.get(target);
-    const isOneToOne = child.metadata.type === "Belongs.OneToOne";
-
-    // LOAD TARGET DATA
-    const output: any[] = await get_records_by_where_in(target, table.primaryColumn, idList);
-
-    // LINK RELATIONSHIPS
-    const dict: Map<any, any> = associate(table, output);
-    for (const elem of data)
-    {
-        const id: any | null = elem[field].id;
-        if (id === null)
-            continue;
-
-        const reference: any = dict.get(id)!;
-        await elem[field].set(reference);
-
-        if (isOneToOne === true && child.metadata.inverse !== null)
-            await reference[child.metadata.inverse].set(elem);
-    }
-    return output;
-}
-
-/**
- * @internal
- */
-async function join_has_one_to_one
-    (
-        mine: Creator<any>,
-        child: IChild<any, Has.OneToOne.IMetadata<any>>,
-        data: any[], 
-        field: any,
-    ): Promise<any[]>
-{
-    if (data.length === 0)
-        return [];
-
-    // MY TABLE & DATA
-    const myTable: ITableInfo = ITableInfo.get(mine);
-    const myDict: Map<any, Pair<any, any | null>> = associate(myTable, data, elem => new Pair(elem, null));
-    const myIdList: any[] = data.map(rec => rec[myTable.primaryColumn]);
-    
-    // LOAD TARGET DATA
-    const target: Creator<any> = child.metadata.target();
-    const output: any[] = await get_records_by_where_in(target, child.metadata.inverse, myIdList);
-
-    // LINK RELATIONSHIPS
-    for (const targetRecord of output)
-    {
-        const tuple: any = myDict.get(targetRecord[child.metadata.inverse].id)!;
-        tuple.second = targetRecord;
-        await targetRecord[child.metadata.inverse].set(tuple.first);
-    }
-    for (const tuple of myDict.values())
-        await tuple.first[field].set(tuple.second);
-
-    return output;
-}
-
-/**
- * @internal
- */
-async function join_has_one_to_many
-    (
-        mine: Creator<any>,
-        child: IChild<any, Has.OneToMany.IMetadata<any>>,
-        data: any[],
-        field: any
-    ): Promise<any[]>
-{
-    if (data.length === 0)
-        return [];
-
-    // MY TABLE & DATA
-    const myTable: ITableInfo = ITableInfo.get(mine);
-    const myDict: Map<any, Pair<any, any[]>> = associate(myTable, data, elem => new Pair(elem, []));
-    const myIdList: any[] = data.map(rec => rec[myTable.primaryColumn]);
-
-    // LOAD TARGET DATA
-    const target: Creator<any> = child.metadata.target();
-    const output: any[] = await get_records_by_where_in(target, child.metadata.inverse, myIdList);
-
-    // LINK RELATIONSHIPS
-    for (const targetRecord of output)
-    {
-        const tuple: Pair<any, any[]> = myDict.get(targetRecord[child.metadata.inverse].id)!;
-        tuple.second.push(targetRecord);
-        await targetRecord[child.metadata.inverse].set(tuple.first);
-    }
-    for (const tuple of myDict.values())
-    {
-        if (child.metadata.comparator)
-            tuple.second = tuple.second.sort(child.metadata.comparator);
-        await tuple.first[field].set(tuple.second);
-    }
-    return output;
-}
-
-async function join_has_many_to_many
-    (
-        mine: Creator<any>,
-        child: IChild<any, Has.ManyToMany.IMetadata<any, any>>,
-        data: any[],
-        field: any
-    ): Promise<any[]>
-{
-    if (data.length === 0)
-        return [];
-
-    // MY TABLE & DATA
-    const myTable: ITableInfo = ITableInfo.get(mine);
-    const myDict: Map<any, Pair<any, any[]>> = associate(myTable, data, elem => new Pair(elem, []));
-    const myIdList: any[] = data.map(rec => rec[myTable.primaryColumn]);
-
-    // LOAD TARGET DATA
-    const router: Creator<any> = child.metadata.router();
-    const stmt: orm.SelectQueryBuilder<any> = orm
-        .getRepository(router)
-        .createQueryBuilder();
-        // .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", myIdList));
-    new JoinQueryBuilder(stmt, router).innerJoinAndSelect(child.metadata.target_inverse);
-
-    const routeList: any[] = [];
-    while (myIdList.length !== 0)
-    {
-        const some: any[] = myIdList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
-        routeList.push(...await stmt
-            .clone()
-            .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", some))
-            .getMany()
-        );
-    }
-
-    const output: any[] = [];
-
-    // LINK RELATIONSHIPS
-    for (const router of routeList)
-    {
-        const entry: any = myDict.get(router[child.metadata.my_inverse].id)!;
-        const target: any = await router[child.metadata.target_inverse].get();
-
-        const tuple: Has.ManyToMany.ITuple<any, any> = {
-            router: router,
-            target: target,
-        };
-        entry.second.push(tuple);
-        output.push(target);
-    }
-    for (const entry of myDict.values())
-    {
-        if (child.metadata.comparator)
-            entry.second = entry.second.sort(child.metadata.comparator);
-        await entry.first[field].set(entry.second.map(elem => elem.target));
-    }
-    return output;
-}
-
-/**
- * @internal
- */
-function get_foreign_key_values<
-        T extends { [P in Field]: Belongs.ManyToOne<any, any, any> },
-        Field extends SpecialFields<T, Belongs.ManyToOne<any, any, any>>>
-    (data: T[], field: Field): any[]
-{
-    const idList: any[] = data
-        .map(elem => elem[field].id)
-        .filter(id => id !== null);
-    return [...new Set(idList)];
-}
-
-/**
- * @internal
- */
-async function get_records_by_where_in
-    (
-        target: Creator<any>, 
-        field: string, 
-        idList: any[]
-    ): Promise<any[]>
-{
-    // LOAD TARGET DATA
-    const output: any[] = [];
-    while (idList.length !== 0)
-    {
-        const some: any[] = idList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
-        output.push
-        (...await orm.getRepository(target)
-            .createQueryBuilder()
-            .andWhere(...getWhereArguments(target, field as "id", "IN", some))
-            .getMany()
-        );
-    }
-    return output;
-}
-
-/**
- * @internal
- */
-function associate
-    (
-        info: ITableInfo, 
-        records: any[],
-        valueGen: (record: any) => any = (record => record)
-    ): Map<any, any>
-{
-    const dict: Map<any, any> = new Map();
-    for (const elem of records)
-        dict.set(elem[info.primaryColumn], valueGen(elem));
-    return dict;
-}
-
+/* -----------------------------------------------------------
+    ITERATORS
+----------------------------------------------------------- */
 /**
  * @internal
  */
@@ -445,7 +200,7 @@ class ValueIterator<Mine extends object>
 {
     public constructor
         (
-            private readonly values_: IterableIterator<IChild<Mine>>
+            private readonly values_: IterableIterator<IAppJoinChildTuple<Mine>>
         )
     {
     }
@@ -476,7 +231,7 @@ class EntryIterator<T extends object>
 {
     public constructor
         (
-            private readonly entries_: IterableIterator<[AppJoinBuilder.Key<T>, IChild<T>]>
+            private readonly entries_: IterableIterator<[AppJoinBuilder.Key<T>, IAppJoinChildTuple<T>]>
         )
     {
     }

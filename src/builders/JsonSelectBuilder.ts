@@ -1,16 +1,18 @@
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
+import { Same } from "../typings/Same";
 
 import { Creator } from "../typings/Creator";
 import { OmitNever } from "../typings/OmitNever";
 import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
 import { Relationship } from "../typings/Relationship";
 
+import { toPrimitive } from "../functional/toPrimitive";
+
 import { AppJoinBuilder } from "./AppJoinBuilder";
-import { ArrayUtil } from "../test/internal/ArrayUtil";
+import { ArrayUtil } from "../utils/ArrayUtil";
 import { DEFAULT } from "../DEFAULT";
 import { Primitive } from "../typings/Primitive";
-import { toPrimitive } from "../functional/toPrimitive";
 
 export class JsonSelectBuilder<
         Mine extends object, 
@@ -57,7 +59,7 @@ export class JsonSelectBuilder<
     }
 
     /* -----------------------------------------------------------
-        JSON CONVERTERS
+        ACCESSORS
     ----------------------------------------------------------- */
     public async getOne(record: Mine, skipAppJoin: boolean = false): Promise<Destination>
     {
@@ -80,6 +82,9 @@ export class JsonSelectBuilder<
             : output as any;
     }
 
+    /* -----------------------------------------------------------
+        CONVERTERS
+    ----------------------------------------------------------- */
     private async _Convert(record: Mine): Promise<JsonSelectBuilder.Output<Mine, InputT>>
     {
         const output: any = toPrimitive(record);
@@ -97,6 +102,8 @@ export class JsonSelectBuilder<
                 else
                     output[key] = await plan._Convert(data);
             }
+            else if (plan === "recursive")
+                output[key] = await this._Convert_Recursive(key, record);
             else
             {
                 let data = (record as any)[key];
@@ -111,6 +118,27 @@ export class JsonSelectBuilder<
         }
         return output;
     }
+
+    private async _Convert_Recursive(key: string, record: Mine): Promise<any>
+    {
+        const data = await (record as any)[key].get();
+        let output: any;
+
+        if (data === null)
+            output = null;
+        else if (data instanceof Array)
+        {
+            output = data.map(elem => toPrimitive(elem));
+            for (let i: number = 0; i < data.length; ++i)
+                output[i][key] = await this._Convert_Recursive(key, data[i]);
+        }
+        else
+        {
+            output = toPrimitive(data);
+            output[key] = await this._Convert_Recursive(key, data);
+        }
+        return output;
+    }
 }
 
 export namespace JsonSelectBuilder
@@ -120,9 +148,15 @@ export namespace JsonSelectBuilder
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
             ? Mine[P] extends Belongs.ManyToOne<Target, any, infer TargetOptions>
                 ? TargetOptions extends { nullable: true }
-                    ? JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
-                    : JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
-            : JsonSelectBuilder<Target, any, any> | undefined
+                    ? Same<Mine, Target> extends true
+                        ? "recursive" | DEFAULT | undefined
+                        : JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
+                    : Same<Mine, Target> extends true 
+                        ? "recursive" | DEFAULT | undefined
+                        : JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
+            : Same<Mine, Target> extends true 
+                ? "recursive" | undefined
+                : JsonSelectBuilder<Target, any, any> | undefined
             : never
     }>;
 
@@ -139,6 +173,20 @@ export namespace JsonSelectBuilder
                         ? Destination
                         : Destination | null
                 : Destination[]
+            : InputT[P] extends "recursive"
+                ? Mine[P] extends Belongs.ManyToOne<Mine, any, infer Options>
+                    ? Options extends { nullable: true }
+                        ? Output.RecursiveReference<Mine, P> | null
+                        : never // cannot be happend
+                : Mine[P] extends Has.OneToOne<Mine, infer Ensure>
+                    ? Ensure extends true
+                        ? never // cannot be happend
+                        : Output.RecursiveReference<Mine, P> | null
+                : Mine[P] extends Has.OneToMany<Mine> 
+                    ? Output.RecursiveArray<Mine, P>
+                : Mine[P] extends Has.ManyToMany<Mine, any> 
+                    ? Output.RecursiveArray<Mine, P>
+                : never
             : InputT[P] extends DEFAULT 
                 ? Mine[P] extends Belongs.ManyToOne<any, infer PrimaryKey, infer Options>
                     ? Options extends { nullable: true }
@@ -147,6 +195,24 @@ export namespace JsonSelectBuilder
                     : never
             : never;
     }>;
+    export namespace Output
+    {
+        export type RecursiveReference<
+                Mine extends object,
+                Key extends keyof Mine>
+            = Primitive<Mine> &
+        {
+            [P in Key]: RecursiveReference<Mine, Key> | null;
+        }
+
+        export type RecursiveArray<
+                Mine extends object, 
+                Key extends keyof Mine>
+            = Primitive<Mine> &
+        {
+            [P in Key]: RecursiveArray<Mine, Key>[];
+        }
+    }
     
     export type OutputMapper<Mine extends object, InputT extends Input<Mine>, Destination> 
         = (output: Output<Mine, InputT>, index: number, array: Output<Mine, InputT>[]) => Destination;

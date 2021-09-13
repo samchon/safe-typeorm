@@ -1,6 +1,6 @@
 import { randint } from "tstl";
 import safe from "../..";
-import { ArrayUtil } from "../internal/ArrayUtil";
+import { ArrayUtil } from "../../utils/ArrayUtil";
 import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
 import { BbsGroup } from "../models/BbsGroup";

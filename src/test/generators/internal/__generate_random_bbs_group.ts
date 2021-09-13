@@ -2,7 +2,7 @@ import { randint } from "tstl";
 import safe from "../../..";
 import { collect_random_bbs_article } from "../../collectors/collect_random_bbs_article";
 import { collect_random_bbs_comment } from "../../collectors/collect_random_bbs_comment";
-import { ArrayUtil } from "../../internal/ArrayUtil";
+import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { BbsArticle } from "../../models/BbsArticle";
 import { BbsArticleTag } from "../../models/BbsArticleTag";
 import { BbsComment } from "../../models/BbsComment";

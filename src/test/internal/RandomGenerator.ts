@@ -2,7 +2,7 @@ import { back_inserter } from "tstl/iterator/factory";
 import { randint } from "tstl/algorithm/random";
 import { sample as _Sample } from "tstl/ranges/algorithm/random";
 
-import { ArrayUtil } from "./ArrayUtil";
+import { ArrayUtil } from "../../utils/ArrayUtil";
 
 export namespace RandomGenerator
 {

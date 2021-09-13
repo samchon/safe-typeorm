@@ -1,4 +1,4 @@
-import { ArrayUtil } from "../internal/ArrayUtil";
+import { ArrayUtil } from "../../utils/ArrayUtil";
 import { BbsGroup } from "../models/BbsGroup";
 import { generate_random_empty_review_bbs_group } from "./generate_random_empty_review_bbs_group";
 import { generate_random_normal_bbs_group } from "./generate_random_normal_bbs_group";
