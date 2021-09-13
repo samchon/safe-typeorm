@@ -11,7 +11,7 @@ export function createJsonSelectBuilder<
     (
         creator: Creator<Mine>, 
         input: InputT,
-        closure: JsonSelectBuilder.OutputMapper<Mine, InputT, Destination>
+        closure: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
     ): JsonSelectBuilder<Mine, InputT, Destination>;
 
 export function createJsonSelectBuilder<
@@ -21,7 +21,7 @@ export function createJsonSelectBuilder<
     (
         creator: Creator<Mine>, 
         input: InputT,
-        closure?: JsonSelectBuilder.OutputMapper<Mine, InputT, Destination>
+        closure?: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
     ): JsonSelectBuilder<Mine, InputT, Destination> 
 {
     return new JsonSelectBuilder(creator, input, closure!);

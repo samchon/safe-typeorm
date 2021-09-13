@@ -33,14 +33,14 @@ export class JsonSelectBuilder<
         (
             mine: Creator<Mine>, 
             input: InputT, 
-            mapper: JsonSelectBuilder.OutputMapper<Mine, InputT, Destination>
+            mapper: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
         );
 
     public constructor
         (
             mine: Creator<Mine>, 
             input: InputT, 
-            mapper?: JsonSelectBuilder.OutputMapper<Mine, InputT, Destination>
+            mapper?: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
         )
     {
         this.mine_ = mine;
@@ -177,10 +177,10 @@ export namespace JsonSelectBuilder
                 ? Mine[P] extends Belongs.ManyToOne<Mine, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Output.RecursiveReference<Mine, P> | null
-                        : never // cannot be happend
+                        : never // never be happend
                 : Mine[P] extends Has.OneToOne<Mine, infer Ensure>
                     ? Ensure extends true
-                        ? never // cannot be happend
+                        ? never // never be happend
                         : Output.RecursiveReference<Mine, P> | null
                 : Mine[P] extends Has.OneToMany<Mine> 
                     ? Output.RecursiveArray<Mine, P>
@@ -203,7 +203,7 @@ export namespace JsonSelectBuilder
             = Primitive<Mine> &
         {
             [P in Key]: RecursiveReference<Mine, Key> | null;
-        }
+        };
 
         export type RecursiveArray<
                 Mine extends object, 
@@ -211,9 +211,15 @@ export namespace JsonSelectBuilder
             = Primitive<Mine> &
         {
             [P in Key]: RecursiveArray<Mine, Key>[];
+        };
+
+        export interface Mapper<Mine extends object, InputT extends Input<Mine>, Destination> 
+        {
+            (
+                output: Output<Mine, InputT>, 
+                index: number, 
+                array: Output<Mine, InputT>[]
+            ): Destination;
         }
     }
-    
-    export type OutputMapper<Mine extends object, InputT extends Input<Mine>, Destination> 
-        = (output: Output<Mine, InputT>, index: number, array: Output<Mine, InputT>[]) => Destination;
 }
