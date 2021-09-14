@@ -72,20 +72,18 @@ export class JsonSelectBuilder<
         if (skipAppJoin === false)
             await this.joiner_.execute(records);
         
-        const output: JsonSelectBuilder.Output<Mine, InputT>[] = await ArrayUtil.asyncMap
+        const output: Destination[] = await ArrayUtil.asyncMap
         (
             records,
             rec => this._Convert(rec)
         );
-        return this.closure_ 
-            ? output.map(this.closure_ as any) as any
-            : output as any;
+        return output;
     }
 
     /* -----------------------------------------------------------
         CONVERTERS
     ----------------------------------------------------------- */
-    private async _Convert(record: Mine): Promise<JsonSelectBuilder.Output<Mine, InputT>>
+    private async _Convert(record: Mine): Promise<Destination>
     {
         const output: any = toPrimitive(record);
         for (const [key, plan] of Object.entries(this.input_))
@@ -116,7 +114,9 @@ export class JsonSelectBuilder<
                     output[key] = plan(data);
             }
         }
-        return output;
+        return this.closure_
+            ? this.closure_(output)
+            : output;
     }
 
     private async _Convert_Recursive(key: string, record: Mine): Promise<any>

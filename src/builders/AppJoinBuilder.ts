@@ -69,7 +69,16 @@ export class AppJoinBuilder<Mine extends object>
         return builder;
     }
 
-    public async execute(data: Mine[]): Promise<void>
+    public execute(record: Mine): Promise<void>;
+    public execute(data: Mine[]) : Promise<void>;
+    public async execute(data: Mine | Mine[]): Promise<void>
+    {
+        if (!(data instanceof Array))
+            data = [ data ];
+        await this._Execute(data);
+    }
+
+    private async _Execute(data: Mine[]): Promise<void>
     {
         for (const [field, child] of this.children_.entries())
         {
@@ -86,7 +95,7 @@ export class AppJoinBuilder<Mine extends object>
             
             // HIERARCHICAL CALL
             if (output.length !== 0)
-                await child.builder.execute(output);
+                await child.builder._Execute(output);
         }
     }
 

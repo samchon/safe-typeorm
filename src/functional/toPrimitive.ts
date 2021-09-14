@@ -31,7 +31,7 @@ export function toPrimitive(obj: any, ...omitFields: string[]): Record<string, a
     for (const [key, value] of Object.entries(obj))
     {
         if (key[0] === "_")
-            if (key.substr(0, 9) === "__m_enc_")
+            if (key.substr(0, ENC_SYMBOL.length) === ENC_SYMBOL)
             {
                 const property: string = EncryptedColumn.getFieldByIndex(key);
                 output[property] = (obj as any)[property];
@@ -55,3 +55,4 @@ export function toPrimitive(obj: any, ...omitFields: string[]): Record<string, a
 }
 
 const fk_dicts: WeakMap<Creator<any>, Set<string>> = new WeakMap();
+const ENC_SYMBOL = "__m_enc_";
