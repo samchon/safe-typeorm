@@ -1,7 +1,8 @@
 import safe from "../..";
-import { generate_random_recursive_category } from "../generators/generate_radom_recursive_category";
-import { must_not_query_anything } from "../internal/must_not_query_anything";
 import { BbsCategory } from "../models/BbsCategory";
+
+import { generate_random_recursive_category } from "../internal/generators/generate_radom_recursive_category";
+import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
 
 async function iterate(category: BbsCategory): Promise<void>
 {

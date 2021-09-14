@@ -1,5 +1,6 @@
 import * as orm from "typeorm";
 import safe from "../..";
+import { BbsAnswerArticle } from "./BbsAnswerArticle";
 
 import { BbsArticleContent } from "./BbsArticleContent";
 import { BbsArticleTag } from "./BbsArticleTag";
@@ -7,7 +8,9 @@ import { BbsCategory } from "./BbsCategory";
 import { BbsComment } from "./BbsComment";
 
 import { BbsGroup } from "./BbsGroup";
+import { BbsQuestionArticle } from "./BbsQuestionArticle";
 import { BbsReviewArticle } from "./BbsReviewArticle";
+import { __MvBbsArticleLastContentPair } from "./__MvBbsArticleLastContentPair";
 
 @orm.Index(["bbs_group_id", "bbs_category_id", "created_at"])
 @orm.Entity()
@@ -53,7 +56,7 @@ export class BbsArticle extends safe.Model
     public readonly deleted_at!: Date | null;
 
     /* -----------------------------------------------------------
-        HAS
+        SUB-TYPES
     ----------------------------------------------------------- */
     @safe.Has.OneToOne
     (
@@ -62,6 +65,23 @@ export class BbsArticle extends safe.Model
     )
     public readonly review!: safe.Has.OneToOne<BbsReviewArticle>;
 
+    @safe.Has.OneToOne
+    (
+        () => BbsQuestionArticle,
+        question => question.base
+    )
+    public readonly question!: safe.Has.OneToOne<BbsQuestionArticle>;
+
+    @safe.Has.OneToOne
+    (
+        () => BbsAnswerArticle,
+        answer => answer.base
+    )
+    public readonly answer!: safe.Has.OneToOne<BbsAnswerArticle>;
+
+    /* -----------------------------------------------------------
+        HAS
+    ----------------------------------------------------------- */
     @safe.Has.OneToMany
     (
         () => BbsComment,
@@ -85,4 +105,11 @@ export class BbsArticle extends safe.Model
         (x, y) => x.value < y.value ? -1 : 1
     )
     public readonly tags!: safe.Has.OneToMany<BbsArticleTag>;
+
+    @safe.Has.OneToOne
+    (
+        () => __MvBbsArticleLastContentPair,
+        pair => pair.article,
+    )
+    public readonly __mv_last!: safe.Has.OneToOne<__MvBbsArticleLastContentPair, true>;
 }

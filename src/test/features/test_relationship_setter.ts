@@ -1,9 +1,10 @@
 import { BbsGroup } from "../models/BbsGroup";
-import { must_not_query_anything } from "../internal/must_not_query_anything";
-import { iterate_bbs_group } from "../iterators/iterate_bbs_group";
-import { generate_random_empty_review_bbs_group } from "../generators/generate_random_empty_review_bbs_group";
-import { generate_random_normal_bbs_group } from "../generators/generate_random_normal_bbs_group";
-import { generate_random_review_bbs_group } from "../generators/generate_random_review_bbs_group";
+
+import { iterate_bbs_group } from "../internal/iterators/iterate_bbs_group";
+import { generate_random_empty_review_bbs_group } from "../internal/generators/generate_random_empty_review_bbs_group";
+import { generate_random_normal_bbs_group } from "../internal/generators/generate_random_normal_bbs_group";
+import { generate_random_review_bbs_group } from "../internal/generators/generate_random_review_bbs_group";
+import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
 
 export async function test_relationship_setter(): Promise<void>
 {

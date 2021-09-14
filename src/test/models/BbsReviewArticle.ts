@@ -2,7 +2,6 @@ import * as orm from "typeorm";
 import safe from "../..";
 
 import { BbsArticle } from "./BbsArticle";
-import { BbsProduct } from "./BbsProduct";
 
 @orm.Entity()
 export class BbsReviewArticle extends safe.Model
@@ -18,11 +17,15 @@ export class BbsReviewArticle extends safe.Model
     )
     public readonly base!: safe.Belongs.OneToOne<BbsArticle, "uuid">;
 
-    @safe.Belongs.OneToOne(() => BbsProduct,
-        product => product.review,
-        "uuid",
-        "bbs_product_id",
-        { unique: true, nullable: true }
-    )
-    public readonly product!: safe.Belongs.OneToOne<BbsProduct, "uuid", { nullable: true }>;
+    @orm.Column("varchar")
+    public readonly manufacturer!: string
+
+    @orm.Column("varchar")
+    public readonly product!: string;
+
+    @orm.Column("double")
+    public readonly price!: number;
+
+    @orm.Column("double")
+    public readonly score!: number;
 }

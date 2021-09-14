@@ -1,14 +1,18 @@
 import { equal } from "tstl/ranges/algorithm";
-import safe from "../..";
 
-import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
-import { must_not_query_anything } from "../internal/must_not_query_anything";
+import safe from "../..";
 import { AttachmentFile } from "../models/AttachmentFile";
 import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
 import { BbsArticleTag } from "../models/BbsArticleTag";
 import { BbsCategory } from "../models/BbsCategory";
 import { BbsGroup } from "../models/BbsGroup";
+
+import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
+import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
+import { IBbsGroup } from "../structures/IBbsGroup";
+import { IBbsArticle } from "../structures/IBbsArticle";
+import { IBbsArticleContent } from "../structures/IBbsArticleContent";
 
 export async function test_json_select_builder(): Promise<void>
 {
@@ -19,26 +23,29 @@ export async function test_json_select_builder(): Promise<void>
             group: safe.DEFAULT,
             category: safe.createJsonSelectBuilder(BbsCategory, 
             { 
-                articles: undefined,
-                parent: undefined,
-                children: undefined
+                parent: "recursive",
+                children: undefined, // INVERSE
+                articles: undefined, // INVERSE
             }),
-            review: undefined,
             tags: safe.createJsonSelectBuilder(BbsArticleTag, 
             {
-                article: undefined 
+                article: undefined // INVERSE
             }, tag => tag.value),
             contents: safe.createJsonSelectBuilder(BbsArticleContent, 
             {
-                article: undefined,
+                article: undefined, // INVERSE
                 files: safe.createJsonSelectBuilder(AttachmentFile, {})
             }),
-            comments: undefined,
+            __mv_last: undefined, // MATERIAL
+            review: undefined, // SUB-TYPE
+            question: undefined, // SUB-TYPE
+            answer: undefined, // SUB-TYPE
+            comments: undefined, // ONE-TO-MAY
         })
     });
 
     const models: BbsGroup[] = await generate_random_clean_groups();
-    await builder["joiner_"].execute(models);
+    await builder.join(models);
 
     const data = await must_not_query_anything
     (
@@ -47,14 +54,14 @@ export async function test_json_select_builder(): Promise<void>
     );
     
     // TYPE CHECKING
-    const regular: IGroup[] = data;
+    const regular: IBbsGroup[] = data;
     const reverse: typeof data = regular;
     reverse;
 
     for (let i: number = 0; i < data.length; ++i)
     {
         const modelGroup: BbsGroup = models[i];
-        const jsonGroup: IGroup = data[i];
+        const jsonGroup: IBbsGroup = data[i];
 
         if (modelGroup.id !== jsonGroup.id)
             throw new Error("Bug on JsonSelectBuilder.getMany(): wrong data.");
@@ -62,7 +69,7 @@ export async function test_json_select_builder(): Promise<void>
         const modelArticleList: BbsArticle[] = await modelGroup.articles.get();
         for (let j: number = 0; j < jsonGroup.articles.length; ++j)
         {
-            const jsonArticle: IArticle = jsonGroup.articles[j];
+            const jsonArticle: IBbsArticle = data[i].articles[j];
             if (jsonArticle.group !== modelGroup.id)
                 throw new Error("Bug on JsonSelectBuilder.getMany(): wrong data.");
 
@@ -80,59 +87,11 @@ export async function test_json_select_builder(): Promise<void>
             for (let k: number = 0; k < jsonArticle.contents.length; ++k)
             {
                 const modelContent: BbsArticleContent = modelContentList[k];
-                const jsonContent: IContent = jsonArticle.contents[k];
+                const jsonContent: IBbsArticleContent = jsonArticle.contents[k];
 
                 if (modelContent.id !== jsonContent.id)
                     throw new Error("Bug on JsonSelectBuilder.getMany(): wrong data.");
             }
         }
     }
-}
-
-interface ICategory
-{
-    id: string;
-    code: string;
-    name: string;
-    created_at: string;
-    deleted_at: string | null;
-}
-interface IGroup
-{
-    id: string;
-    code: string;
-    name: string;
-    created_at: string;
-    deleted_at: string | null;
-
-    articles: IArticle[];
-}
-interface IArticle
-{
-    id: string;
-    writer: string;
-    ip: string;
-    created_at: string;
-    deleted_at: string | null;
-
-    group: string;
-    tags: string[];
-    category: ICategory | null;
-    contents: IContent[];
-}
-interface IContent
-{
-    id: string;
-    title: string;
-    body: string;
-    created_at: string;
-
-    files: IFile[];
-}
-interface IFile
-{
-    id: string;
-    name: string;
-    extension: string | null;
-    url: string;
 }

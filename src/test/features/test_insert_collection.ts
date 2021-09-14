@@ -1,4 +1,4 @@
-import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
+import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 
 export async function test_insert_collection(): Promise<void>
 {

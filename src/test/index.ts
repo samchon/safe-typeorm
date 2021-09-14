@@ -1,6 +1,6 @@
 import * as orm from "typeorm";
-import { DynamicImportIterator } from "./internal/DynamicImportIterator";
-import { TestLogger } from "./internal/TesLogger";
+import { DynamicImportIterator } from "./internal/procedures/DynamicImportIterator";
+import { TestLogger } from "./internal/procedures/TestLogger";
 
 async function main(): Promise<void>
 {

@@ -1,21 +1,21 @@
-import safe, { AppJoinBuilder } from "../..";
-import { must_not_query_anything } from "../internal/must_not_query_anything";
+import safe from "../..";
 import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
 import { BbsComment } from "../models/BbsComment";
 import { BbsGroup } from "../models/BbsGroup";
 import { BbsReviewArticle } from "../models/BbsReviewArticle";
-import { iterate_bbs_group } from "../iterators/iterate_bbs_group";
-import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
+
+import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
+import { iterate_bbs_group } from "../internal/iterators/iterate_bbs_group";
+import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
 
 export async function test_app_join_builder_initialize(): Promise<void>
 {
-    const builder: AppJoinBuilder<BbsGroup> = safe.AppJoinBuilder.initialize(BbsGroup, {
+    const builder: safe.AppJoinBuilder<BbsGroup> = safe.AppJoinBuilder.initialize(BbsGroup, {
         articles: safe.AppJoinBuilder.initialize(BbsArticle, {
             group: undefined,
             review: safe.AppJoinBuilder.initialize(BbsReviewArticle, {
                 base: undefined,
-                product: "join"
             }),
             category: "join",
             contents: safe.AppJoinBuilder.initialize(BbsArticleContent, {
@@ -26,7 +26,10 @@ export async function test_app_join_builder_initialize(): Promise<void>
                 article: undefined,
                 files: "join"
             }),
-            tags: "join"
+            tags: "join",
+            __mv_last: undefined,
+            question: undefined,
+            answer: undefined,
         })
     });
 

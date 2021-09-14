@@ -1,8 +1,10 @@
 import safe from "../..";
-import { generate_random_clean_groups } from "../generators/generate_random_clean_groups";
+
 import { BbsArticle } from "../models/BbsArticle";
 import { BbsArticleContent } from "../models/BbsArticleContent";
 import { BbsGroup } from "../models/BbsGroup";
+
+import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 
 export async function test_to_primitive(): Promise<void>
 {

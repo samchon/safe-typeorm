@@ -4,7 +4,7 @@ import safe from "../..";
 import { AttachmentFilePairBase } from "./internal/AttachmentFilePairBase";
 import { BbsComment } from "./BbsComment";
 
-@orm.Index(["bbs_comment_id", "sequence"])
+@orm.Unique(["bbs_comment_id", "attachment_file_id"])
 @orm.Entity()
 export class BbsCommentFilePair extends AttachmentFilePairBase
 {
