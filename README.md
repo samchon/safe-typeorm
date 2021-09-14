@@ -11,6 +11,7 @@ With `safe-typeorm`, use `TypeORM` much safely.
 
 ## Demonstration
 ![safe-typeorm-example-fastest](https://user-images.githubusercontent.com/13158709/117546527-ccdaaa00-b065-11eb-928c-082a84507431.gif)
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsamchon%2Fsafe-typeorm.svg?type=shield)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsamchon%2Fsafe-typeorm?ref=badge_shield)
 
 <details>
 <summary> Final Script </summary>
@@ -111,3 +112,6 @@ WHERE `MarketSale`.`market_seller_id` = ? AND
 ```
 
 </details>
+
+## License
+[![FOSSA Status](https://app.fossa.com/api/projects/git%2Bgithub.com%2Fsamchon%2Fsafe-typeorm.svg?type=large)](https://app.fossa.com/projects/git%2Bgithub.com%2Fsamchon%2Fsafe-typeorm?ref=badge_large)
