@@ -22,12 +22,6 @@ The `safe-typeorm` is a helper library for [typeorm](https://github.com/typeorm/
   - When **SELECT**ing for **JSON** conversion, the **performance** would be **automatically tuned**
   - When **INSERT**ing records, the **performance** would be **automatically tuned**
 
-If you write any SQL query through the `safe-typeorm`, the error would be detected in the compilation level. Also, when you're writing any SQL query, `safe-typeorm` would help you by hinting through the auto-completion.
-
-Also, if you've defined your ORM model classes using this `safe-typeorm`, you can implement the application level joining very conveniently. Even the code implementing the application level joining is similar with the database level joining. Therefore, you can convert from DB join to App join witout cost and opposite case is same, too.
-
-Furthermore, `safe-typeorm` supports the json conversion very strongly. After you write down the conversion code from ORM model class instances to JSON data, `safe-typeorm` would find optimal joining solution by itself. Therefore, you don't need to consider the performance issue. Just concentrate on your business logic.
-
 
 
 
