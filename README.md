@@ -14,13 +14,13 @@ npm install --save safe-typeorm
 
 The `safe-typeorm` is a helper library for [typeorm](https://github.com/typeorm/typeorm), enhancing safety in the compilation level.
 
-  - When writing SQL query,
+  - When writing [**SQL query**](#safe-query-builder),
     - Errors would be detected in the **compilation** level
     - **Auto Completion** would be provided
     - **Type Hint** would be supported
-  - You can implement **App-join** very conveniently, and its code is same with the DB join
-  - When **SELECT**ing for **JSON** conversion, the **performance** would be **automatically tuned**
-  - When **INSERT**ing records, the **performance** would be **automatically tuned**
+  - You can implement [**App-join**](#app-join-builder) very conveniently, and its code is same with the DB join
+  - When [**SELECT**ing for **JSON** conversion](#json-select-builder), the **performance** would be **automatically tuned**
+  - When [**INSERT**](#insert-collection)ing records, the **performance** would be **automatically tuned**
 
 
 
@@ -254,3 +254,19 @@ export async function archive
     await collection.execute();
 }
 ```
+
+
+
+
+## Appendix
+### Guide Documents
+Preparing...
+
+### TypeORM
+[typeorm#8184](https://github.com/typeorm/typeorm/issues/8184)
+
+I've awaited next version of the `typeorm` for many years, and I can't wait no more.
+
+So I've decided to implement the next version by myself. I'd wanted to contribute to this `typeorm` after the next version implementation has been completed, but it was not possible by critical change on the relationship definition like `Has.OneToMany` or `Belongs.ManyToOne`. Therefore, I've published the next version as a helper library of the`typeorm`.
+
+I dedicate this `safe-typeorm` to the `typeorm`. If developers of the `typeorm` accept the critical change on the relationship definition, it would be the next version of the `typeorm`. Otherwise they reject, this `safe-typeorm` would be left as a helper library like now.
