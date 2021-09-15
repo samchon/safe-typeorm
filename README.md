@@ -18,9 +18,14 @@ The `safe-typeorm` is a helper library for [typeorm](https://github.com/typeorm/
     - Errors would be detected in the **compilation** level
     - **Auto Completion** would be provided
     - **Type Hint** would be supported
-  - You can implement [**App-join**](#app-join-builder) very conveniently, and its code is same with the DB join
-  - When [**SELECT**ing for **JSON** conversion](#json-select-builder), the **performance** would be **automatically tuned**
-  - When [**INSERT**](#insert-collection)ing records, the **performance** would be **automatically tuned**
+  - You can implement [**App-join**](#app-join-builder) very conveniently
+  - When [**SELECT**ing for **JSON** conversion](#json-select-builder)
+    - [**App-Join**](#app-join-builder) with the related entities would be automatically done
+    - Exact JSON **type** would be automatically **deduced**
+    - The **performance** would be **automatically tuned**
+  - When [**INSERT**](#insert-collection)ing records
+    - Sequence of tables would be automatically sorted by analyzing dependencies
+    - The **performance** would be **automatically tuned**
 
 
 
