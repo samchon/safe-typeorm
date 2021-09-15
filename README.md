@@ -170,7 +170,7 @@ Below code is an example converting ORM model class instances to JSON data with 
 Therefore, just enjoy the `JsonSelectBuilder` without any worry.
 
 ```typescript
-export async function test_json_select_builder(models: BbsGroup): Promise<void>
+export async function test_json_select_builder(models: BbsGroup[]): Promise<void>
 {
     const builder = safe.createJsonSelectBuilder(BbsGroup, 
     {
