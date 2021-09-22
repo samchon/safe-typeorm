@@ -275,3 +275,10 @@ I've awaited next version of the `typeorm` for many years, and I can't wait no m
 So I've decided to implement the next version by myself. I'd wanted to contribute to this `typeorm` after the next version implementation has been completed, but it was not possible by critical change on the relationship definition like `Has.OneToMany` or `Belongs.ManyToOne`. Therefore, I've published the next version as a helper library of the`typeorm`.
 
 I dedicate this `safe-typeorm` to the `typeorm`. If developers of the `typeorm` accept the critical change on the relationship definition, it would be the next version of the `typeorm`. Otherwise they reject, this `safe-typeorm` would be left as a helper library like now.
+
+### Archidraw
+https://www.archisketch.com/
+
+I have special thanks to the Archidraw, where I'm working for.
+
+The Archidraw is a great IT company developing 3D interior editor and lots of solutions based on the 3D assets. Also, the Archidraw is the first company who had adopted `safe-typeorm` on their commercial backend project, even `safe-typeorm` was in the alpha level.
