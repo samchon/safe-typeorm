@@ -264,9 +264,6 @@ export async function archive
 
 
 ## Appendix
-### Guide Documents
-Preparing...
-
 ### TypeORM
 [typeorm#8184](https://github.com/typeorm/typeorm/issues/8184)
 
@@ -275,6 +272,50 @@ I've awaited next version of the `typeorm` for many years, and I can't wait no m
 So I've decided to implement the next version by myself. I'd wanted to contribute to this `typeorm` after the next version implementation has been completed, but it was not possible by critical change on the relationship definition like `Has.OneToMany` or `Belongs.ManyToOne`. Therefore, I've published the next version as a helper library of the`typeorm`.
 
 I dedicate this `safe-typeorm` to the `typeorm`. If developers of the `typeorm` accept the critical change on the relationship definition, it would be the next version of the `typeorm`. Otherwise they reject, this `safe-typeorm` would be left as a helper library like now.
+
+### Nestia
+https://github.com/samchon/nestia
+
+[nestia](https://github.com/samchon/nestia) is another library what I've developed, automatic SDK generator for the NestJS backend server. With those `safe-typeorm` and [nestia](https://github.com/samchon/nestia), you can reduce lots of costs and time for developing the backend server.
+
+When you're developing a backend server using the `NestJS`, you don't need any extra dedication, for delivering the Rest API to the client developers, like writing the `swagger` comments. You just run the [nestia](https://github.com/samchon/nestia) up, then [nestia](https://github.com/samchon/nestia) would generate the SDK automatically, by analyzing your controller classes in the compliation and runtime level.
+
+With the automatically generated SDK through the [nestia](https://github.com/samchon/nestia), client developer also does not need any extra work, like reading `swagger` and writing the duplicated interaction code. Client developer only needs to import the SDK and calls matched function with the `await` symbol.
+
+```typescript
+import api from "@samchon/bbs-api";
+import { IBbsArticle } from "@samchon/bbs-api/lib/structures/bbs/IBbsArticle";
+import { IPage } from "@samchon/bbs-api/lib/structures/common/IPage";
+
+export async function test_article_read(connection: api.IConnection): Promise<void>
+{
+    // LIST UP ARTICLE SUMMARIES
+    const index: IPage<IBbsArticle.ISummary> = await api.functional.bbs.articles.index
+    (
+        connection,
+        "free",
+        { limit: 100, page: 1 }
+    );
+
+    // READ AN ARTICLE DETAILY
+    const article: IBbsArticle = await api.functional.bbs.articles.at
+    (
+        connection,
+        "free",
+        index.data[0].id
+    );
+    console.log(article.title, aritlce.body, article.files);
+}
+```
+
+### Technial Support
+samchon.github@gmail.com
+
+I provide technical support about those `safe-typeorm` and [nestia](https://github.com/samchon/nestia).
+
+Therefore, if you have any question or need help, feel free to contact me. If you want to adapt this `safe-typeorm` and [nestia](https://github.com/samchon/nestia) in your commercial project, I can provide you the best guidance. 
+
+I also can help your backend project in the entire development level. If you're suffering by DB architecture design or API structure design, just contact me and get help. I'll help you with my best effort.
 
 ### Archidraw
 https://www.archisketch.com/
