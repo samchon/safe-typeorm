@@ -1,14 +1,25 @@
 import safe from "../../..";
 import { BbsArticle } from "../../models/BbsArticle";
 import { BbsReviewArticle } from "../../models/BbsReviewArticle";
+import { BbsReviewArticleContent } from "../../models/BbsReviewArticleContent";
 import { prepare_random_bbs_review_article } from "../preparations/prepare_random_bbs_review_article";
+import { prepare_random_bbs_review_article_content } from "../preparations/prepare_random_bbs_review_article_content";
 
-export function collect_random_bbs_review_article
+export async function collect_random_bbs_review_article
     (
         collection: safe.InsertCollection,
         article: BbsArticle
-    ): BbsReviewArticle
+    ): Promise<BbsReviewArticle>
 {
     const review: BbsReviewArticle = prepare_random_bbs_review_article(article);
-    return collection.push(review);
+    await article.review.set(review);
+    collection.push(review);
+
+    for (const content of await article.contents.get())
+    {
+        const reviewContent: BbsReviewArticleContent = prepare_random_bbs_review_article_content(content);
+        await content.reviewContent.set(reviewContent);
+        collection.push(reviewContent);
+    }
+    return review;
 }

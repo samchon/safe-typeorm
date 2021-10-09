@@ -192,7 +192,7 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
         // RETURNS WITH BINDING
         const uuid: string = crypto.randomBytes(64).toString("hex");
         const binding: string = (operator === "IN")
-            ? `(:${uuid})`
+            ? `(:...${uuid})`
             : `:${uuid}`;
         return [`${column} ${operator} ${binding}`, { [uuid]: param }];
     }

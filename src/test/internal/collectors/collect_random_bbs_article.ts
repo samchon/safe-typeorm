@@ -33,9 +33,11 @@ export async function collect_random_bbs_article
         article,
         content: contents[contents.length - 1]
     });
-    collection.push(last);
-    await article.__mv_last.set(last);
 
+    collection.push(article);
+    collection.push(last);
+
+    await article.__mv_last.set(last);
     await article.contents.set(contents);
-    return collection.push(article);
+    return article;
 }

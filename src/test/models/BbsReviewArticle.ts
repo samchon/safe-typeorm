@@ -22,10 +22,4 @@ export class BbsReviewArticle extends safe.Model
 
     @orm.Column("varchar")
     public readonly product!: string;
-
-    @orm.Column("double")
-    public readonly price!: number;
-
-    @orm.Column("double")
-    public readonly score!: number;
 }

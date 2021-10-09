@@ -4,8 +4,8 @@ import safe from "../..";
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
 import { BbsArticleContentFilePair } from "./BbsArticleContentFilePair";
+import { BbsReviewArticleContent } from "./BbsReviewArticleContent";
 
-@orm.Index(["bbs_article_id", "created_at"])
 @orm.Entity()
 export class BbsArticleContent extends safe.Model
 {
@@ -19,7 +19,7 @@ export class BbsArticleContent extends safe.Model
         article => article.contents,
         "uuid",
         "bbs_article_id",
-        // INDEXED
+        { index: true }
     )
     public readonly article!: safe.Belongs.ManyToOne<BbsArticle, "uuid">;
 
@@ -35,6 +35,13 @@ export class BbsArticleContent extends safe.Model
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
+    @safe.Has.OneToOne
+    (
+        () => BbsReviewArticleContent,
+        rc => rc.base
+    )
+    public readonly reviewContent!: safe.Has.OneToOne<BbsReviewArticleContent>;
+
     @safe.Has.ManyToMany
     (
         () => AttachmentFile,

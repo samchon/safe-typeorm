@@ -105,6 +105,8 @@ export async function test_safe_query_builder(): Promise<void>
 ```
 
 ### App Join Builder
+![Safe Query Builder](https://raw.githubusercontent.com/samchon/safe-typeorm/master/assets/demonstrations/app-join-builder.gif)
+
 With the `AppJoinBuilder` class, you can implement application level joining very easily. 
 
 Also, grammer of the `AppJoinBuilder` is exactly same with the `JoinQueryBuilder`. Therefore, you can swap `JoinQueryBuilder` and `AppJoinBuilder` very simply without any cost. Thus, you can just select one of them suitable for your case.
@@ -112,13 +114,18 @@ Also, grammer of the `AppJoinBuilder` is exactly same with the `JoinQueryBuilder
 ```typescript
 export async function test_app_join_builder(): Promise<void>
 {
-    const builder: safe.AppJoinBuilder<BbsGroup> = safe
-        .createAppJoinBuilder(BbsGroup, group =>
+    const builder: safe.AppJoinBuilder<BbsReviewArticle> = safe
+        .createAppJoinBuilder(BbsReviewArticle, review =>
         {
-            group.join("articles", article =>
+            review.join("base", article =>
             {
+                article.join("group");
                 article.join("category");
-                article.join("contents").join("files");
+                article.join("contents", content =>
+                {
+                    content.join("reviewContent");
+                    content.join("files");
+                });
                 article.join("comments").join("files");
             });
         });

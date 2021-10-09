@@ -33,8 +33,9 @@ export async function test_json_select_builder(): Promise<void>
             }, tag => tag.value),
             contents: safe.createJsonSelectBuilder(BbsArticleContent, 
             {
+                files: safe.createJsonSelectBuilder(AttachmentFile, {}),
                 article: undefined, // INVERSE
-                files: safe.createJsonSelectBuilder(AttachmentFile, {})
+                reviewContent: undefined,
             }),
             __mv_last: undefined, // MATERIAL
             review: undefined, // SUB-TYPE

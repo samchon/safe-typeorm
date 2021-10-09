@@ -1,0 +1,31 @@
+import safe from "../../..";
+import { BbsArticle } from "../../models/BbsArticle";
+import { BbsGroup } from "../../models/BbsGroup";
+import { BbsReviewArticle } from "../../models/BbsReviewArticle";
+import { collect_random_bbs_article } from "../collectors/collect_random_bbs_article";
+import { collect_random_bbs_review_article } from "../collectors/collect_random_bbs_review_article";
+import { prepare_random_bbs_group } from "../preparations/prepare_random_bbs_group";
+
+export async function generate_random_bbs_review_articles(): Promise<BbsReviewArticle[]>
+{
+    const collection: safe.InsertCollection = new safe.InsertCollection();
+    const group: BbsGroup = prepare_random_bbs_group();
+    collection.push(group);
+
+    const articleList: BbsArticle[] = [];
+    const reviewList: BbsReviewArticle[] = [];
+
+    for (let i: number = 0; i < 10; ++i)
+    {
+        const article: BbsArticle = await collect_random_bbs_article(collection, group);
+        const review: BbsReviewArticle = await collect_random_bbs_review_article(collection, article);
+
+        articleList.push(article);
+        reviewList.push(review);
+    }
+    await group.articles.set(articleList);
+
+    await collection.execute();
+
+    return BbsReviewArticle.findByIds(reviewList.map(r => r.base.id));
+}

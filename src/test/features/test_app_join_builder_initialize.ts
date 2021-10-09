@@ -20,6 +20,7 @@ export async function test_app_join_builder_initialize(): Promise<void>
             category: "join",
             contents: safe.AppJoinBuilder.initialize(BbsArticleContent, {
                 article: undefined,
+                reviewContent: undefined,
                 files: "join"
             }),
             comments: safe.AppJoinBuilder.initialize(BbsComment, {
