@@ -8,12 +8,53 @@ import { Creator } from "../typings/Creator";
 import { Relationship } from "../typings/Relationship";
 import { SpecialFields } from "../typings/SpecialFields";
 
+/**
+ * DB level join query builder.
+ * 
+ * `JoinQueryBuilder` is a helper class who can perform the DB level join very
+ * conveniently and safely. 
+ * 
+ * When you are building up an `JoinQueryBuilder` instance from a specific ORM class, 
+ * the `JoinQueryBuilder` would analyze relationships of the target ORM class in the
+ * compilation level. Therefore, if you take any mistake, it would be detected in the
+ * IDE directly. Also, when you're finding neighbor entities to join, `JoinQueryBuilder`
+ * will hint you through the auto-completion.
+ * 
+ * ![Hints by the Auto Completion](https://raw.githubusercontent.com/samchon/safe-typeorm/master/assets/demonstrations/safe-query-builder.gif)
+ * 
+ * Therefore, you don't need to write any raw SQL join query of the TypeORM more. You
+ * don't need to suffer from the run-time join SQL error of the TypeORM more. Just 
+ * replace the join queries to use this `JoinQueryBuilder` instance and feel free from 
+ * those pains.
+ * 
+ * Also, if you want to perform the DB level join query not to specifying (a) specific
+ * record(s) (through where condition from the neighborhood entity) but to combine data, 
+ * I recommend you to use {@link AppJoinBuilder} or {@link JsonSelectBuilder} rather
+ * than this `JoinQueryBuilder`. It's the reason why the application level join 
+ * consumes much fewer resource and elapses much shorter time.
+ * 
+ * Type         | DB Join   | App Join
+ * :------------|----------:|----------:
+ * Records      | 2,258,000 | 165
+ * Elapsed Time | 8.07508   | 0.00262
+ * 
+ * @template Mine Target entity to perform the DB join
+ * @reference [stackoverflow/join-queries-vs-multiple-queries](https://stackoverflow.com/questions/1067016/join-queries-vs-multiple-queries)
+ * @author Jeongho Nam - https://github.com/samchon
+ */
 export class JoinQueryBuilder<Mine extends object>
 {
     private readonly stmt_: orm.SelectQueryBuilder<any>;
     private readonly mine_: Creator<Mine>;
     private readonly alias_: string;
 
+    /**
+     * Default Constructor.
+     * 
+     * @param stmt A {@link SelectQueryBuilder} instance for the *Mine* entity
+     * @param mine Target ORM class to perform the DB join
+     * @param alias Alias name specification, for the *Mine* entity, if required 
+     */
     public constructor(stmt: orm.SelectQueryBuilder<any>, mine: Creator<Mine>, alias?: string)
     {
         this.stmt_ = stmt;
@@ -26,12 +67,47 @@ export class JoinQueryBuilder<Mine extends object>
     /* -----------------------------------------------------------
         RAW JOIN
     ----------------------------------------------------------- */
+    /**
+     * Configure an inner join.
+     * 
+     * `JoinQueryBuilder.innerJoin()` is a method configuring a neighbor entity to 
+     * inner join, by specifying an accessor field of the *Mine* class, who've defined 
+     * the relationship decorator with the target neighbor entity class.
+     * 
+     * You also can configure another DB joining targets of the target neighbor entity 
+     * by writing *closure* function or calling additional methods to the returned
+     * `JoinQueryBuilder` instance for the target neighbor entity. Of course, such DB
+     * join definition chaining would also benefic from the compilation type checking
+     * and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public innerJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field, 
             closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
 
+    /**
+     * Configure an inner join with alias specification.
+     * 
+     * `JoinQueryBuilder.innerJoin()` is a method configuring a neighbor entity to 
+     * inner join, by specifying an accessor field of the *Mine* class, who've defined 
+     * the relationship decorator with the target neighbor entity class.
+     * 
+     * You also can configure another DB joining targets of the target neighbor entity 
+     * by writing *closure* function or calling additional methods to the returned
+     * `JoinQueryBuilder` instance for the target neighbor entity. Of course, such DB
+     * join definition chaining would also benefic from the compilation type checking
+     * and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param alias Alias name specification for the target entity
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public innerJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field, 
@@ -54,12 +130,47 @@ export class JoinQueryBuilder<Mine extends object>
         );
     }
 
+    /**
+     * Configure left join.
+     * 
+     * `JoinQueryBuilder.leftJoin()` is a method configuring a neighbor entity to 
+     * left join, by specifying an accessor field of the *Mine* class, who've defined 
+     * the relationship decorator with the target neighbor entity class.
+     * 
+     * You also can configure another DB joining targets of the target neighbor entity 
+     * by writing *closure* function or calling additional methods to the returned
+     * `JoinQueryBuilder` instance for the target neighbor entity. Of course, such DB
+     * join definition chaining would also benefic from the compilation type checking
+     * and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public leftJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field,
             closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
 
+    /**
+     * Configure left join with alias specification.
+     * 
+     * `JoinQueryBuilder.leftJoin()` is a method configuring a neighbor entity to 
+     * left join, by specifying an accessor field of the *Mine* class, who've defined 
+     * the relationship decorator with the target neighbor entity class.
+     * 
+     * You also can configure another DB joining targets of the target neighbor entity 
+     * by writing *closure* function or calling additional methods to the returned
+     * `JoinQueryBuilder` instance for the target neighbor entity. Of course, such DB
+     * join definition chaining would also benefic from the compilation type checking
+     * and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param alias Alias name specification for the target entity
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public leftJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field,
@@ -127,12 +238,57 @@ export class JoinQueryBuilder<Mine extends object>
     /* -----------------------------------------------------------
         ORM JOIN
     ----------------------------------------------------------- */
+    /**
+     * Configure inner join with mapping.
+     * 
+     * `JoinQueryBuilder.innerJoinAndSelect()` is a method configuring a neighbor entity 
+     * to inner join, by specifying an accessor field of the *Mine* class, who've 
+     * defined the relationship decorator with the target neighbor entity class.
+     * 
+     * Furthermore, the `JoinQueryBuilder.innerJoinAndSelect()` method memorizes the 
+     * target entity data to the relationship decorated accessor. However, if you're 
+     * using this method not to specifying (a) specific record(s) but to combining data, 
+     * I recommend you to utilize the {@link AppJsonBuilder} class instead. 
+     * 
+     * Anyway, you can configure another DB joining targets of the target neighbor 
+     * entity by writing *closure* function or calling additional methods to the 
+     * returned `JoinQueryBuilder` instance for the target neighbor entity. Of course, 
+     * such DB join definition chaining would also benefic from the compilation type 
+     * checking and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field,
             closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
 
+    /**
+     * Configure inner join with mapping and alias specification.
+     * 
+     * `JoinQueryBuilder.innerJoinAndSelect()` is a method configuring a neighbor entity 
+     * to inner join, by specifying an accessor field of the *Mine* class, who've 
+     * defined the relationship decorator with the target neighbor entity class.
+     * 
+     * Furthermore, the `JoinQueryBuilder.innerJoinAndSelect()` method memorizes the 
+     * target entity data to the relationship decorated accessor. However, if you're 
+     * using this method not to specifying (a) specific record(s) but to combining data, 
+     * I recommend you to utilize the {@link AppJsonBuilder} class instead. 
+     * 
+     * Anyway, you can configure another DB joining targets of the target neighbor 
+     * entity by writing *closure* function or calling additional methods to the 
+     * returned `JoinQueryBuilder` instance for the target neighbor entity. Of course, 
+     * such DB join definition chaining would also benefic from the compilation type 
+     * checking and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param alias Alias name specification for the target entity
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field,
@@ -155,12 +311,57 @@ export class JoinQueryBuilder<Mine extends object>
         );
     }
 
+    /**
+     * Configure left join with mapping.
+     * 
+     * `JoinQueryBuilder.leftJoinAndSelect()` is a method configuring a neighbor entity 
+     * to left join, by specifying an accessor field of the *Mine* class, who've 
+     * defined the relationship decorator with the target neighbor entity class.
+     * 
+     * Furthermore, the `JoinQueryBuilder.leftJoinAndSelect()` method memorizes the 
+     * target entity data to the relationship decorated accessor. However, if you're 
+     * using this method not to specifying (a) specific record(s) but to combining data, 
+     * I recommend you to utilize the {@link AppJsonBuilder} class instead. 
+     * 
+     * Anyway, you can configure another DB joining targets of the target neighbor 
+     * entity by writing *closure* function or calling additional methods to the 
+     * returned `JoinQueryBuilder` instance for the target neighbor entity. Of course, 
+     * such DB join definition chaining would also benefic from the compilation type 
+     * checking and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field,
             closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
         ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
 
+    /**
+     * Configure left join with mapping and alias specification.
+     * 
+     * `JoinQueryBuilder.leftJoinAndSelect()` is a method configuring a neighbor entity 
+     * to left join, by specifying an accessor field of the *Mine* class, who've 
+     * defined the relationship decorator with the target neighbor entity class.
+     * 
+     * Furthermore, the `JoinQueryBuilder.leftJoinAndSelect()` method memorizes the 
+     * target entity data to the relationship decorated accessor. However, if you're 
+     * using this method not to specifying (a) specific record(s) but to combining data, 
+     * I recommend you to utilize the {@link AppJsonBuilder} class instead. 
+     * 
+     * Anyway, you can configure another DB joining targets of the target neighbor 
+     * entity by writing *closure* function or calling additional methods to the 
+     * returned `JoinQueryBuilder` instance for the target neighbor entity. Of course, 
+     * such DB join definition chaining would also benefic from the compilation type 
+     * checking and auto-completion hints, too.
+     * 
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param alias Alias name specification for the target entity
+     * @param closure Closure function for additional DB joins from the target entity
+     * @return New `JoinQueryBuilder` instance for the target entity
+     */
     public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
         (
             field: Field,

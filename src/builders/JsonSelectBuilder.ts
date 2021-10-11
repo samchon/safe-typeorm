@@ -177,10 +177,10 @@ export namespace JsonSelectBuilder
                 ? Mine[P] extends Belongs.ManyToOne<Mine, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Output.RecursiveReference<Mine, P> | null
-                        : never // never be happend
+                        : never // never be happened
                 : Mine[P] extends Has.OneToOne<Mine, infer Ensure>
                     ? Ensure extends true
-                        ? never // never be happend
+                        ? never // never be happened
                         : Output.RecursiveReference<Mine, P> | null
                 : Mine[P] extends Has.OneToMany<Mine> 
                     ? Output.RecursiveArray<Mine, P>

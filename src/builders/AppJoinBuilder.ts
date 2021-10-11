@@ -19,30 +19,37 @@ import { app_join_has_one_to_one } from "./internal/app_join_has_one_to_one";
  * joining script, with the {@link HashMap}, by yourself. The joining would be done by 
  * this `AppJoinBuilder` automatically.
  * 
- * Furthermore, you can build such `AppJoinBuilder` safely and convenienty. When you 
- * are building up an `AppJoinbuilder` instance from a specific ORM class, the 
+ * Also, you can build such `AppJoinBuilder` safely and conveniently. When you are 
+ * building up an `AppJoinBuilder` instance from a specific ORM class, the 
  * `AppJoinBuilder` would analyze relationships of the target ORM class in the 
  * compilation level. Therefore, if you take any mistake, it would be detected in the
- * IDE directly. Also, when you're finding neighbor entities to join, `AppJoinBuilder` 
- * will hints you through the auto-completion.
+ * IDE directly. Besides, when you're finding neighbor entities to join, 
+ * `AppJoinBuilder` will hint you through the auto-completion.
  * 
  * ![Hints by the Auto Completion](https://raw.githubusercontent.com/samchon/safe-typeorm/master/assets/demonstrations/app-join-builder.gif)
- * At last, interface of the `AppJoinBuilder` is same with the {@link JoinQueryBuilder},
- * another helper class who can implement SQL join very conveniently and safely. 
- * Therefore, you can convert between `AppJoinBuilder` and {@link JoinQueryBuilder} in 
- * anytime. Feel free to selecting one of them and convert them whenver you want.
+ * 
+ * Furthermore, interface of the `AppJoinBuilder` is exactly same with the 
+ * {@link JoinQueryBuilder}, another helper class who can implement DB join very 
+ * conveniently and safely. Therefore, you can convert between `AppJoinBuilder` and 
+ * {@link JoinQueryBuilder} in anytime. Feel free to selecting one of them and convert 
+ * them whenever you want.
+ * 
+ * On the other hand, if you're performing this application level join only for the
+ * JSON data construction, {@link JsonSelectBuilder} would be much suitable. In
+ * {@link JsonSelectBuilder} also utilizes the application level joining and it even 
+ * automates the JSON interface definition and data conversion in the compilation level.
  * 
  * ## What Application Join is:
  * The application level join means that joining related records are done not by the
- * SQL join query, but through the manual application code using the {@link HashMap}
+ * DB join query, but through the manual application code using the {@link HashMap}
  * with their primary and foreign column values.
  * 
- * Comparing those SQL join query and application level joining, the application level
+ * Comparing those DB join query and application level joining, the application level
  * joining consumes much fewer resources and its elapsed time is also much shorter than
- * the SQL join query. Those differences grow up whenever the join relationship be 
- * more complicate.
+ * the DB join query. Those differences grow up whenever the join relationship be more 
+ * complicate.
  * 
- * Type         | SQL Query | App Join
+ * Type         | DB Join   | App Join
  * :------------|----------:|----------:
  * Records      | 2,258,000 | 165
  * Elapsed Time | 8.07508   | 0.00262
@@ -66,6 +73,8 @@ export class AppJoinBuilder<Mine extends object>
      */
     public constructor(mine: Creator<Mine>)
     {
+        new Array(3)
+
         this.mine_ = mine;
         this.children_ = new Map();
     }
@@ -81,14 +90,15 @@ export class AppJoinBuilder<Mine extends object>
      * entity by writing *closure* function or calling additional methods to the 
      * returned `AppJoinBuilder` instance for the target neighbor entity. Of course,
      * such app join definition chaining would also benefic from the compilation type
-     * checking and auto-completion hints.
+     * checking and auto-completion hints, too.
      * 
-     * If you've configured duplicated neighbor entity to join again, it will not affect to the app joining target. However, the *closure* function would be 
-     * affected. Also, calling additional methods to the returned `AppJoinBuilder`
-     * instance for the target entity would be affected, too.
+     * If you've configured duplicated neighbor entity to join again, it will not affect 
+     * to the app joining target. However, the *closure* function would be affected. 
+     * Also, calling additional methods to the returned `AppJoinBuilder` instance for 
+     * the target neighbor entity would be affected, too.
      * 
-     * @param field Field of *Mine* defined the relationship decorator with the target neighborhood entity
-     * @param closure Closure function if you want to perform another app join from the target entity
+     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param closure Closure function for additional app joins for the target entity
      * @returns Emplaced `AppJoinBuilder` instance for the target entity
      */
     public join<Field extends AppJoinBuilder.Key<Mine>>
@@ -125,7 +135,7 @@ export class AppJoinBuilder<Mine extends object>
      * mistake that omitting a specific neighbor entity.
      * 
      * If you take such mistake, there would not be any compile-time and run-time error
-     * would be occured. However, unintended SELECT statements would be repeatedly 
+     * would be occurred. However, unintended SELECT statements would be repeatedly 
      * queried whenever you access to the specific relationship decorated member what 
      * you've omitted.
      * 
@@ -134,7 +144,7 @@ export class AppJoinBuilder<Mine extends object>
      * 
      * ## Safe Initializer
      * To avoid such unintended mistake, you can use this factory method 
-     * `AppJoinBuilder.initailize` with the {@link AppJoinBuilder.Initialized} typed
+     * `AppJoinBuilder.initialize` with the {@link AppJoinBuilder.Initialized} typed
      * object instead of creating the `AppJoinBuilder` instance by yourself and 
      * configuring app joins through the {@link AppJoinBuilder.join} method. 
      * 
@@ -145,13 +155,13 @@ export class AppJoinBuilder<Mine extends object>
      * 
      *   - Assignable properties
      *     - `undefined`: do not join with the neighbor
-     *     - `"join"`: join with the neighbor, but no cascade app joinining
+     *     - `"join"`: join with the neighbor, but no cascade app joining more
      *     - `AppJoinBuilder<Neighbor> instance`: join with the neighbor and continue cascade app joining through a `AppJoinBuilder` instance
      *     - {@link AppJoinBuilder.Closure}: join with the neighbor and continue cascade app joining through a closure function
      * 
      * @param creator Target ORM class to perform the app joining
      * @param input 
-     * @returns 
+     * @returns Newly created `AppJoinBuilder` instance
      */
     public static initialize<Mine extends object>
         (
@@ -283,7 +293,7 @@ export class AppJoinBuilder<Mine extends object>
     /**
      * Test whether a specific neighbor entity has been configured.
      * 
-     * @param key Field of *Mine* defined the relationship decorator with the target neighbor entity
+     * @param key Field of *Mine* who've defined the relationship decorator to join
      * @returns Whether the specified neighbor entity has been configured or not
      */
     public has(key: SpecialFields<Mine, Relationship<any>>): boolean
@@ -294,8 +304,8 @@ export class AppJoinBuilder<Mine extends object>
     /**
      * Get an `AppJoinBuilder` instance of a specific neighbor entity.
      * 
-     * @param field Field of *Mine* defined the relationship decorator with the target neighbor entity 
-     * @returns 
+     * @param field Field of *Mine* who've defined the relationship decorator to join 
+     * @returns `AppJoinBuilder` instance of the neighbor entity or `undefined`
      */
     public get<Field extends AppJoinBuilder.Key<Mine>>
         (
@@ -316,7 +326,7 @@ export class AppJoinBuilder<Mine extends object>
      * instance by calling the {@link AppJoinBuilder.join} method, you can re-use the 
      * `AppJoinBuilder` instance through this `AppJoinBuilder.set()` method. 
      * 
-     * @param field Field of *Mine* defined the relationship decorator with the target neighbor entity
+     * @param field Field of *Mine* who've defined the relationship decorator to join
      * @param builder Pre-generated `AppJoinBuilder` instance to be assigned
      * @returns This `AppJoinBuilder` instance
      */
@@ -337,7 +347,7 @@ export class AppJoinBuilder<Mine extends object>
     /**
      * Remove a specific neighbor entity to be joined.
      * 
-     * @param field Field of *Mine* defined the relationship decorator with the target neighbor entity
+     * @param field Field of *Mine* who've defined the relationship decorator to join
      * @returns Whether the specified neighbor has been configured and succeeded to remove it or not
      */
     public delete<Field extends AppJoinBuilder.Key<Mine>>
