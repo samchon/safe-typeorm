@@ -3,7 +3,7 @@ import safe from "../..";
 
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
-import { BbsCommentFilePair } from "./BbsCommentFilePair";
+import { BbsCommentFile } from "./BbsCommentFile";
 
 @orm.Index(["bbs_article_id", "created_at"])
 @orm.Entity()
@@ -26,12 +26,12 @@ export class BbsComment extends safe.Model
     @safe.Has.ManyToMany
     (
         () => AttachmentFile,
-        () => BbsCommentFilePair,
+        () => BbsCommentFile,
         router => router.file,
         router => router.comment,
         (x, y) => x.router.sequence  - y.router.sequence
     )
-    public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsCommentFilePair>;
+    public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsCommentFile>;
 
     @orm.Index()
     @orm.Column("varchar")

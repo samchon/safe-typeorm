@@ -4,7 +4,7 @@ import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { AttachmentFile } from "../../models/AttachmentFile";
 import { BbsArticle } from "../../models/BbsArticle";
 import { BbsArticleContent } from "../../models/BbsArticleContent";
-import { BbsArticleContentFilePair } from "../../models/BbsArticleContentFilePair";
+import { BbsArticleContentFile } from "../../models/BbsArticleContentFile";
 import { prepare_random_attachment_file } from "../preparations/prepare_random_attachment_file";
 import { prepare_random_bbs_article_content } from "../preparations/prepare_random_bbs_article_content";
 
@@ -20,7 +20,7 @@ export async function collect_random_bbs_article_content
     const files: AttachmentFile[] = ArrayUtil.repeat(fileCount, index =>
     {
         const file: AttachmentFile = prepare_random_attachment_file("jpg");
-        const pair: BbsArticleContentFilePair = BbsArticleContentFilePair.initialize({
+        const pair: BbsArticleContentFile = BbsArticleContentFile.initialize({
             id: safe.DEFAULT,
             content,
             file,

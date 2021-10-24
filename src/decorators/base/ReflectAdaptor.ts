@@ -7,10 +7,10 @@ import { Has } from "../Has";
 export namespace ReflectAdaptor
 {
     export type Metadata<T extends object, Router extends object = any> = 
-        Belongs.ManyToOne.IMetadata<T> |
-        Belongs.OneToOne.IMetadata<T> |
-        Has.OneToOne.IMetadata<T> |
-        Has.OneToMany.IMetadata<T> |
+        Belongs.ManyToOne.IMetadata<T> | Belongs.External.ManyToOne.IMetadata<T> |
+        Belongs.OneToOne.IMetadata<T> | Belongs.External.OneToOne.IMetadata<T> |
+        Has.OneToOne.IMetadata<T> | Has.External.OneToOne.IMetadata<T> |
+        Has.OneToMany.IMetadata<T> | Has.External.OneToMany.IMetadata<T> |
         Has.ManyToMany.IMetadata<T, Router>;
 
     export function set<T extends object, Router extends object = any>

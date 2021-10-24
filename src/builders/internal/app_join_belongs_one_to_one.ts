@@ -8,9 +8,8 @@ import { get_records_by_where_in } from "./get_records_by_where_in";
 /**
  * @internal
  */
-export async function app_join_belongs_to
+export async function app_join_belongs_one_to_one
     (
-        mine: Creator<any>,
         child: IAppJoinChildTuple<any, Belongs.ManyToOne.IMetadata<any> | Belongs.OneToOne.IMetadata<any>>,
         data: any[], 
         field: any,
@@ -49,10 +48,5 @@ export async function app_join_belongs_to
         if (isOneToOne === true && child.metadata.inverse !== null)
             await reference[child.metadata.inverse].set(elem);
     }
-
-    // RECURSIVE
-    if (target === mine)
-        await app_join_belongs_to(mine, child, output, field);
-
     return output;
 }

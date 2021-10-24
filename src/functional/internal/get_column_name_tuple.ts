@@ -1,5 +1,6 @@
 import { Belongs } from "../../decorators";
-import { ReflectAdaptor } from "../../decorators/internal/ReflectAdaptor";
+import { ReflectAdaptor } from "../../decorators/base/ReflectAdaptor";
+
 import { Creator } from "../../typings/Creator";
 import { Field } from "../../typings/Field";
 import { SpecialFields } from "../../typings/SpecialFields";

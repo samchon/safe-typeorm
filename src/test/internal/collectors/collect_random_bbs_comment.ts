@@ -4,7 +4,7 @@ import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { AttachmentFile } from "../../models/AttachmentFile";
 import { BbsArticle } from "../../models/BbsArticle";
 import { BbsComment } from "../../models/BbsComment";
-import { BbsCommentFilePair } from "../../models/BbsCommentFilePair";
+import { BbsCommentFile } from "../../models/BbsCommentFile";
 import { prepare_random_attachment_file } from "../preparations/prepare_random_attachment_file";
 import { prepare_random_bbs_comment } from "../preparations/prepare_random_bbs_comment";
 
@@ -20,7 +20,7 @@ export async function collect_random_bbs_comment
     const files: AttachmentFile[] = ArrayUtil.repeat(fileCount, index =>
     {
         const file: AttachmentFile = prepare_random_attachment_file("jpg");
-        const pair: BbsCommentFilePair = BbsCommentFilePair.initialize({
+        const pair: BbsCommentFile = BbsCommentFile.initialize({
             id: safe.DEFAULT,
             comment,
             file,

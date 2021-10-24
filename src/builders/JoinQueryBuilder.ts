@@ -1,7 +1,8 @@
 import * as orm from "typeorm";
+import { ColumnAccessor } from "../decorators/base/ColumnAccessor";
+import { ReflectAdaptor } from "../decorators/base/ReflectAdaptor";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
-import { ReflectAdaptor } from "../decorators/internal/ReflectAdaptor";
 import { ITableInfo } from "../functional/internal/ITableInfo";
 
 import { Creator } from "../typings/Creator";
@@ -84,11 +85,11 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public innerJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public innerJoin<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field, 
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
     /**
      * Configure an inner join with alias specification.
@@ -108,19 +109,19 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public innerJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public innerJoin<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field, 
             alias: string,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
-    public innerJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public innerJoin<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field, 
-            alias?: string | ((builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void),
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>
+            alias?: string | ((builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void),
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>
     {
         return this._Join_atomic
         (
@@ -147,11 +148,11 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public leftJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public leftJoin<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
     /**
      * Configure left join with alias specification.
@@ -171,19 +172,19 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public leftJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public leftJoin<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
             alias: string,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
-    public leftJoin<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public leftJoin<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
-            alias?: string | ((builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void),
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>
+            alias?: string | ((builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void),
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>
     {
         return this._Join_atomic
         (
@@ -193,13 +194,13 @@ export class JoinQueryBuilder<Mine extends object>
         );
     }
 
-    private _Join_atomic<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    private _Join_atomic<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
-            joiner: (target: Creator<Relationship.Atomic.TargetType<Mine, Field>>, alias: string, condition: string) => orm.SelectQueryBuilder<any>,
+            joiner: (target: Creator<Relationship.Joinable.TargetType<Mine, Field>>, alias: string, condition: string) => orm.SelectQueryBuilder<any>,
             field: Field,
             alias: string | undefined,
-            closure: ((builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void) | undefined
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>
+            closure: ((builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void) | undefined
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>
     {
         // PREPRAE ASSET
         const asset: IAsset<Mine, Field> = prepare_asset(this.mine_, field, alias);
@@ -260,11 +261,11 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
     /**
      * Configure inner join with mapping and alias specification.
@@ -289,19 +290,19 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
             alias: string,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
-    public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public innerJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
-            alias?: string | ((builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void),
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>
+            alias?: string | ((builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void),
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>
     {
         return this._Join_and_select
         (
@@ -333,11 +334,11 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
     /**
      * Configure left join with mapping and alias specification.
@@ -362,19 +363,19 @@ export class JoinQueryBuilder<Mine extends object>
      * @param closure Closure function for additional DB joins from the target entity
      * @return New `JoinQueryBuilder` instance for the target entity
      */
-    public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
             alias: string,
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>;
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
 
-    public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    public leftJoinAndSelect<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             field: Field,
-            alias?: string | ((builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void),
-            closure?: (builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void
-        ): JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>
+            alias?: string | ((builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void),
+            closure?: (builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void
+        ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>
     {
         return this._Join_and_select
         (
@@ -384,19 +385,21 @@ export class JoinQueryBuilder<Mine extends object>
         );
     }
 
-    private _Join_and_select<Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+    private _Join_and_select<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
         (
             joiner: (field: string, alias: string) => orm.SelectQueryBuilder<any>,
             field: Field,
             alias: string | undefined,
-            closure: ((builder: JoinQueryBuilder<Relationship.Atomic.TargetType<Mine, Field>>) => void) | undefined
+            closure: ((builder: JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>) => void) | undefined
         )
     {
         // PREPARE ASSET
         const asset: IAsset<Mine, Field> = prepare_asset(this.mine_, field, alias);
-        const index: string = (asset.belongs === true)
-            ? Belongs.getGetterField<any>(field)
-            : Has.getGetterField(field);
+        const index: string = ColumnAccessor.getter
+        (
+            asset.belongs ? "belongs" : "has", 
+            field
+        );
 
         // DO JOIN
         joiner(`${this.alias_}.${index}`, asset.alias);
@@ -411,28 +414,28 @@ export class JoinQueryBuilder<Mine extends object>
 ----------------------------------------------------------- */
 type IAsset<
         Mine extends object, 
-        Field extends SpecialFields<Mine, Relationship.Atomic<any>>> =
+        Field extends SpecialFields<Mine, Relationship.Joinable<any>>> =
 {
     belongs: true;
     alias: string;
-    metadata: Belongs.ManyToOne.IMetadata<Relationship.Atomic.TargetType<Mine, Field>>;
+    metadata: Belongs.ManyToOne.IMetadata<Relationship.Joinable.TargetType<Mine, Field>>;
 } | 
 {
     belongs: false;
     alias: string;
-    metadata: Has.OneToMany.IMetadata<Relationship.Atomic.TargetType<Mine, Field>>;
+    metadata: Has.OneToMany.IMetadata<Relationship.Joinable.TargetType<Mine, Field>>;
 };
 
 function prepare_asset<
         Mine extends object, 
-        Field extends SpecialFields<Mine, Relationship.Atomic<any>>>
+        Field extends SpecialFields<Mine, Relationship.Joinable<any>>>
     (
         mine: Creator<Mine>,
         field: Field,
         alias: string | undefined
     ): IAsset<Mine, Field>
 {
-    const metadata: ReflectAdaptor.Metadata<Relationship.Atomic.TargetType<Mine, Field>> = ReflectAdaptor.get(mine.prototype, field)!;
+    const metadata: ReflectAdaptor.Metadata<Relationship.Joinable.TargetType<Mine, Field>> = ReflectAdaptor.get(mine.prototype, field)!;
     const belongs: boolean = metadata.type.indexOf("Belongs.") === 0;
 
     // DETERMINE THE ALIAS
@@ -442,7 +445,7 @@ function prepare_asset<
     // RETURNS
     return { 
         belongs: belongs as true, 
-        metadata: metadata as Belongs.ManyToOne.IMetadata<Relationship.Atomic.TargetType<Mine, Field>>,
+        metadata: metadata as Belongs.ManyToOne.IMetadata<Relationship.Joinable.TargetType<Mine, Field>>,
         alias, 
     };
 }

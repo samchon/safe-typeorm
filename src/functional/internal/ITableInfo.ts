@@ -24,7 +24,7 @@ export namespace ITableInfo
 
         const metadata = orm.getManager().getRepository(creator).metadata;
         if (metadata.primaryColumns.length !== 1)
-            throw new DomainError("Error on ITableInfo.get(): number of primary columns is not one.");
+            throw new DomainError(`Error on ITableInfo.get(): number of primary columns of "${creator.name}" table is not one.`);
 
         const primary = metadata.primaryColumns[0];
 

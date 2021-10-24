@@ -5,7 +5,7 @@ import { BbsArticle } from "./BbsArticle";
 import { BbsArticleContent } from "./BbsArticleContent";
 
 @orm.Entity()
-export class __MvBbsArticleLastContentPair extends safe.Model
+export class __MvBbsArticleLastContent extends safe.Model
 {
     /* -----------------------------------------------------------
         COLUMNS

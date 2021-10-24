@@ -6,7 +6,7 @@ import { BbsComment } from "./BbsComment";
 
 @orm.Unique(["bbs_comment_id", "attachment_file_id"])
 @orm.Entity()
-export class BbsCommentFilePair extends AttachmentFilePairBase
+export class BbsCommentFile extends AttachmentFilePairBase
 {
     /* -----------------------------------------------------------
         COLUMNS

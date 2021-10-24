@@ -6,7 +6,7 @@ import { BbsArticleContent } from "./BbsArticleContent";
 
 @orm.Unique(["bbs_article_content_id", "attachment_file_id"])
 @orm.Entity()
-export class BbsArticleContentFilePair extends AttachmentFilePairBase
+export class BbsArticleContentFile extends AttachmentFilePairBase
 {
     /* -----------------------------------------------------------
         COLUMNS

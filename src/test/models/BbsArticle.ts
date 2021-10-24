@@ -2,15 +2,14 @@ import * as orm from "typeorm";
 import safe from "../..";
 import { BbsAnswerArticle } from "./BbsAnswerArticle";
 
+import { __MvBbsArticleLastContent } from "./__MvBbsArticleLastContent";
 import { BbsArticleContent } from "./BbsArticleContent";
 import { BbsArticleTag } from "./BbsArticleTag";
 import { BbsCategory } from "./BbsCategory";
 import { BbsComment } from "./BbsComment";
-
 import { BbsGroup } from "./BbsGroup";
 import { BbsQuestionArticle } from "./BbsQuestionArticle";
 import { BbsReviewArticle } from "./BbsReviewArticle";
-import { __MvBbsArticleLastContentPair } from "./__MvBbsArticleLastContentPair";
 
 @orm.Index(["bbs_group_id", "bbs_category_id", "created_at"])
 @orm.Entity()
@@ -108,8 +107,8 @@ export class BbsArticle extends safe.Model
 
     @safe.Has.OneToOne
     (
-        () => __MvBbsArticleLastContentPair,
+        () => __MvBbsArticleLastContent,
         pair => pair.article,
     )
-    public readonly __mv_last!: safe.Has.OneToOne<__MvBbsArticleLastContentPair, true>;
+    public readonly __mv_last!: safe.Has.OneToOne<__MvBbsArticleLastContent, true>;
 }

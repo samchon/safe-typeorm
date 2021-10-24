@@ -1,12 +1,14 @@
 import { randint } from "tstl";
 import safe from "../../..";
+
+import { __MvBbsArticleLastContent } from "../../models/__MvBbsArticleLastContent";
 import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { BbsArticle } from "../../models/BbsArticle";
 import { BbsArticleContent } from "../../models/BbsArticleContent";
 import { BbsGroup } from "../../models/BbsGroup";
+
 import { collect_random_bbs_article_content } from "./collect_random_bbs_article_content";
 import { prepare_random_bbs_article } from "../preparations/prepare_random_bbs_article";
-import { __MvBbsArticleLastContentPair } from "../../models/__MvBbsArticleLastContentPair";
 
 export async function collect_random_bbs_article
     (
@@ -29,7 +31,7 @@ export async function collect_random_bbs_article
             fileCount()
         )
     );
-    const last: __MvBbsArticleLastContentPair = __MvBbsArticleLastContentPair.initialize({
+    const last: __MvBbsArticleLastContent = __MvBbsArticleLastContent.initialize({
         article,
         content: contents[contents.length - 1]
     });

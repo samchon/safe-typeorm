@@ -1,9 +1,9 @@
 import { v4 } from "uuid";
 
+import { BelongsAccessorBase } from "../decorators/base/BelongsAccessorBase";
 import { DEFAULT } from "../DEFAULT";
 import { ITableInfo } from "./internal/ITableInfo";
 
-import { Belongs } from "../decorators/Belongs";
 import { Creator } from "../typings/Creator";
 import { Initialized } from "../typings/Initialized";
 
@@ -36,7 +36,7 @@ export function initialize<T extends object>
             continue;
 
         const type = typeof value;
-        if (output[key] instanceof Belongs.ManyToOne.Accessor)
+        if (output[key] instanceof BelongsAccessorBase)
         {
             if (value instanceof Object)
                 output[key].set(value);

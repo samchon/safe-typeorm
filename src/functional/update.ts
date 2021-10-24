@@ -1,9 +1,9 @@
 import * as orm from "typeorm";
 import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
-import { Has } from "../decorators/Has";
 
 import { Creator } from "../typings";
 import { ITableInfo } from "./internal/ITableInfo";
+import { get_primary_field } from "../decorators/base/get_primary_field";
 
 const DICT: WeakMap<Creator<object>, ColumnMetadata[]> = new WeakMap();
 
@@ -48,7 +48,7 @@ async function _Update<T extends object>
     }
 
     // DO UPDATE
-    const field: string = Has.getPrimaryField(`${creator.name}.update`, creator);
+    const field: string = get_primary_field(`${creator.name}.update`, creator);
     await manager
         .getRepository(creator)
         .update((record as any)[field], props);

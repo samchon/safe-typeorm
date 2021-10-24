@@ -1,5 +1,6 @@
 import { AppJoinBuilder } from "../AppJoinBuilder";
-import { ReflectAdaptor } from "../../decorators/internal/ReflectAdaptor";
+import { ReflectAdaptor } from "../../decorators/base/ReflectAdaptor";
+
 import { Relationship } from "../../typings/Relationship";
 
 /**

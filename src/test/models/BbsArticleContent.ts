@@ -3,7 +3,7 @@ import safe from "../..";
 
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
-import { BbsArticleContentFilePair } from "./BbsArticleContentFilePair";
+import { BbsArticleContentFile } from "./BbsArticleContentFile";
 import { BbsReviewArticleContent } from "./BbsReviewArticleContent";
 
 @orm.Entity()
@@ -45,10 +45,10 @@ export class BbsArticleContent extends safe.Model
     @safe.Has.ManyToMany
     (
         () => AttachmentFile,
-        () => BbsArticleContentFilePair,
+        () => BbsArticleContentFile,
         router => router.file,
         router => router.content,
         (x, y) => x.router.sequence - y.router.sequence
     )
-    public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsArticleContentFilePair>;
+    public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsArticleContentFile>;
 }

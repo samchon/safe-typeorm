@@ -1,12 +1,13 @@
-import { ReflectAdaptor } from "../decorators/internal/ReflectAdaptor";
-
 import { Creator } from "../typings/Creator";
 import { OmitNever } from "../typings/OmitNever";
 import { Relationship } from "../typings/Relationship";
 import { SpecialFields } from "../typings/SpecialFields";
 
+import { ReflectAdaptor } from "../decorators/base/ReflectAdaptor";
+
 import { IAppJoinChildTuple } from "./internal/IAppJoinChildTuple";
-import { app_join_belongs_to } from "./internal/app_join_belongs_to";
+import { app_join_belongs_many_to_one } from "./internal/app_join_belongs_many_to_one";
+import { app_join_belongs_one_to_one } from "./internal/app_join_belongs_one_to_one";
 import { app_join_has_many_to_many } from "./internal/app_join_has_many_to_many";
 import { app_join_has_one_to_many } from "./internal/app_join_has_one_to_many";
 import { app_join_has_one_to_one } from "./internal/app_join_has_one_to_one";
@@ -145,8 +146,8 @@ export class AppJoinBuilder<Mine extends object>
      * ## Safe Initializer
      * To avoid such unintended mistake, you can use this factory method 
      * `AppJoinBuilder.initialize` with the {@link AppJoinBuilder.Initialized} typed
-     * object instead of creating the `AppJoinBuilder` instance by yourself and 
-     * configuring app joins through the {@link AppJoinBuilder.join} method. 
+     * object, instead of creating the `AppJoinBuilder` instance by yourself and 
+     * configuring manual app joins through the {@link AppJoinBuilder.join} method. 
      * 
      * The {@link AppJoinBuilder.Initialized} type enforces you to list up all of the 
      * relationship decorated fields. Even if you don't want to join with a specific 
@@ -160,7 +161,7 @@ export class AppJoinBuilder<Mine extends object>
      *     - {@link AppJoinBuilder.Closure}: join with the neighbor and continue cascade app joining through a closure function
      * 
      * @param creator Target ORM class to perform the app joining
-     * @param input 
+     * @param input List of relationship decorated fields with joining plan
      * @returns Newly created `AppJoinBuilder` instance
      */
     public static initialize<Mine extends object>
@@ -195,7 +196,7 @@ export class AppJoinBuilder<Mine extends object>
      * a linked entity record after the execution and call this execution method again, 
      * you may lose the modified property values.
      * 
-     * @param data Target record (or list of records) to be joined
+     * @param data Target record(s) to be joined
      */
     public async execute(data: Mine | Mine[]): Promise<void>
     {
@@ -210,8 +211,10 @@ export class AppJoinBuilder<Mine extends object>
         {
             // JOIN WITH RELATED ENTITIES
             let output: Relationship.TargetType<Mine, any>[];
-            if (child.metadata.type === "Belongs.ManyToOne" || child.metadata.type === "Belongs.OneToOne")
-                output = await app_join_belongs_to(this.mine_, child as any, data, field);
+            if (child.metadata.type === "Belongs.ManyToOne")
+                output = await app_join_belongs_many_to_one(this.mine_, child as any, data, field);
+            else if (child.metadata.type === "Belongs.OneToOne")
+                output = await app_join_belongs_one_to_one(child as any, data, field);
             else if (child.metadata.type === "Has.OneToOne")
                 output = await app_join_has_one_to_one(this.mine_, child as any, data, field);
             else if (child.metadata.type === "Has.OneToMany")
@@ -384,7 +387,7 @@ export namespace AppJoinBuilder
      */
     export type Initialized<Mine extends object> = OmitNever<
     {
-        [P in keyof Mine]: Mine[P] extends Relationship<infer Target> 
+        [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
             ? (AppJoinBuilder<Target> | undefined | Closure<Target> | "join") 
             : never;
     }>;

@@ -1,19 +1,27 @@
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
-import { Same } from "../typings/Same";
 
 import { Creator } from "../typings/Creator";
 import { OmitNever } from "../typings/OmitNever";
 import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
 import { Relationship } from "../typings/Relationship";
-
-import { toPrimitive } from "../functional/toPrimitive";
+import { Same } from "../typings/Same";
 
 import { AppJoinBuilder } from "./AppJoinBuilder";
 import { ArrayUtil } from "../utils/ArrayUtil";
+import { BelongsAccessorBase } from "../decorators/base/BelongsAccessorBase";
 import { DEFAULT } from "../DEFAULT";
 import { Primitive } from "../typings/Primitive";
+import { toPrimitive } from "../functional/toPrimitive";
 
+/**
+ * JSON Select Builder.
+ * 
+ * @template Mine Target entity to convert to JSON data
+ * @template InputT Type of input listing up the joining plans
+ * @template Destination Output JSON type. Default is {@link JsonSelectBuilder.Output}
+ * @author Jeongho Nam - https://github.com/samchon
+ */
 export class JsonSelectBuilder<
         Mine extends object, 
         InputT extends JsonSelectBuilder.Input<Mine>,
@@ -28,7 +36,21 @@ export class JsonSelectBuilder<
     /* -----------------------------------------------------------
         CONSTRUCTORS
     ----------------------------------------------------------- */
+    /**
+     * Default Constructor.
+     * 
+     * @param mine Target ORM class to perform the DB join
+     * @param input List of relationship decorated fields with joining plan
+     */
     public constructor(mine: Creator<Mine>, input: InputT);
+
+    /**
+     * Mapper Constructor.
+     * 
+     * @param mine Target ORM class to perform the DB join
+     * @param input List of relationship decorated fields with joining plan
+     * @param mapper Map function to convert output type
+     */
     public constructor
         (
             mine: Creator<Mine>, 
@@ -53,6 +75,11 @@ export class JsonSelectBuilder<
                 this.joiner_.set(key as any, value.joiner_);
     }
 
+    /**
+     * Execute app join.
+     * 
+     * @param data Target record(s) to be joined
+     */
     public async join(data: Mine | Mine[]): Promise<void>
     {
         await this.joiner_.execute(data as Mine[]);
@@ -61,12 +88,24 @@ export class JsonSelectBuilder<
     /* -----------------------------------------------------------
         ACCESSORS
     ----------------------------------------------------------- */
+    /**
+     * 
+     * @param record 
+     * @param skipAppJoin 
+     * @returns 
+     */
     public async getOne(record: Mine, skipAppJoin: boolean = false): Promise<Destination>
     {
         const data: Destination[] = await this.getMany([ record ], skipAppJoin);
         return data[0];
     }
 
+    /**
+     * 
+     * @param records 
+     * @param skipAppJoin 
+     * @returns 
+     */
     public async getMany(records: Mine[], skipAppJoin: boolean = false): Promise<Destination[]>
     {
         if (skipAppJoin === false)
@@ -105,7 +144,7 @@ export class JsonSelectBuilder<
             else
             {
                 let data = (record as any)[key];
-                if (data instanceof Belongs.ManyToOne.Accessor)
+                if (data instanceof BelongsAccessorBase)
                     data = data.id;
                 
                 if (plan === DEFAULT)
@@ -143,6 +182,9 @@ export class JsonSelectBuilder<
 
 export namespace JsonSelectBuilder
 {
+    /**
+     * 
+     */
     export type Input<Mine extends object> = OmitNever<
     {
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
@@ -160,6 +202,9 @@ export namespace JsonSelectBuilder
             : never
     }>;
 
+    /**
+     * 
+     */
     export type Output<Mine extends object, InputT extends object> = Primitive<Mine> & OmitNever<
     {
         [P in keyof (Mine|InputT)]
@@ -197,6 +242,9 @@ export namespace JsonSelectBuilder
     }>;
     export namespace Output
     {
+        /**
+         * 
+         */
         export type RecursiveReference<
                 Mine extends object,
                 Key extends keyof Mine>
@@ -205,6 +253,9 @@ export namespace JsonSelectBuilder
             [P in Key]: RecursiveReference<Mine, Key> | null;
         };
 
+        /**
+         * 
+         */
         export type RecursiveArray<
                 Mine extends object, 
                 Key extends keyof Mine>
@@ -213,6 +264,9 @@ export namespace JsonSelectBuilder
             [P in Key]: RecursiveArray<Mine, Key>[];
         };
 
+        /**
+         * 
+         */
         export interface Mapper<Mine extends object, InputT extends Input<Mine>, Destination> 
         {
             (
