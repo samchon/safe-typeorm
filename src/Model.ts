@@ -11,6 +11,7 @@ import { Primitive } from "./typings/Primitive";
 import { SpecialFields } from "./typings/SpecialFields";
 
 import { createJoinQueryBuilder } from "./functional/createJoinQueryBuilder";
+import { findRepository } from "./functional/findRepository";
 import { getColumn } from "./functional/getColumn";
 import { getWhereArguments } from "./functional/getWhereArguments";
 import { initialize } from "./functional/initialize";
@@ -54,9 +55,9 @@ export abstract class Model extends orm.BaseEntity
         return initialize(this, input);
     }
 
-    public async insert(manager: orm.EntityManager): Promise<void>
+    public async insert(manager?: orm.EntityManager): Promise<void>
     {
-        await insert(manager || orm.getManager(), this);
+        await insert(manager || findRepository(this.constructor as any).manager, this);
     }
 
     /**
@@ -78,7 +79,7 @@ export abstract class Model extends orm.BaseEntity
      */
     public async update(manager?: orm.EntityManager): Promise<void>
     {
-        await update(manager || orm.getManager(), this);
+        await update(manager || findRepository(this.constructor as any).manager, this);
     }
 
     /* -----------------------------------------------------------

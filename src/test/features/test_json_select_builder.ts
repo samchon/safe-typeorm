@@ -1,12 +1,12 @@
 import { equal } from "tstl/ranges/algorithm";
 
 import safe from "../..";
-import { AttachmentFile } from "../models/AttachmentFile";
-import { BbsArticle } from "../models/BbsArticle";
-import { BbsArticleContent } from "../models/BbsArticleContent";
-import { BbsArticleTag } from "../models/BbsArticleTag";
-import { BbsCategory } from "../models/BbsCategory";
-import { BbsGroup } from "../models/BbsGroup";
+import { AttachmentFile } from "../models/bbs/AttachmentFile";
+import { BbsArticle } from "../models/bbs/BbsArticle";
+import { BbsArticleContent } from "../models/bbs/BbsArticleContent";
+import { BbsArticleTag } from "../models/bbs/BbsArticleTag";
+import { BbsCategory } from "../models/bbs/BbsCategory";
+import { BbsGroup } from "../models/bbs/BbsGroup";
 
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
@@ -42,6 +42,7 @@ export async function test_json_select_builder(): Promise<void>
             question: undefined, // SUB-TYPE
             answer: undefined, // SUB-TYPE
             comments: undefined, // ONE-TO-MAY
+            scraps: undefined // FROM EXTERNAL DB
         })
     });
 

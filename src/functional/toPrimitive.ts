@@ -5,6 +5,7 @@ import { EncryptedColumn } from "../decorators/EncryptedColumn";
 import { Creator } from "../typings/Creator";
 import { OmitNever } from "../typings/OmitNever";
 import { Primitive } from "../typings/Primitive";
+import { findRepository } from "./findRepository";
 
 export function toPrimitive<T extends object>(obj: T): Primitive<T>;
 export function toPrimitive<T extends object, OmitField extends keyof Primitive<T>>
@@ -15,7 +16,7 @@ export function toPrimitive(obj: any, ...omitFields: string[]): Record<string, a
     let dict: Set<string> | undefined = fk_dicts.get(obj.constructor);
     if (dict === undefined)
     {
-        const metadata: orm.EntityMetadata = orm.getRepository(obj.constructor).metadata;
+        const metadata: orm.EntityMetadata = findRepository(obj.constructor).metadata;
         dict = new Set();
 
         for (const foreign of metadata.foreignKeys)

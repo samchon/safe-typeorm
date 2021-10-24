@@ -1,28 +1,39 @@
-import * as orm from "typeorm";
 import { MutableSingleton } from "tstl/thread/MutableSingleton";
+import { Singleton } from "tstl/thread/Singleton";
 
 import { Comparator } from "../../typings/Comparator";
 import { Creator } from "../../typings/Creator";
+import { findRepository } from "../../functional/findRepository";
 
 import { BelongsExternalManyToOne } from "./BelongsExternalManyToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
+import { ColumnAccessor } from "../base/ColumnAccessor";
+import { ReflectAdaptor } from "../base/ReflectAdaptor";
 import { get_primary_field } from "../base/get_primary_field";
 
 export type HasExternalOneToMany<Target extends object> 
     = HasExternalOneToMany.Accessor<Target>;
 
-export function OneToMany<Mine extends object, Target extends object>
+export function HasExternalOneToMany<Mine extends object, Target extends object>
     (
         targetGen: Creator.Generator<Target>,
         inverse: (input: Target) => BelongsExternalManyToOne<Mine, any>,
-        comp?: Comparator<Target>
+        comparator?: Comparator<Target>
     ): PropertyDecorator
 {
     return function ($class, $property)
     {
-        const label: string = HasExternalOneToMany.getHelperField($property as string);
-        const primaryField: string = get_primary_field("Has.External.OneToMany", $class as any);
+        const label: string = ColumnAccessor.helper("has", $property as string);
         const inverseField: string = ClosureProxy.steal(inverse);
+        const primaryField = new Singleton(() => get_primary_field("Has.External.OneToMany", $class as any));
+
+        const metadata: HasExternalOneToMany.IMetadata<Target> = {
+            type: "Has.External.OneToMany",
+            target: targetGen,
+            inverse: inverseField,
+            comparator
+        };
+        ReflectAdaptor.set($class, $property, metadata);
 
         Object.defineProperty($class, $property,
         {
@@ -35,7 +46,7 @@ export function OneToMany<Mine extends object, Target extends object>
                         primaryField, 
                         targetGen(), 
                         inverseField,
-                        comp
+                        comparator
                     );
                 return this[label];
             }
@@ -63,7 +74,7 @@ export namespace HasExternalOneToMany
         private constructor
             (
                 private readonly mine_: any,
-                private readonly primary_field_: string,
+                private readonly primary_field_: Singleton<string>,
                 private readonly target_: Creator<Target>,
                 private readonly inverse_field_: string,
                 private readonly comp_: Comparator<Target> | undefined
@@ -71,9 +82,9 @@ export namespace HasExternalOneToMany
         {
             this.singleton_ = new MutableSingleton(async () => 
             {
-                const data: Target[] = await orm
-                    .getRepository(this.target_)
-                    .find({ [this.inverse_field_]: this.mine_[this.primary_field_] });
+                const pk:  string = this.primary_field_.get();
+                const data: Target[] = await findRepository(this.target_).find({ [this.inverse_field_]: this.mine_[pk] });
+
                 for (const elem of data)
                     await (elem as any)[this.inverse_field_].set(this.mine_);
 
@@ -89,7 +100,7 @@ export namespace HasExternalOneToMany
         public static create<Target extends object>
             (
                 mine: any, 
-                primaryField: string,
+                primaryField: Singleton<string>,
                 target: Creator<Target>, 
                 inverseField: string,
                 comp: Comparator<Target> | undefined,
@@ -109,21 +120,5 @@ export namespace HasExternalOneToMany
                 objs = objs.sort(this.comp_);
             await this.singleton_.set(objs);
         }
-    }
-
-    /**
-     * @internal
-     */
-    export function getGetterField(field: string): string
-    {
-        return `__m_has_external_one_to_many_${field}_getter__`;
-    }
-    
-    /**
-     * @internal
-     */
-    export function getHelperField(field: string): string
-    {
-        return `__m_has_external_one_to_many_${field}_helper__`;
     }
 }

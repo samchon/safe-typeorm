@@ -1,5 +1,5 @@
 import safe from "../../..";
-import { BbsCategory } from "../../models/BbsCategory";
+import { BbsCategory } from "../../models/bbs/BbsCategory";
 
 import { collect_random_hierarchical_category } from "../collectors/collect_random_hierarchical_category";
 

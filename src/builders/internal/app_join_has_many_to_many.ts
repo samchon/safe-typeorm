@@ -4,6 +4,7 @@ import { Pair } from "tstl/utility/Pair";
 import { Creator } from "../../typings/Creator";
 import { Has } from "../../decorators/Has";
 import { ITableInfo } from "../../functional/internal/ITableInfo";
+import { findRepository } from "../../functional/findRepository";
 import { getWhereArguments } from "../../functional/getWhereArguments";
 
 import { AppJoinBuilder } from "../AppJoinBuilder";
@@ -35,9 +36,7 @@ export async function app_join_has_many_to_many
 
     // LOAD TARGET DATA
     const router: Creator<any> = child.metadata.router();
-    const stmt: orm.SelectQueryBuilder<any> = orm
-        .getRepository(router)
-        .createQueryBuilder();
+    const stmt: orm.SelectQueryBuilder<any> = findRepository(router).createQueryBuilder();
     new JoinQueryBuilder(stmt, router).innerJoinAndSelect(child.metadata.target_inverse);
 
     const routeList: any[] = [];

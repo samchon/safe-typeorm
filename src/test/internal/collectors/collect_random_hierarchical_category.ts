@@ -1,5 +1,5 @@
 import safe from "../../..";
-import { BbsCategory } from "../../models/BbsCategory";
+import { BbsCategory } from "../../models/bbs/BbsCategory";
 
 import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { RandomGenerator } from "../procedures/RandomGenerator";

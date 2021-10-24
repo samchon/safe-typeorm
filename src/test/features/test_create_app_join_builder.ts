@@ -1,5 +1,5 @@
 import safe from "../..";
-import { BbsReviewArticle } from "../models/BbsReviewArticle";
+import { BbsReviewArticle } from "../models/bbs/BbsReviewArticle";
 
 import { generate_random_bbs_review_articles as generate_random_reviews } from "../internal/generators/generate_random_bbs_review_articles";
 import { iterate_bbs_review_article } from "../internal/iterators/iterate_bbs_review_article";

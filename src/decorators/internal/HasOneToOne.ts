@@ -2,9 +2,11 @@ import * as orm from "typeorm";
 import { DomainError } from "tstl/exception/DomainError";
 import { SharedLock } from "tstl/thread/SharedLock";
 import { SharedMutex } from "tstl/thread/SharedMutex";
+import { Singleton } from "tstl/thread/Singleton";
 import { UniqueLock } from "tstl/thread/UniqueLock";
 
 import { Creator } from "../../typings/Creator";
+import { findRepository } from "../../functional/findRepository";
 
 import { BelongsOneToOne } from "./BelongsOneToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
@@ -44,6 +46,7 @@ export function HasOneToOne<
 
         const label: string = ColumnAccessor.helper("has", $property as string);
         const getter: string = ColumnAccessor.getter("has", $property as string);
+        const primaryField = new Singleton(() => get_primary_field("Has.OneToOne", $class as any));
         const inverseGetter: string = ColumnAccessor.getter("belongs", inverseField);
 
         orm.OneToOne(targetGen, inverseGetter, { lazy: true })($class, getter);
@@ -57,7 +60,7 @@ export function HasOneToOne<
                     (
                         this, 
                         $property as string,
-                        get_primary_field("Has.OneToOne", targetGen()),
+                        primaryField,
                         getter,
                         targetGen(),
                         inverseField,
@@ -84,23 +87,19 @@ export namespace HasOneToOne
 
     export class Accessor<Target extends object, Output extends Target | null>
     {
-        private readonly stmt_: orm.QueryBuilder<Target>;
         private readonly mutex_: SharedMutex;
 
         private constructor
             (
                 private readonly mine_: any, 
                 private readonly property_: string,
-                primaryField: string,
+                private readonly primary_field_: Singleton<string>,
                 private readonly getter_: string,
-                target: Creator<Target>, 
-                inverseField: string,
+                private readonly target_: Creator<Target>, 
+                private readonly inverse_field_: string,
                 private readonly ensure_: boolean
             )
         {
-            this.stmt_ = orm.getRepository(target)
-                .createQueryBuilder(target.name)
-                .andWhere(`${target.name}.${inverseField} = :id`, { id: this.mine_[primaryField] });
             this.mutex_ = new SharedMutex();
         }
 
@@ -111,7 +110,7 @@ export namespace HasOneToOne
             (
                 mine: any, 
                 property: string,
-                primaryField: string,
+                primaryField: Singleton<string>,
                 getter: string,
                 target: Creator<Target>, 
                 inverseField: string,
@@ -146,7 +145,11 @@ export namespace HasOneToOne
 
         public statement(): orm.QueryBuilder<Target>
         {
-            return this.stmt_.clone();
+            return findRepository(this.target_)
+                .createQueryBuilder(this.target_.name)
+                .andWhere(`${this.target_.name}.${this.inverse_field_} = :id`, { 
+                    id: this.mine_[this.primary_field_.get()] 
+                });
         }
     }
 }

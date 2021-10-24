@@ -1,5 +1,4 @@
 import * as crypto from "crypto";
-import * as orm from "typeorm";
 import { InvalidArgument } from "tstl/exception/InvalidArgument";
 
 import { Creator } from "../typings/Creator";
@@ -8,6 +7,7 @@ import { Operator } from "../typings/Operator";
 import { SpecialFields } from "../typings/SpecialFields";
 
 import { BelongsAccessorBase } from "../decorators/base/BelongsAccessorBase";
+import { findRepository } from "./findRepository";
 import { get_column_name_tuple } from "./internal/get_column_name_tuple";
 
 /**
@@ -226,7 +226,7 @@ function _Decompose_entity(param: any): any
             param = param.id;
         else
         {
-            const pkField: string | undefined = orm.getRepository(param.constructor).metadata.primaryColumns[0]?.propertyName;
+            const pkField: string | undefined = findRepository(param.constructor).metadata.primaryColumns[0]?.propertyName;
             if (pkField !== undefined)
                 param = param[pkField];
         }

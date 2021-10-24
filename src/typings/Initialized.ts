@@ -23,6 +23,14 @@ export namespace Initialized
                 ? Options extends { nullable: true }
                     ? never
                     : Entity | PrimaryGeneratedColumn.ValueType<Primary>
+            : T[P] extends Belongs.External.OneToOne<infer Entity, infer Primary, infer Options>
+                ? Options extends { nullable: true }
+                    ? never
+                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
+            : T[P] extends Belongs.External.ManyToOne<infer Entity, infer Primary, infer Options>
+                ? Options extends { nullable: true }
+                    ? never
+                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
             : never;
     };
 
@@ -34,10 +42,18 @@ export namespace Initialized
                 ? Options extends { nullable: true }
                     ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
                     : never
+            : T[P] extends Belongs.External.OneToOne<infer Entity, infer Primary, infer Options>
+                ? Options extends { nullable: true }
+                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    : never
             : T[P] extends Belongs.ManyToOne<infer Entity, infer Primary, infer Options>
-            ? Options extends { nullable: true }
-                ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
-                : never
+                ? Options extends { nullable: true }
+                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    : never
+            : T[P] extends Belongs.External.ManyToOne<infer Entity, infer Primary, infer Options>
+                ? Options extends { nullable: true }
+                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    : never
             : never;
     };
 }

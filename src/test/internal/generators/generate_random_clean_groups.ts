@@ -1,4 +1,4 @@
-import { BbsGroup } from "../../models/BbsGroup";
+import { BbsGroup } from "../../models/bbs/BbsGroup";
 
 import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { generate_random_empty_review_bbs_group } from "./generate_random_empty_review_bbs_group";
@@ -19,4 +19,3 @@ export function generate_random_clean_groups(): Promise<BbsGroup[]>
         return BbsGroup.findOneOrFail(group.id);
     });
 }
-

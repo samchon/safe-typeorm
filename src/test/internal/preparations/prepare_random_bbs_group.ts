@@ -1,5 +1,5 @@
 import safe from "../../..";
-import { BbsGroup } from "../../models/BbsGroup";
+import { BbsGroup } from "../../models/bbs/BbsGroup";
 
 import { RandomGenerator } from "../procedures/RandomGenerator";
 

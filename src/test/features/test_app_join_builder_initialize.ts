@@ -1,9 +1,9 @@
 import safe from "../..";
-import { BbsArticle } from "../models/BbsArticle";
-import { BbsArticleContent } from "../models/BbsArticleContent";
-import { BbsComment } from "../models/BbsComment";
-import { BbsGroup } from "../models/BbsGroup";
-import { BbsReviewArticle } from "../models/BbsReviewArticle";
+import { BbsArticle } from "../models/bbs/BbsArticle";
+import { BbsArticleContent } from "../models/bbs/BbsArticleContent";
+import { BbsComment } from "../models/bbs/BbsComment";
+import { BbsGroup } from "../models/bbs/BbsGroup";
+import { BbsReviewArticle } from "../models/bbs/BbsReviewArticle";
 
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { iterate_bbs_group } from "../internal/iterators/iterate_bbs_group";
@@ -31,6 +31,7 @@ export async function test_app_join_builder_initialize(): Promise<void>
             __mv_last: undefined,
             question: undefined,
             answer: undefined,
+            scraps: undefined,
         })
     });
 

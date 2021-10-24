@@ -1,5 +1,5 @@
 import * as orm from "typeorm";
-import safe from "../..";
+import safe from "../../..";
 
 import { BbsArticle } from "./BbsArticle";
 import { BbsArticleContent } from "./BbsArticleContent";

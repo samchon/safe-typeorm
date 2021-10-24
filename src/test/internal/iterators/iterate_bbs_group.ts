@@ -1,8 +1,8 @@
 import { is_sorted } from "tstl/ranges/algorithm";
-import { BbsArticleContent } from "../../models/BbsArticleContent";
-import { BbsComment } from "../../models/BbsComment";
-import { BbsGroup } from "../../models/BbsGroup";
-import { BbsReviewArticle } from "../../models/BbsReviewArticle";
+import { BbsArticleContent } from "../../models/bbs/BbsArticleContent";
+import { BbsComment } from "../../models/bbs/BbsComment";
+import { BbsGroup } from "../../models/bbs/BbsGroup";
+import { BbsReviewArticle } from "../../models/bbs/BbsReviewArticle";
 
 export async function iterate_bbs_group(group: BbsGroup): Promise<void>
 {

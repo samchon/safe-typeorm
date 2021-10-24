@@ -1,6 +1,6 @@
 import { randint } from "tstl/algorithm/random";
-import { BbsArticleContent } from "../../models/BbsArticleContent";
-import { BbsReviewArticleContent } from "../../models/BbsReviewArticleContent";
+import { BbsArticleContent } from "../../models/bbs/BbsArticleContent";
+import { BbsReviewArticleContent } from "../../models/bbs/BbsReviewArticleContent";
 
 export function prepare_random_bbs_review_article_content(base: BbsArticleContent): BbsReviewArticleContent
 {

@@ -3,6 +3,7 @@ import { ColumnMetadata } from "typeorm/metadata/ColumnMetadata";
 
 import { Creator } from "../typings";
 import { ITableInfo } from "./internal/ITableInfo";
+import { findRepository } from "./findRepository";
 import { get_primary_field } from "../decorators/base/get_primary_field";
 
 const DICT: WeakMap<Creator<object>, ColumnMetadata[]> = new WeakMap();
@@ -14,7 +15,7 @@ export function update<T extends object>
     (...args: [T] | [orm.EntityManager, T]): Promise<void>
 {
     if (args.length === 1)
-        return _Update(orm.getManager(), args[0]);
+        return _Update(findRepository(args[0].constructor as any).manager, args[0]);
     else
         return _Update(...args);
 }

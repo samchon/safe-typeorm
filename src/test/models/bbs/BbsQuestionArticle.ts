@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
-import safe from "../..";
-import { BbsAnswerArticle } from "./BbsAnswerArticle";
+import safe from "../../..";
 
+import { BbsAnswerArticle } from "./BbsAnswerArticle";
 import { BbsArticle } from "./BbsArticle";
 
 @orm.Entity()

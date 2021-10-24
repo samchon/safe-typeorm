@@ -1,4 +1,4 @@
-import { BbsGroup } from "../models/BbsGroup";
+import { BbsGroup } from "../models/bbs/BbsGroup";
 
 import { iterate_bbs_group } from "../internal/iterators/iterate_bbs_group";
 import { generate_random_empty_review_bbs_group } from "../internal/generators/generate_random_empty_review_bbs_group";

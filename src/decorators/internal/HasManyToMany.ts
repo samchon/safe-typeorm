@@ -3,6 +3,7 @@ import { MutableSingleton } from "tstl/thread/MutableSingleton";
 
 import { Comparator } from "../../typings/Comparator";
 import { Creator } from "../../typings/Creator";
+import { findRepository } from "../../functional/findRepository";
 
 import { BelongsManyToOne } from "./BelongsManyToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
@@ -132,7 +133,7 @@ export namespace HasManyToMany
                 comp?: Comparator<ITuple<Target, Router>>
             )
         {
-            this.stmt_ = orm.getRepository(routerFactory)
+            this.stmt_ = findRepository(routerFactory)
                 .createQueryBuilder(routerFactory.name)
                 .innerJoin(targetFactory, targetFactory.name, `${targetFactory.name}.${primaryKeyTuple[1]} = ${routerFactory.name}.${targetInverseField}`)
                 .andWhere(`${routerFactory.name}.${myInverseField} = :my_id`, { my_id: mine[primaryKeyTuple[0]] });

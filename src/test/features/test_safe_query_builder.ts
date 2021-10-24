@@ -1,11 +1,11 @@
 import orm from "typeorm";
 import safe from "../..";
 
-import { BbsArticle } from "../models/BbsArticle";
-import { BbsArticleContent } from "../models/BbsArticleContent";
-import { BbsCategory } from "../models/BbsCategory";
-import { BbsGroup } from "../models/BbsGroup";
-import { BbsQuestionArticle } from "../models/BbsQuestionArticle";
+import { BbsArticle } from "../models/bbs/BbsArticle";
+import { BbsArticleContent } from "../models/bbs/BbsArticleContent";
+import { BbsCategory } from "../models/bbs/BbsCategory";
+import { BbsGroup } from "../models/bbs/BbsGroup";
+import { BbsQuestionArticle } from "../models/bbs/BbsQuestionArticle";
 
 export async function test_safe_query_builder(): Promise<void>
 {

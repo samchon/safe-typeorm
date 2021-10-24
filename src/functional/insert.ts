@@ -4,19 +4,25 @@ import { v4 } from "uuid";
 
 import { Creator } from "../typings";
 import { ITableInfo } from "./internal/ITableInfo";
+import { findRepository } from "./findRepository";
 
-export function insert<T extends object>(records: T | T[]): Promise<void>;
+export function insert<T extends object>(records: T | T[], ignore?: boolean): Promise<void>;
 export function insert<T extends object>(manager: orm.EntityManager, records: T | T[], ignore?: boolean): Promise<void>;
 
-export async function insert(...args: any[]): Promise<void>
+export async function insert<T extends object>(...args: any[]): Promise<void>
 {
     if (args[0] instanceof orm.EntityManager)
         await (_Insert as any)(...args);
     else
-        await orm.getManager().transaction
+    {
+        const elem: T = args[0] instanceof Array 
+            ? args[0][0] 
+            : args[0];
+        await findRepository(elem.constructor as any).manager.transaction
         (
             manager => _Insert(manager, args[0], (args as any)[1])
         );
+    }
 }
 
 async function _Insert<T extends object>

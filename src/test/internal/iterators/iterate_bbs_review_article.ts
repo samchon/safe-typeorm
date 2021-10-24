@@ -1,5 +1,5 @@
-import { BbsArticle } from "../../models/BbsArticle";
-import { BbsReviewArticle } from "../../models/BbsReviewArticle";
+import { BbsArticle } from "../../models/bbs/BbsArticle";
+import { BbsReviewArticle } from "../../models/bbs/BbsReviewArticle";
 
 export async function iterate_bbs_review_article(review: BbsReviewArticle): Promise<void>
 {

@@ -3,7 +3,7 @@
 // import { ArrayUtil } from "../internal/ArrayUtil";
 // import { RandomGenerator } from "../internal/RandomGenerator";
 // import { TestLogger } from "../internal/TesLogger";
-// import { AttachmentFile } from "../models/AttachmentFile";
+// import { AttachmentFile } from "../models/bbs/AttachmentFile";
 
 // export async function test_parameter_binding(): Promise<void>
 // {

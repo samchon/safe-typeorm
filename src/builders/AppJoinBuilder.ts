@@ -211,16 +211,18 @@ export class AppJoinBuilder<Mine extends object>
         {
             // JOIN WITH RELATED ENTITIES
             let output: Relationship.TargetType<Mine, any>[];
-            if (child.metadata.type === "Belongs.ManyToOne")
+            if (child.metadata.type === "Belongs.ManyToOne" || child.metadata.type === "Belongs.External.ManyToOne")
                 output = await app_join_belongs_many_to_one(this.mine_, child as any, data, field);
-            else if (child.metadata.type === "Belongs.OneToOne")
+            else if (child.metadata.type === "Belongs.OneToOne" || child.metadata.type === "Belongs.External.OneToOne")
                 output = await app_join_belongs_one_to_one(child as any, data, field);
-            else if (child.metadata.type === "Has.OneToOne")
+            else if (child.metadata.type === "Has.OneToOne" || child.metadata.type === "Has.External.OneToOne")
                 output = await app_join_has_one_to_one(this.mine_, child as any, data, field);
-            else if (child.metadata.type === "Has.OneToMany")
+            else if (child.metadata.type === "Has.OneToMany" || child.metadata.type === "Has.External.OneToMany")
                 output = await app_join_has_one_to_many(this.mine_, child as any, data, field);
-            else
+            else if (child.metadata.type === "Has.ManyToMany")
                 output = await app_join_has_many_to_many(this.mine_, child as any, data, field);
+            else
+                continue;
             
             // HIERARCHICAL CALL
             if (output.length !== 0)

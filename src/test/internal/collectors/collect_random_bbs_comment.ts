@@ -1,10 +1,10 @@
 import { randint } from "tstl/algorithm/random";
 import safe from "../../..";
 import { ArrayUtil } from "../../../utils/ArrayUtil";
-import { AttachmentFile } from "../../models/AttachmentFile";
-import { BbsArticle } from "../../models/BbsArticle";
-import { BbsComment } from "../../models/BbsComment";
-import { BbsCommentFile } from "../../models/BbsCommentFile";
+import { AttachmentFile } from "../../models/bbs/AttachmentFile";
+import { BbsArticle } from "../../models/bbs/BbsArticle";
+import { BbsComment } from "../../models/bbs/BbsComment";
+import { BbsCommentFile } from "../../models/bbs/BbsCommentFile";
 import { prepare_random_attachment_file } from "../preparations/prepare_random_attachment_file";
 import { prepare_random_bbs_comment } from "../preparations/prepare_random_bbs_comment";
 

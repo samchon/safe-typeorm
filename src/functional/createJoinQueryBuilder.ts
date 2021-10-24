@@ -2,6 +2,7 @@ import * as orm from "typeorm";
 
 import { Creator } from "../typings/Creator";
 import { JoinQueryBuilder } from "../builders/JoinQueryBuilder";
+import { findRepository } from "./findRepository";
 
 /**
  * Create join query builder.
@@ -136,8 +137,11 @@ export function createJoinQueryBuilder<T extends object>
         closure = args[1];
     }
 
-    const stmt: orm.SelectQueryBuilder<T> = (manager !== null ? manager : orm)
-        .getRepository(creator)
+    const stmt: orm.SelectQueryBuilder<T> = 
+        (manager !== null 
+            ? manager.getRepository(creator) 
+            : findRepository(creator)
+        )
         .createQueryBuilder(alias);
     const builder: JoinQueryBuilder<T> = new JoinQueryBuilder(stmt, creator);
 

@@ -1,5 +1,5 @@
 import safe from "../..";
-import { BbsCategory } from "../models/BbsCategory";
+import { BbsCategory } from "../models/bbs/BbsCategory";
 import { test_recursive_app_join_builder_belongs_to } from "./test_recursive_app_join_builder_belongs_to";
 
 export async function test_recursive_json_select_builder(): Promise<void>

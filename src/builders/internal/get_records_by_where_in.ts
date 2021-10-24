@@ -1,9 +1,8 @@
-import * as orm from "typeorm";
-
 import { Creator } from "../../typings/Creator";
-import { getWhereArguments } from "../../functional/getWhereArguments";
 
 import { AppJoinBuilder } from "../AppJoinBuilder";
+import { findRepository } from "../../functional/findRepository";
+import { getWhereArguments } from "../../functional/getWhereArguments";
 
 /**
  * @internal
@@ -21,7 +20,7 @@ export async function get_records_by_where_in
     {
         const some: any[] = idList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
         output.push
-        (...await orm.getRepository(target)
+        (...await findRepository(target)
             .createQueryBuilder()
             .andWhere(...getWhereArguments(target, field as "id", "IN", some))
             .getMany()

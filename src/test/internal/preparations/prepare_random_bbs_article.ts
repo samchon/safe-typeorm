@@ -1,6 +1,6 @@
 import safe from "../../..";
-import { BbsArticle } from "../../models/BbsArticle";
-import { BbsGroup } from "../../models/BbsGroup";
+import { BbsArticle } from "../../models/bbs/BbsArticle";
+import { BbsGroup } from "../../models/bbs/BbsGroup";
 
 import { RandomGenerator } from "../procedures/RandomGenerator";
 

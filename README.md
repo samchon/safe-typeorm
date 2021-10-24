@@ -40,21 +40,21 @@ Also, below is the list of ORM model classes used in the Test Automation Program
 
   - [**src/test/models**](https://github.com/samchon/safe-typeorm/tree/master/src/test/models)
     - Sections
-      - [`BbsCategory`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsCategory.ts): To demonstrate the recursive 1: N relationship
-      - [`BbsGroup`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsGroup.ts)
+      - [`BbsCategory`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsCategory.ts): To demonstrate the recursive 1: N relationship
+      - [`BbsGroup`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsGroup.ts)
     - Articles
-      - [`BbsArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsArticle.ts): To demonstrate lots of relationships
-      - [`BbsReviewArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsReviewArticle.ts): To demonstrate super & sub type definition
-      - [`BbsQuestionArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsQuestionArticle.ts)
+      - [`BbsArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsArticle.ts): To demonstrate lots of relationships
+      - [`BbsReviewArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsReviewArticle.ts): To demonstrate super & sub type definition
+      - [`BbsQuestionArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsQuestionArticle.ts)
       - [`BbsAnswerArticle`](https://github.com/samchon/safe-typeorm/blob/master/src/test/BbsAnswerArticlemodels/.ts)
-      - [`BbsArticleTag`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsArticleTag.ts): To demonstrate `JsonSelectBuilder.Output.Mapper`
-      - [`BbsArticleContent`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsArticleContent.ts): To demonstrate M: N relationship
-      - [`BbsArticleContentFilePair`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsArticleContentFilePair.ts): To resolve the M: N relatioship
+      - [`BbsArticleTag`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsArticleTag.ts): To demonstrate `JsonSelectBuilder.Output.Mapper`
+      - [`BbsArticleContent`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsArticleContent.ts): To demonstrate M: N relationship
+      - [`BbsArticleContentFilePair`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsArticleContentFilePair.ts): To resolve the M: N relatioship
     - Comments
-      - [`BbsComment`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsComment.ts): To demonstrate M: N relationship
-      - [`BbsCommentFilePair`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/BbsCommentFilePair.ts): To resolve the M: N relatioship
+      - [`BbsComment`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsComment.ts): To demonstrate M: N relationship
+      - [`BbsCommentFilePair`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/BbsCommentFilePair.ts): To resolve the M: N relatioship
     - Miscellaneous
-      - [`AttachmentFile`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/AttachmentFile.ts)
+      - [`AttachmentFile`](https://github.com/samchon/safe-typeorm/blob/master/src/test/models/bbs/AttachmentFile.ts)
 
 ### Safe Query Builder
 ![Safe Query Builder](https://raw.githubusercontent.com/samchon/safe-typeorm/master/assets/demonstrations/safe-query-builder.gif)

@@ -11,6 +11,7 @@ import { ClosureProxy } from "../base/ClosureProxy";
 import { ColumnAccessor } from "../base/ColumnAccessor";
 import { HasExternalOneToOne } from "./HasExternalOneToOne";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
+import { findRepository } from "../../functional/findRepository";
 import { get_primary_field } from "../base/get_primary_field";
 
 export type BelongsExternalOneToOne<
@@ -193,9 +194,7 @@ export namespace BelongsExternalOneToOne
         private async _Get(): Promise<CapsuleNullable<Target, Options>>
         {
             const id = this.source_[this.field_];
-            const output: Target | undefined = await orm
-                .getRepository(this.target_)
-                .findOne(id);
+            const output: Target | undefined = await findRepository(this.target_).findOne(id);
 
             if (output === undefined)
                 if (!this.options_.nullable)

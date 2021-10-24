@@ -3,7 +3,11 @@ import { ConditionVariable } from "tstl/thread/ConditionVariable";
 
 export class Transaction
 {
-    public static async run<T>(closure: (manager: orm.EntityManager, transaction: Transaction) => Promise<T>): Promise<T>
+    public static async run<T>
+        (
+            connection: orm.Connection,
+            closure: (manager: orm.EntityManager, transaction: Transaction) => Promise<T>
+        ): Promise<T>
     {
         let transaction!: Transaction;
         let error: Error | null = null;
@@ -11,7 +15,7 @@ export class Transaction
 
         try
         {
-            ret = await orm.getManager().transaction(async manager => 
+            ret = await connection.transaction(async manager => 
             {
                 transaction = new Transaction(manager);
                 return await closure(manager, transaction);

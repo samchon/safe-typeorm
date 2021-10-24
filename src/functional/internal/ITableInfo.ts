@@ -1,6 +1,7 @@
-import { DomainError } from "tstl";
-import * as orm from "typeorm";
+import { DomainError } from "tstl/exception/DomainError";
+
 import { Creator } from "../../typings";
+import { findRepository } from "../findRepository";
 
 export interface ITableInfo
     {
@@ -22,7 +23,7 @@ export namespace ITableInfo
         if (info !== undefined)
             return info;
 
-        const metadata = orm.getManager().getRepository(creator).metadata;
+        const metadata = findRepository(creator).metadata;
         if (metadata.primaryColumns.length !== 1)
             throw new DomainError(`Error on ITableInfo.get(): number of primary columns of "${creator.name}" table is not one.`);
 

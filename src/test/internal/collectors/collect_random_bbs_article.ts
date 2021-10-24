@@ -1,11 +1,11 @@
 import { randint } from "tstl";
 import safe from "../../..";
 
-import { __MvBbsArticleLastContent } from "../../models/__MvBbsArticleLastContent";
+import { __MvBbsArticleLastContent } from "../../models/bbs/__MvBbsArticleLastContent";
 import { ArrayUtil } from "../../../utils/ArrayUtil";
-import { BbsArticle } from "../../models/BbsArticle";
-import { BbsArticleContent } from "../../models/BbsArticleContent";
-import { BbsGroup } from "../../models/BbsGroup";
+import { BbsArticle } from "../../models/bbs/BbsArticle";
+import { BbsArticleContent } from "../../models/bbs/BbsArticleContent";
+import { BbsGroup } from "../../models/bbs/BbsGroup";
 
 import { collect_random_bbs_article_content } from "./collect_random_bbs_article_content";
 import { prepare_random_bbs_article } from "../preparations/prepare_random_bbs_article";

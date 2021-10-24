@@ -1,11 +1,14 @@
-import * as orm from "typeorm";
 import { DomainError } from "tstl/exception/DomainError";
 import { MutableSingleton } from "tstl/thread/MutableSingleton";
+import { Singleton } from "tstl/thread/Singleton";
 
 import { Creator } from "../../typings/Creator";
+import { findRepository } from "../../functional/findRepository";
 
 import { BelongsExternalOneToOne } from "./BelongsExternalOneToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
+import { ColumnAccessor } from "../base/ColumnAccessor";
+import { ReflectAdaptor } from "../base/ReflectAdaptor";
 import { get_primary_field } from "../base/get_primary_field";
 
 export type HasExternalOneToOne<Target extends object, Ensure extends boolean = false>
@@ -23,9 +26,17 @@ export function HasExternalOneToOne<
 {
     return function ($class, $property)
     {
-        const label: string = HasExternalOneToOne.getHelperField($property as string);
-        const primaryField: string = get_primary_field("Has.External.OneToOne", $class as any);
+        const label: string = ColumnAccessor.helper("has", $property as string);
         const inverseField: string = ClosureProxy.steal(inverse);
+        const primaryField = new Singleton(() => get_primary_field("Has.External.OneToOne", $class as any));
+
+        const metadata: HasExternalOneToOne.IMetadata<Target> = {
+            type: "Has.External.OneToOne",
+            target: targetGen,
+            inverse: inverseField,
+            ensure
+        };
+        ReflectAdaptor.set($class, $property, metadata);
 
         Object.defineProperty($class, $property,
         {
@@ -68,7 +79,7 @@ export namespace HasExternalOneToOne
             (
                 private readonly mine_: any,
                 private readonly property_: string,
-                private readonly primary_field_: string,
+                private readonly primary_field_: Singleton<string>,
                 private readonly target_: Creator<Target>,
                 private readonly inverse_field_: string,
                 private readonly ensure_: boolean
@@ -76,13 +87,13 @@ export namespace HasExternalOneToOne
         {
             this.singleton_ = new MutableSingleton(async () => 
             {
-                const output: Target | undefined =  await orm
-                    .getRepository(this.target_)
-                    .findOne({ [this.inverse_field_]: this.mine_[this.primary_field_] });
+                const pk: string = this.primary_field_.get();
+                const output: Target | undefined =  await findRepository(this.target_).findOne({ [this.inverse_field_]: this.mine_[pk] });
+                
                 if (output !== undefined)
                     await (output as any)[this.inverse_field_].set(this.mine_);
                 else if (this.ensure_ === true)
-                throw new DomainError(`Error on ${this.mine_.constructor.name}.${this.property_}.get(): you've ensured that it can't be null, but it was not.`);
+                    throw new DomainError(`Error on ${this.mine_.constructor.name}.${this.property_}.get(): you've ensured that it can't be null, but it was not.`);
 
                 return (output || null) as Output;
             });
@@ -95,7 +106,7 @@ export namespace HasExternalOneToOne
             (
                 mine: any,
                 property: string,
-                primary_field: string,
+                primary_field: Singleton<string>,
                 target: Creator<Target>,
                 inverse_field: string,
                 ensure: boolean
@@ -113,21 +124,5 @@ export namespace HasExternalOneToOne
         {
             return this.singleton_.set(obj);
         }
-    }
-
-    /**
-     * @internal
-     */
-    export function getGetterField(field: string): string
-    {
-        return `__m_has_external_one_to_one_${field}_getter__`;
-    }
-    
-    /**
-     * @internal
-     */
-    export function getHelperField(field: string): string
-    {
-        return `__m_has_external_one_to_one_${field}_helper__`;
     }
 }

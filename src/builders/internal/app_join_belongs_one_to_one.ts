@@ -29,8 +29,7 @@ export async function app_join_belongs_one_to_one
     // THE TARGET INFO
     const target: Creator<any> = child.metadata.target();
     const table: ITableInfo = ITableInfo.get(target);
-    const isOneToOne: boolean = child.metadata.type === "Belongs.OneToOne";
-
+    
     // LOAD TARGET DATA
     const output: any[] = await get_records_by_where_in(target, table.primaryColumn, idList);
 
@@ -45,7 +44,7 @@ export async function app_join_belongs_one_to_one
         const reference: any = dict.get(id)!;
         await elem[field].set(reference);
 
-        if (isOneToOne === true && child.metadata.inverse !== null)
+        if (child.metadata.inverse !== null)
             await reference[child.metadata.inverse].set(elem);
     }
     return output;

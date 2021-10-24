@@ -1,7 +1,7 @@
 import safe from "../../..";
-import { BbsArticle } from "../../models/BbsArticle";
-import { BbsReviewArticle } from "../../models/BbsReviewArticle";
-import { BbsReviewArticleContent } from "../../models/BbsReviewArticleContent";
+import { BbsArticle } from "../../models/bbs/BbsArticle";
+import { BbsReviewArticle } from "../../models/bbs/BbsReviewArticle";
+import { BbsReviewArticleContent } from "../../models/bbs/BbsReviewArticleContent";
 import { prepare_random_bbs_review_article } from "../preparations/prepare_random_bbs_review_article";
 import { prepare_random_bbs_review_article_content } from "../preparations/prepare_random_bbs_review_article_content";
 

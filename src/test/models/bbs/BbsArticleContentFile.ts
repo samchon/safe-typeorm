@@ -1,5 +1,5 @@
 import * as orm from "typeorm";
-import safe from "../..";
+import safe from "../../..";
 
 import { AttachmentFilePairBase } from "./internal/AttachmentFilePairBase";
 import { BbsArticleContent } from "./BbsArticleContent";

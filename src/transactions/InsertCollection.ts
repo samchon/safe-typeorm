@@ -9,6 +9,7 @@ import { sort } from "tstl/ranges/algorithm/sorting";
 
 import { Creator } from "../typings/Creator";
 import { ITableInfo } from "../functional/internal/ITableInfo";
+import { findRepository } from "../functional/findRepository";
 import { insert } from "../functional/insert";
 
 export class InsertCollection
@@ -84,29 +85,26 @@ export class InsertCollection
     ----------------------------------------------------------- */
     public async execute(manager?: orm.EntityManager): Promise<void>
     {
-        if (manager)
-            await this._Execute(manager);
-        else
-            await orm.getConnection().transaction
-            (
-                manager => this._Execute(manager)
-            );
+        await this._Execute(manager);
     }
 
-    private async _Execute(manager: orm.EntityManager): Promise<void>
+    private async _Execute(manager: orm.EntityManager | undefined): Promise<void>
     {
         const success: boolean = await UniqueLock.try_lock(this.mutex_, async () =>
         {
             for (const process of this.befores_)
-                await process(manager);
-            for (const tuple of this._Get_record_tuples(orm.getConnection()))
+                await process(manager!);
+            for (const tuple of this._Get_record_tuples())
                 while (tuple.first.length !== 0)
                 {
                     const pieces: object[] = tuple.first.splice(0, this.limit_);
-                    await insert(manager, pieces, tuple.second);
+                    if (manager !== undefined)
+                        await insert(manager, pieces, tuple.second);
+                    else
+                        await insert(pieces, tuple.second);
                 }
             for (const process of this.afters_)
-                await process(manager);
+                await process(manager!);
 
             this.dict_.clear();
             this.befores_.clear();
@@ -116,11 +114,11 @@ export class InsertCollection
             throw new DomainError("Error on InsertCollection.execute(): it's already on executing.");
     }
 
-    private _Get_record_tuples(connection: orm.Connection): Pair<object[], boolean>[]
+    private _Get_record_tuples(): Pair<object[], boolean>[]
     {
         function compare(x: Pair<object[], boolean>, y: Pair<object[], boolean>): boolean
         {
-            const children: Set<Creator<object>> = getDependencies(connection, y.first[0].constructor as Creator<object>);
+            const children: Set<Creator<object>> = getDependencies(y.first[0].constructor as Creator<object>);
             return !children.has(x.first[0].constructor as Creator<object>);
         }
 
@@ -135,12 +133,19 @@ export class InsertCollection
 
 export namespace InsertPocket
 {
-    export type Process = (manager: orm.EntityManager) => Promise<any>;
+    export interface Process
+    {
+        (): Promise<any>;
+        (manager: orm.EntityManager): Promise<any>;
+    }
 }
 
 function getDependencies<T extends object>
-    (connection: orm.Connection, target: Creator<T>): Set<Creator<object>>
+    (target: Creator<T>, connection?: orm.Connection): Set<Creator<object>>
 {
+    if (!connection) 
+        connection = findRepository(target).manager.connection;
+
     let output: Set<Creator<object>> | undefined = dependencies.get(target);
     if (output === undefined)
     {
@@ -155,7 +160,7 @@ function getDependencies<T extends object>
                 if (foreign.referencedEntityMetadata.target === target)
                 {
                     output.add(child);
-                    for (const grand of getDependencies(connection, child))
+                    for (const grand of getDependencies(child, connection))
                         output.add(grand);
                     break;
                 }

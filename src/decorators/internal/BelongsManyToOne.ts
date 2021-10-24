@@ -6,6 +6,7 @@ import { UniqueLock } from "tstl/thread/UniqueLock";
 import { CapsuleNullable } from "../../typings/CapsuleNullable";
 import { Creator } from "../../typings/Creator";
 import { PrimaryGeneratedColumn } from "../../typings/PrimaryGeneratedColumn";
+import { findRepository } from "../../functional/findRepository";
 
 import { BelongsAccessorBase } from "../base/BelongsAccessorBase";
 import { ClosureProxy } from "../base/ClosureProxy";
@@ -268,7 +269,7 @@ export namespace BelongsManyToOne
             if (this.changed_ === true)
                 await UniqueLock.lock(this.mutex_, async () =>
                 {
-                    const loaded: Target | undefined = await orm.getRepository(this.target_).findOne(this.id!);
+                    const loaded: Target | undefined = await findRepository(this.target_).findOne(this.id!);
                     output = (loaded || null) as any;
 
                     this.changed_ = false;
@@ -303,7 +304,7 @@ export namespace BelongsManyToOne
          */
         public statement(): orm.QueryBuilder<Target>
         {
-            return orm.getRepository(this.target_)
+            return findRepository(this.target_)
                 .createQueryBuilder(this.target_.name)
                 .andWhere(`${this.target_.name}.id = :id`, { id: this.id });
         }

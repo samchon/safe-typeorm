@@ -1,8 +1,8 @@
 import * as orm from "typeorm";
-import safe from "../..";
-import { BbsAnswerArticle } from "./BbsAnswerArticle";
+import safe from "../../..";
 
 import { __MvBbsArticleLastContent } from "./__MvBbsArticleLastContent";
+import { BbsAnswerArticle } from "./BbsAnswerArticle";
 import { BbsArticleContent } from "./BbsArticleContent";
 import { BbsArticleTag } from "./BbsArticleTag";
 import { BbsCategory } from "./BbsCategory";
@@ -10,6 +10,7 @@ import { BbsComment } from "./BbsComment";
 import { BbsGroup } from "./BbsGroup";
 import { BbsQuestionArticle } from "./BbsQuestionArticle";
 import { BbsReviewArticle } from "./BbsReviewArticle";
+import { BlogUserScrap } from "../blog/BlogUserScrap";
 
 @orm.Index(["bbs_group_id", "bbs_category_id", "created_at"])
 @orm.Entity()
@@ -104,6 +105,13 @@ export class BbsArticle extends safe.Model
         (x, y) => x.value < y.value ? -1 : 1
     )
     public readonly tags!: safe.Has.OneToMany<BbsArticleTag>;
+
+    @safe.Has.External.OneToMany
+    (
+        () => BlogUserScrap,
+        scrap => scrap.article,
+    )
+    public readonly scraps!: safe.Has.External.OneToMany<BlogUserScrap>;
 
     @safe.Has.OneToOne
     (

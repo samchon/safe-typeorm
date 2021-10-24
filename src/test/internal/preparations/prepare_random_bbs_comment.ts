@@ -1,8 +1,8 @@
 import { randint } from "tstl/algorithm/random";
 
 import safe from "../../..";
-import { BbsArticle } from "../../models/BbsArticle";
-import { BbsComment } from "../../models/BbsComment";
+import { BbsArticle } from "../../models/bbs/BbsArticle";
+import { BbsComment } from "../../models/bbs/BbsComment";
 
 import { RandomGenerator } from "../procedures/RandomGenerator";
 

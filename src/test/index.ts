@@ -1,22 +1,20 @@
 import * as orm from "typeorm";
+import safe from "..";
+
 import { DynamicImportIterator } from "./internal/procedures/DynamicImportIterator";
 import { TestLogger } from "./internal/procedures/TestLogger";
 
 async function main(): Promise<void>
 {
-    const connection: orm.Connection = await orm.createConnection({
+    const schemas: string[] = ["bbs", "blog"];
+    const connections: orm.Connection[] = await orm.createConnections(schemas.map(name => ({
         type: "sqlite",
-        database: ":memory:",
-        // type: "mariadb",
-        // database: "safe_typeorm_test",
-        // username: "root",
-        // password: "root",
-        // host: "127.0.0.1",
-        entities: [`${__dirname}/models/**/*.${__filename.substr(-2)}`],
-        logger: TestLogger
-    });
-    await connection.dropDatabase();
-    await connection.synchronize();
+        name,
+        database: `${__dirname}/../../assets/${name}.db`,
+        entities: [`${__dirname}/models/${name}/**/*.${__filename.substr(-2)}`],
+        logger: TestLogger,
+    })));
+    safe.useConnections();
 
     await DynamicImportIterator.main
     (
@@ -26,7 +24,8 @@ async function main(): Promise<void>
             parameters: []
         }
     );
-    await connection.close();
+    for (const conn of connections)
+        await conn.close();
 }
 main().catch(exp =>
 {
