@@ -1,5 +1,5 @@
 import * as orm from "typeorm";
-import safe from "..";
+import safe, { SnakeCaseStrategy } from "..";
 
 import { DynamicImportIterator } from "./internal/procedures/DynamicImportIterator";
 import { TestLogger } from "./internal/procedures/TestLogger";
@@ -12,7 +12,10 @@ async function main(): Promise<void>
         name,
         database: `${__dirname}/../../assets/${name}.db`,
         entities: [`${__dirname}/models/${name}/**/*.${__filename.substr(-2)}`],
+        namingStrategy: new SnakeCaseStrategy(),
         logger: TestLogger,
+        dropSchema: true,
+        synchronize: true
     })));
     safe.useConnections();
 
