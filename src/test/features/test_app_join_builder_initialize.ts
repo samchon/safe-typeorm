@@ -44,7 +44,7 @@ export async function test_app_join_builder_initialize(): Promise<void>
         async () => 
         {
             for (const group of groupList)
-                await iterate_bbs_group(group);
+                await iterate_bbs_group(group, false);
         }
     );
 }

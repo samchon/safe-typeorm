@@ -358,4 +358,12 @@ export namespace Model
      * @template T Type of the target class that is derived from the {@link Model}
      */
     export type Creator<T extends Model> = _Creator<T> & typeof Model;
+
+    export function useAdequateConnections(): void
+    {
+        for (const connection of orm.getConnectionManager().connections)
+            for (const entity of connection.entityMetadatas)
+                if (typeof entity.target === "function" && entity.target.prototype instanceof orm.BaseEntity)
+                    (entity.target as typeof orm.BaseEntity).useConnection(connection);
+    }
 }

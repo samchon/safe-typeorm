@@ -1,8 +1,5 @@
 import * as orm from "typeorm";
-import { SharedLock } from "tstl/thread/SharedLock";
-import { SharedMutex } from "tstl/thread/SharedMutex";
 import { Singleton } from "tstl/thread/Singleton";
-import { UniqueLock } from "tstl/thread/UniqueLock";
 
 import { Comparator } from "../../typings/Comparator";
 import { Creator } from "../../typings/Creator";
@@ -10,9 +7,10 @@ import { findRepository } from "../../functional/findRepository";
 
 import { BelongsManyToOne } from "./BelongsManyToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
-import { ColumnAccessor } from "../base/ColumnAccessor";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
+import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
+import { MutableSingleton } from "tstl/thread/MutableSingleton";
 
 export type HasOneToMany<Target extends object> = HasOneToMany.Accessor<Target>;
 export function HasOneToMany<Mine extends object, Target extends object>
@@ -24,39 +22,38 @@ export function HasOneToMany<Mine extends object, Target extends object>
 {
     return function ($class, $property)
     {
-        // DEFINE METADATA
-        const inverseField: string = ClosureProxy.steal(inverse);
+        // LIST UP PROPERTIES
+        const inverse_property: string = ClosureProxy.steal(inverse);
+        const label: string = RelationshipVariable.helper("has", $property as string);
+        const primary_field = new Singleton(() => get_primary_field($class.constructor as any));
+        
+        const getter: string = RelationshipVariable.getter("has", $property as string);
+        const inverse_getter: string = RelationshipVariable.getter("belongs", inverse_property);
+        
+        // DECORATOR FUNCTION
+        orm.OneToMany(targetGen, inverse_getter, { lazy: true })($class, getter);
+
+        // METADATA
         const metadata: HasOneToMany.IMetadata<Target> = {
             type: "Has.OneToMany",
             target: targetGen,
-            inverse: inverseField,
+            inverse: inverse_property,
+
+            primary_field,
+            getter,
+            inverse_getter,
+
             comparator
         };
         ReflectAdaptor.set($class, $property, metadata);
 
-        // LIST UP PROPERTIES
-        const label: string = ColumnAccessor.helper("has", $property as string);
-        const getter: string = ColumnAccessor.getter("has", $property as string);
-        const primaryField = new Singleton(() => get_primary_field("Has.OneToMany", $class as any));
-        const inverseGetter: string = ColumnAccessor.getter("belongs", inverseField);
-
-        orm.OneToMany(targetGen, inverseGetter, { lazy: true })($class, getter);
-
-        // DEFINE THE PROPERTY
+        // ACCESSOR
         Object.defineProperty($class, $property, 
         {
             get: function (): HasOneToMany.Accessor<Target>
             {
                 if (this[label] === undefined)
-                    this[label] = HasOneToMany.Accessor.create
-                    (
-                        this, 
-                        primaryField,
-                        targetGen(),
-                        getter,
-                        inverseField,
-                        comparator
-                    );
+                    this[label] = HasOneToMany.Accessor.create(metadata, this);
                 return this[label];
             }
         });
@@ -73,27 +70,25 @@ export namespace HasOneToMany
         type: "Has.OneToMany";
         target: () => Creator<Target>;
         inverse: string;
+
+        primary_field: Singleton<string>;
+        getter: string;
+        inverse_getter: string;
+
         comparator: Comparator<Target> | undefined;
     }
 
     export class Accessor<Target extends object>
     {
-        private readonly mutex_: SharedMutex;
-        private sorted_?: boolean;
+        private singleton_: MutableSingleton<Target[]>;
 
         private constructor
             (
-                private readonly mine_: any, 
-                private readonly primary_field_: Singleton<string>,
-                private readonly target_: Creator<Target>, 
-                private readonly getter_: string,
-                private inverse_field_: string,
-                private readonly comp_: Comparator<Target> | undefined,
+                private readonly metadata_: IMetadata<Target>,
+                private readonly mine_: any,
             )
         {
-            this.mutex_ = new SharedMutex();
-            if (this.comp_ !== undefined)
-                this.sorted_ = false;
+            this.singleton_ = new MutableSingleton(() => this._Get());
         }
 
         /**
@@ -101,48 +96,52 @@ export namespace HasOneToMany
          */
         public static create<Target extends object>
             (
-                mine: any, 
-                primaryField: Singleton<string>,
-                target: Creator<Target>, 
-                getter: string,
-                inverseField: string,
-                comp: Comparator<Target> | undefined,
+                metadata: IMetadata<Target>,
+                mine: any,
             ): Accessor<Target>
         {
-            return new Accessor(mine, primaryField, target, getter, inverseField, comp);
-        }
-
-        public async get(): Promise<Target[]>
-        {
-            let output: Target[];
-            await SharedLock.lock(this.mutex_, async () =>
-            {
-                output = await this.mine_[this.getter_];
-                if (this.comp_ !== undefined && this.sorted_ === false)
-                {
-                    output = output.sort(this.comp_);
-                    this.sorted_ = true;
-                }
-            });
-            return output!;
-        }
-
-        public async set(target: Target[]): Promise<void>
-        {
-            await UniqueLock.lock(this.mutex_, () =>
-            {
-                this.mine_[this.getter_] = Promise.resolve(target);
-                this.sorted_ = true;
-            });
+            return new Accessor(metadata, mine);
         }
 
         public statement(): orm.QueryBuilder<Target>
         {
-            return findRepository(this.target_)
-                .createQueryBuilder(this.target_.name)
-                .andWhere(`${this.target_.name}.${this.inverse_field_} = :id`, { 
-                    id: this.mine_[this.primary_field_.get()] 
+            const creator: Creator<Target> = this.metadata_.target();
+
+            return findRepository(creator)
+                .createQueryBuilder(creator.name)
+                .andWhere(`${creator.name}.${this.metadata_.inverse_getter} = :fid`, { 
+                    fid: this.mine_[this.metadata_.primary_field.get()] 
                 });
+        }
+
+        public async set(objs: Target[]): Promise<void>
+        {
+            await this.singleton_.set(objs);
+            this.mine_[`__${this.metadata_.getter}__`] = objs;
+            this.mine_[`__has_${this.metadata_.getter}__`] = true;
+        }
+
+        public async reload(): Promise<Target[]>
+        {
+            const output: Target[] = await this.singleton_.reload();
+            this.mine_[`__${this.metadata_.getter}__`] = output;
+
+            return output;
+        }
+
+        public get(): Promise<Target[]>
+        {
+            return this.singleton_.get();
+        }
+
+        private async _Get(): Promise<Target[]>
+        {
+            const output: Target[] = await this.mine_[this.metadata_.getter];
+            for (const elem of output)
+                await (elem as any)[this.metadata_.inverse].set(this.mine_);
+            return this.metadata_.comparator
+                ? output.sort(this.metadata_.comparator)
+                : output;
         }
     }
 }

@@ -1,5 +1,5 @@
 import * as orm from "typeorm";
-import { ColumnAccessor } from "../decorators/base/ColumnAccessor";
+import { RelationshipVariable } from "../decorators/base/RelationshipVariable";
 import { ReflectAdaptor } from "../decorators/base/ReflectAdaptor";
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
@@ -395,7 +395,7 @@ export class JoinQueryBuilder<Mine extends object>
     {
         // PREPARE ASSET
         const asset: IAsset<Mine, Field> = prepare_asset(this.mine_, field, alias);
-        const index: string = ColumnAccessor.getter
+        const index: string = RelationshipVariable.getter
         (
             asset.belongs ? "belongs" : "has", 
             field

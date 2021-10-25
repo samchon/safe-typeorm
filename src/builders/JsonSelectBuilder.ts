@@ -188,7 +188,7 @@ export namespace JsonSelectBuilder
     export type Input<Mine extends object> = OmitNever<
     {
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
-            ? Mine[P] extends Belongs.ManyToOne<Target, any, infer TargetOptions>
+            ? Mine[P] extends BelongsCommon<Target, any, infer TargetOptions>
                 ? TargetOptions extends { nullable: true }
                     ? Same<Mine, Target> extends true
                         ? "recursive" | DEFAULT | undefined
@@ -209,31 +209,31 @@ export namespace JsonSelectBuilder
     {
         [P in keyof (Mine|InputT)]
             : InputT[P] extends JsonSelectBuilder<infer Target, any, infer Destination>
-                ? Mine[P] extends Belongs.ManyToOne<Target, any, infer Options>
+                ? Mine[P] extends BelongsCommon<Target, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Destination | null
                         : Destination
-                : Mine[P] extends Has.OneToOne<Target, infer Ensure>
+                : Mine[P] extends HasOneToOneCommon<Target, infer Ensure>
                     ? Ensure extends true
                         ? Destination
                         : Destination | null
                 : Destination[]
             : InputT[P] extends "recursive"
-                ? Mine[P] extends Belongs.ManyToOne<Mine, any, infer Options>
+                ? Mine[P] extends BelongsCommon<Mine, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Output.RecursiveReference<Mine, P> | null
                         : never // never be happened
-                : Mine[P] extends Has.OneToOne<Mine, infer Ensure>
+                : Mine[P] extends HasOneToOneCommon<Mine, infer Ensure>
                     ? Ensure extends true
                         ? never // never be happened
                         : Output.RecursiveReference<Mine, P> | null
-                : Mine[P] extends Has.OneToMany<Mine> 
+                : Mine[P] extends (Has.OneToMany<Mine> | Has.External.OneToMany<Mine>) 
                     ? Output.RecursiveArray<Mine, P>
                 : Mine[P] extends Has.ManyToMany<Mine, any> 
                     ? Output.RecursiveArray<Mine, P>
                 : never
             : InputT[P] extends DEFAULT 
-                ? Mine[P] extends Belongs.ManyToOne<any, infer PrimaryKey, infer Options>
+                ? Mine[P] extends BelongsCommon<any, infer PrimaryKey, infer Options>
                     ? Options extends { nullable: true }
                         ? PrimaryGeneratedColumn.ValueType<PrimaryKey> | null
                         : PrimaryGeneratedColumn.ValueType<PrimaryKey>
@@ -276,4 +276,17 @@ export namespace JsonSelectBuilder
             ): Destination;
         }
     }
+
+    type BelongsCommon<
+            Target extends object, 
+            PrimaryKey extends PrimaryGeneratedColumn, 
+            Options extends { nullable: boolean }>
+        = Belongs.ManyToOne<Target, PrimaryKey, Options>
+        | Belongs.OneToOne<Target, PrimaryKey, Options>
+        | Belongs.External.OneToOne<Target, PrimaryKey, Options>
+        | Belongs.External.ManyToOne<Target, PrimaryKey, Options>;
+
+    type HasOneToOneCommon<Target extends object, Ensure extends boolean>
+         = Has.OneToOne<Target, Ensure>
+         | Has.External.OneToOne<Target, Ensure>;
 }

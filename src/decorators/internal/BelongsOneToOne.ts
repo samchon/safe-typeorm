@@ -1,7 +1,7 @@
 import * as orm from "typeorm";
-import { SharedLock } from "tstl/thread/SharedLock";
-import { SharedMutex } from "tstl/thread/SharedMutex";
-import { UniqueLock } from "tstl/thread/UniqueLock";
+import { DomainError } from "tstl/exception/DomainError";
+import { MutableSingleton } from "tstl/thread/MutableSingleton";
+import { Singleton } from "tstl/thread/Singleton";
 
 import { CapsuleNullable } from "../../typings/CapsuleNullable";
 import { Creator } from "../../typings/Creator";
@@ -10,9 +10,9 @@ import { findRepository } from "../../functional/findRepository";
 
 import { BelongsAccessorBase } from "../base/BelongsAccessorBase";
 import { ClosureProxy } from "../base/ClosureProxy";
-import { ColumnAccessor } from "../base/ColumnAccessor";
 import { HasOneToOne } from "./HasOneToOne";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
+import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
 import { take_default_cascade_options } from "../base/take_default_cascade_options";
 import { take_foreign_column_options } from "../base/take_foreign_column_options";
@@ -109,19 +109,22 @@ export function BelongsOneToOne<
 
     return function ($class, $property)
     {
-        // LIST UP LABELS
-        const getter: string = ColumnAccessor.getter("belongs", $property as string);
-        const label: string = ColumnAccessor.helper("belongs", $property as string);
-
-        // JOIN RELATIONSHIP
+        //----
+        // PRELIMINARIES
+        //----
+        // LIST UP PROPERTIES
+        const label: string = RelationshipVariable.helper("belongs", $property as string);
+        const getter: string = RelationshipVariable.getter("belongs", $property as string);
         const inverseField: string | null = inverse
             ? ClosureProxy.steal(inverse)
             : null;
+
+        // DECORATOR FUNCTIONS
         if (inverseField !== null)
             orm.OneToOne
             (
                 targetGen,
-                ColumnAccessor.getter("has", inverseField),
+                RelationshipVariable.getter("has", inverseField),
                 options
             )
             ($class, getter);
@@ -129,36 +132,37 @@ export function BelongsOneToOne<
             orm.OneToOne(targetGen, options)($class, getter);
         orm.JoinColumn({ name: myField })($class, getter);
 
-        // THE FOREIGN REFERENCING COLUMN
         const columnOptions = take_foreign_column_options(options);
         if (options.primary === true)
             orm.PrimaryColumn(type, columnOptions)($class, myField);
         else
             orm.Column(<any>type, columnOptions)($class, myField);
 
-        // DEFINE METADATA
+        //----
+        // DEFINITIONS
+        //----
+        // METADATA
         const metadata: BelongsOneToOne.IMetadata<Target> = {
             type: "Belongs.OneToOne",
             target: targetGen,
-            foreign_key_field: myField,
             inverse: inverseField,
+
+            property: $property as string,
+            foreign_key_field: myField,
+            getter,
+            target_primary_field: new Singleton(() => get_primary_field(targetGen())),
+
+            nullable: !!options.nullable
         };
         ReflectAdaptor.set($class, $property, metadata);
 
-        // DEFINE THE ACCESSOR PROPERTY
+        // ACCESSOR
         Object.defineProperty($class, $property, 
         {
             get: function (): BelongsOneToOne.Accessor<Target, Type, Options>
             {
                 if (this[label] === undefined)
-                    this[label] = BelongsOneToOne.Accessor.create
-                    (
-                        targetGen(),
-                        get_primary_field("Belongs.OneToOne", targetGen()),
-                        this,
-                        $property as string,
-                        myField
-                    );
+                    this[label] = BelongsOneToOne.Accessor.create(metadata, this);
                 return this[label];
             }
         });
@@ -174,8 +178,14 @@ export namespace BelongsOneToOne
     {
         type: "Belongs.OneToOne";
         target: () => Creator<T>;
-        foreign_key_field: string;
         inverse: string | null;
+
+        property: string;
+        foreign_key_field: string;
+        target_primary_field: Singleton<string>;
+        getter: string;
+
+        nullable: boolean;
     }
 
     export interface IOptions<Type extends PrimaryGeneratedColumn>
@@ -193,30 +203,16 @@ export namespace BelongsOneToOne
             Options extends Partial<IOptions<Type>>>
         extends BelongsAccessorBase<Target, Type, Options>
     {
-        private readonly source_: any;
-        private readonly getter_: string;
-        private readonly mutex_: SharedMutex;
-
-        private assigned_: Target | null;
-        private changed_: boolean;
+        private singleton_: MutableSingleton<CapsuleNullable<Target, Options>>;
 
         private constructor
             (
-                private readonly target_: Creator<Target>, 
-                private readonly target_primary_field_: string, 
-                source: any, 
-                property: string, 
-                private readonly field_: string
+                private readonly metadata_: IMetadata<Target>,
+                private readonly mine_: any
             )
         {
             super();
-            
-            this.source_ = source;
-            this.getter_ = ColumnAccessor.getter("belongs", property);
-            this.mutex_ = new SharedMutex();
-
-            this.assigned_ = null;
-            this.changed_ = false;
+            this.singleton_ = new MutableSingleton(() => this._Get());
         }
 
         /**
@@ -227,14 +223,11 @@ export namespace BelongsOneToOne
                 Type extends PrimaryGeneratedColumn, 
                 Options extends Partial<IOptions<Type>>>
             (
-                target: Creator<Target>, 
-                targetPrimaryField: string, 
-                source: any, 
-                property: string, 
-                field: string
+                metadata: IMetadata<Target>,
+                mine: any
             ): Accessor<Target, Type, Options>
         {
-            return new Accessor(target, targetPrimaryField, source, property, field);
+            return new Accessor(metadata, mine);
         }
 
         /**
@@ -242,76 +235,113 @@ export namespace BelongsOneToOne
          */
         public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
         {
-            if (this.source_[this.field_] === null 
-                && this.assigned_ !== null 
-                && (this.assigned_ as any)[this.target_primary_field_] !== undefined)
-                this.source_[this.field_] = (this.assigned_ as any)[this.target_primary_field_];
-            return this.source_[this.field_];
+            const output = this.mine_[this.metadata_.foreign_key_field];
+            if ((output === null || output === undefined) && this.metadata_.nullable === false)
+                throw new DomainError(this.get_null_error_message("id"));
+            return output;
         }
         public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
         {
-            const previous: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.source_[this.field_];
-            this.source_[this.field_] = value;
+            if (value === null && this.metadata_.nullable === false)
+                throw new DomainError(this.get_null_error_message("id"));
+
+            const previous = this.mine_[this.metadata_.foreign_key_field];
+            this.mine_[this.metadata_.foreign_key_field] = value;
 
             if (previous !== value)
             {
-                delete this.source_[`__${this.getter_}__`];
-                delete this.source_[`__has_${this.getter_}__`];
-                this.changed_ = true;
+                this.singleton_ = new MutableSingleton(() => this._Get());
+                delete this.mine_[`__${this.metadata_.getter}__`];
+                delete this.mine_[`__has_${this.metadata_.getter}__`];
+            }
+        }
+
+        public statement(): orm.QueryBuilder<Target>
+        {
+            const creator: Creator<Target> = this.metadata_.target();
+
+            return findRepository(creator)
+                .createQueryBuilder(creator.name)
+                .andWhere(`${creator.name}.${this.metadata_.target_primary_field} = :id`, { id: this.id });
+        }
+        
+        public async set(obj: CapsuleNullable<Target, Options>): Promise<void>
+        {
+            // VALIDATION
+            if (obj === null && this.metadata_.nullable === false)
+                throw new DomainError(this.get_null_error_message("set()"));
+
+            // CONFIGURE NEW RECORD
+            const singleton = this.singleton_;
+            await singleton.set(obj);
+
+            // ASSIGN PROPERTIES
+            if (singleton === this.singleton_)
+            {
+                this.mine_[this.metadata_.foreign_key_field] = (obj !== null)
+                    ? (obj as any)[this.metadata_.target_primary_field.get()]
+                    : null;
+                this.mine_[`__${this.metadata_.getter}__`] = obj;
+                this.mine_[`__has_${this.metadata_.getter}__`] = true;
             }
         }
 
         /**
-         * 
+         * @internal
          */
+        protected _Assign(obj: CapsuleNullable<Target, Options>): void
+        {
+            // VALIDATION
+            if (obj === null && this.metadata_.nullable === false)
+                throw new DomainError(this.get_null_error_message("initialize()"));
+
+            // ENFORCED ASSIGNMENTS
+            this.singleton_["value_"] = obj;
+            this.mine_[this.metadata_.foreign_key_field] = (obj !== null)
+                ? (obj as any)[this.metadata_.target_primary_field.get()]
+                : null;
+            this.mine_[`__${this.metadata_.getter}__`] = obj;
+            this.mine_[`__has_${this.metadata_.getter}__`] = true;
+        }
+
+        public async reload(): Promise<CapsuleNullable<Target, Options>>
+        {
+            const id = this.id;
+            if (id === null || id === undefined)
+            {
+                if (this.metadata_.nullable === false)
+                    throw new DomainError(this.get_null_error_message("get()"));
+                return null!;
+            }
+            return await this.singleton_.reload();
+        }
+
         public async get(): Promise<CapsuleNullable<Target, Options>>
         {
-            const id: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options> = this.id;
-            if (id === null)
-                return null!;
-
-            let output: CapsuleNullable<Target, Options>;
-            if (this.changed_ === true)
-                await UniqueLock.lock(this.mutex_, async () =>
-                {
-                    const loaded: Target | undefined = await findRepository(this.target_).findOne(this.id!);
-                    output = (loaded || null) as any;
-
-                    this.changed_ = false;
-                    this.source_[this.getter_] = Promise.resolve(output);
-                });
-            else
-                await SharedLock.lock(this.mutex_, async () =>
-                {
-                    output = await this.source_[this.getter_];
-                });
-            return output!;
-        }
-
-        /**
-         * 
-         * @param obj 
-         */
-        public async set(obj: CapsuleNullable<Target, Options>): Promise<void>
-        {
-            await UniqueLock.lock(this.mutex_, async () =>
+            const id = this.id;
+            if (id === null || id === undefined)
             {
-                this.assigned_ = obj;
-                this.changed_ = false;
-
-                this.source_[this.field_] = (obj !== null) ? (obj as any)[this.target_primary_field_] : null!;
-                this.source_[this.getter_] = Promise.resolve(obj);
-            });
+                if (this.metadata_.nullable === false)
+                    throw new DomainError(this.get_null_error_message("get()"));
+                return null!;
+            }
+            return await this.singleton_.get();
         }
 
-        /**
-         * 
-         */
-        public statement(): orm.QueryBuilder<Target>
+        private async _Get(): Promise<CapsuleNullable<Target, Options>>
         {
-            return findRepository(this.target_)
-                .createQueryBuilder(this.target_.name)
-                .andWhere(`${this.target_.name}.id = :id`, { id: this.id });
+            const output: CapsuleNullable<Target, Options> = await this.mine_[this.metadata_.getter];
+            if (output === null && this.metadata_.nullable === false)
+                throw new DomainError(this.get_null_error_message("get()"));
+            else if (output !== null && this.metadata_.inverse !== null)
+                await (output as any)[this.metadata_.inverse].set(this.mine_);
+
+            return output;
+        }
+
+        private get_null_error_message(symbol: string): string
+        {
+            return `Error on ${this.mine_.constructor.name}.${this.metadata_.property}.${symbol}: must not be null`;
         }
     }
 }

@@ -10,14 +10,14 @@ async function main(): Promise<void>
     const connections: orm.Connection[] = await orm.createConnections(schemas.map(name => ({
         type: "sqlite",
         name,
-        database: `${__dirname}/../../assets/${name}.db`,
+        database: `:memory:`,
         entities: [`${__dirname}/models/${name}/**/*.${__filename.substr(-2)}`],
         namingStrategy: new SnakeCaseStrategy(),
         logger: TestLogger,
         dropSchema: true,
         synchronize: true
     })));
-    safe.useConnections();
+    safe.Model.useAdequateConnections();
 
     await DynamicImportIterator.main
     (

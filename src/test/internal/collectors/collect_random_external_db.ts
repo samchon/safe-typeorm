@@ -58,6 +58,7 @@ export async function collect_random_external_db
                 created_at: safe.DEFAULT
             });
             scraps.push(s);
+            (await a.scraps.get()).push(s);
         }
         await u.scraps.set(scraps);
         collection.push(scraps);

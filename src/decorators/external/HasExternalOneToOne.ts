@@ -4,11 +4,12 @@ import { Singleton } from "tstl/thread/Singleton";
 
 import { Creator } from "../../typings/Creator";
 import { findRepository } from "../../functional/findRepository";
+import { getColumn } from "../../functional/getColumn";
 
 import { BelongsExternalOneToOne } from "./BelongsExternalOneToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
-import { ColumnAccessor } from "../base/ColumnAccessor";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
+import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
 
 export type HasExternalOneToOne<Target extends object, Ensure extends boolean = false>
@@ -19,39 +20,40 @@ export function HasExternalOneToOne<
         Target extends object,
         Ensure extends boolean = false>
     (
-        targetGen: Creator.Generator<Target>,
+        target: Creator.Generator<Target>,
         inverse: (input: Target) => BelongsExternalOneToOne<Mine, any>,
         ensure: Ensure = false as Ensure
     ): PropertyDecorator
 {
     return function ($class, $property)
     {
-        const label: string = ColumnAccessor.helper("has", $property as string);
-        const inverseField: string = ClosureProxy.steal(inverse);
-        const primaryField = new Singleton(() => get_primary_field("Has.External.OneToOne", $class as any));
+        // LIST UP PROPERTIES
+        const label: string = RelationshipVariable.helper("has", $property as string);
+        const inverse_property: string = ClosureProxy.steal(inverse);
+        const foreign_key_field = new Singleton(() => getColumn(target(), `.${inverse_property as any}`));
+        const primary_field = new Singleton(() => get_primary_field($class.constructor as any));
 
+        // METADATA
         const metadata: HasExternalOneToOne.IMetadata<Target> = {
             type: "Has.External.OneToOne",
-            target: targetGen,
-            inverse: inverseField,
+            target,
+            inverse: inverse_property,
+
+            property: $property as string,
+            primary_field,
+            foreign_key_field,
+
             ensure
         };
         ReflectAdaptor.set($class, $property, metadata);
 
+        // ACCESSOR
         Object.defineProperty($class, $property,
         {
             get: function ()
             {
                 if (this[label] === undefined)
-                    this[label] = HasExternalOneToOne.Accessor.create
-                    (
-                        this, 
-                        $property as string,
-                        primaryField, 
-                        targetGen(), 
-                        inverseField,
-                        ensure
-                    );
+                    this[label] = HasExternalOneToOne.Accessor.create(metadata, this);
                 return this[label];
             }
         });
@@ -68,6 +70,11 @@ export namespace HasExternalOneToOne
         type: "Has.External.OneToOne";
         target: () => Creator<T>;
         inverse: string;
+
+        property: string;
+        primary_field: Singleton<string>;
+        foreign_key_field: Singleton<string>;
+
         ensure: boolean;
     }
 
@@ -77,26 +84,11 @@ export namespace HasExternalOneToOne
 
         private constructor
             (
+                private readonly metadata_: IMetadata<Target>,
                 private readonly mine_: any,
-                private readonly property_: string,
-                private readonly primary_field_: Singleton<string>,
-                private readonly target_: Creator<Target>,
-                private readonly inverse_field_: string,
-                private readonly ensure_: boolean
             )
         {
-            this.singleton_ = new MutableSingleton(async () => 
-            {
-                const pk: string = this.primary_field_.get();
-                const output: Target | undefined =  await findRepository(this.target_).findOne({ [this.inverse_field_]: this.mine_[pk] });
-                
-                if (output !== undefined)
-                    await (output as any)[this.inverse_field_].set(this.mine_);
-                else if (this.ensure_ === true)
-                    throw new DomainError(`Error on ${this.mine_.constructor.name}.${this.property_}.get(): you've ensured that it can't be null, but it was not.`);
-
-                return (output || null) as Output;
-            });
+            this.singleton_ = new MutableSingleton(() => this._Get());
         }
 
         /**
@@ -104,15 +96,18 @@ export namespace HasExternalOneToOne
          */
         public static create<Target extends object, Output extends Target | null>
             (
+                metadata: IMetadata<Target>,
                 mine: any,
-                property: string,
-                primary_field: Singleton<string>,
-                target: Creator<Target>,
-                inverse_field: string,
-                ensure: boolean
             ): Accessor<Target, Output>
         {
-            return new Accessor(mine, property, primary_field, target, inverse_field, ensure);
+            return new Accessor(metadata, mine);
+        }
+
+        public async set(obj: Output): Promise<void>
+        {
+            if (obj === null && this.metadata_.ensure === true)
+                throw new DomainError(this.get_null_error_message("set()"));
+            await this.singleton_.set(obj);
         }
 
         public get(): Promise<Output>
@@ -120,9 +115,24 @@ export namespace HasExternalOneToOne
             return this.singleton_.get();
         }
 
-        public set(obj: Output): Promise<void>
+        private async _Get(): Promise<Output>
         {
-            return this.singleton_.set(obj);
+            const pk: string = this.metadata_.primary_field.get();
+            const output: Target | undefined =  await 
+                findRepository(this.metadata_.target())
+                .findOne({ [this.metadata_.foreign_key_field.get()]: this.mine_[pk] });
+            
+            if (output !== undefined)
+                await (output as any)[this.metadata_.inverse].set(this.mine_);
+            else if (this.metadata_.ensure === true)
+                throw new DomainError(this.get_null_error_message("get()"));
+
+            return (output || null) as Output;
+        }
+
+        private get_null_error_message(symbol: string): string
+        {
+            return `Error on ${this.mine_.constructor.name}.${this.metadata_.property}.${symbol}: must not be null`;
         }
     }
 }

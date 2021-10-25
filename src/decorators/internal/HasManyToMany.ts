@@ -1,5 +1,6 @@
 import * as orm from "typeorm";
 import { MutableSingleton } from "tstl/thread/MutableSingleton";
+import { Singleton } from "tstl/thread/Singleton";
 
 import { Comparator } from "../../typings/Comparator";
 import { Creator } from "../../typings/Creator";
@@ -8,8 +9,8 @@ import { findRepository } from "../../functional/findRepository";
 import { BelongsManyToOne } from "./BelongsManyToOne";
 import { ClosureProxy } from "../base/ClosureProxy";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
+import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
-import { ColumnAccessor } from "../base/ColumnAccessor";
 
 /**
  * Type for a variable using the `Has.ManyToMany` decorator.
@@ -29,9 +30,9 @@ export type HasManyToMany<Target extends object, Router extends object>
  *                  model class *Mine*, through the *Route* model class
  * @template Router Type of the router model who intermediates those *Mine* and *Route* model 
  *                  classes to resolve the N: N relationship
- * @param targetGen A closure function returning the *Target* model class, who has the N: N
+ * @param target A closure function returning the *Target* model class, who has the N: N
  *                  relationship with this model class *Mine* through the *Route* model class
- * @param routerGen A closure function returning the *Router* model class, who intermediates
+ * @param router A closure function returning the *Router* model class, who intermediates
  *                  those *Mine* and *Route* model classes to resolve the N: N relationship
  * @param targetInverse A closure function returning the {@link Belongs.ManyToOne} typed member
  *                      variable, who is pointing this model class *Mine*, from the *Route* 
@@ -47,8 +48,8 @@ export function HasManyToMany<
         Target extends object, 
         Router extends object>
     (
-        targetGen: Creator.Generator<Target>,
-        routerGen: Creator.Generator<Router>,
+        target: Creator.Generator<Target>,
+        router: Creator.Generator<Router>,
         targetInverse: (router: Router) => BelongsManyToOne<Target, any>,
         myInverse: (router: Router) => BelongsManyToOne<Mine, any>,
         comparator?: Comparator<HasManyToMany.ITuple<Target, Router>>
@@ -56,13 +57,22 @@ export function HasManyToMany<
 {
     return function ($class, $property)
     {
-        const label: string = ColumnAccessor.helper("has", $property as string);
+        const label: string = RelationshipVariable.helper("has", $property as string);
+        const target_inverse: string = ClosureProxy.steal(targetInverse);
+        const my_inverse: string = ClosureProxy.steal(myInverse);
+
         const metadata: HasManyToMany.IMetadata<Target, Router> = {
             type: "Has.ManyToMany",
-            target: targetGen,
-            router: routerGen,
-            target_inverse: ClosureProxy.steal(targetInverse),
-            my_inverse: ClosureProxy.steal(myInverse),
+            target,
+            router,
+            target_inverse,
+            my_inverse,
+
+            my_primary_field: new Singleton(() => get_primary_field($class.constructor as any)),
+            target_primary_field: new Singleton(() => get_primary_field(target())),
+            router_to_my_field: new Singleton(() => (ReflectAdaptor.get(router().prototype, my_inverse) as BelongsManyToOne.IMetadata<Mine>).foreign_key_field),
+            router_to_target_field: new Singleton(() => (ReflectAdaptor.get(router().prototype, target_inverse) as BelongsManyToOne.IMetadata<Target>).foreign_key_field),
+
             comparator
         };
         ReflectAdaptor.set($class, $property, metadata as any);
@@ -72,23 +82,7 @@ export function HasManyToMany<
             get: function (): HasManyToMany.Accessor<Target, Router>
             {
                 if (this[label] === undefined)
-                {
-                    const router: Creator<Router> = routerGen();
-                    this[label] = HasManyToMany.Accessor.create
-                    (
-                        this, 
-                        targetGen(), 
-                        router, 
-                        metadata.target_inverse,
-                        (ReflectAdaptor.get(routerGen().prototype, metadata.target_inverse) as BelongsManyToOne.IMetadata<Router>).foreign_key_field,
-                        (ReflectAdaptor.get(routerGen().prototype, metadata.my_inverse) as BelongsManyToOne.IMetadata<Router>).foreign_key_field,
-                        [
-                            get_primary_field("Has.ManyToMany", this.constructor),
-                            get_primary_field("Has.ManyToMany", targetGen())
-                        ],
-                        comparator
-                    );
-                }
+                    this[label] = HasManyToMany.Accessor.create(metadata, this);
                 return this[label];
             }
         });
@@ -107,7 +101,13 @@ export namespace HasManyToMany
         router: () => Creator<Router>;
         target_inverse: string;
         my_inverse: string;
-        comparator?: Comparator<ITuple<Target, Router>>;
+
+        my_primary_field: Singleton<string>;
+        target_primary_field: Singleton<string>;
+        router_to_target_field: Singleton<string>;
+        router_to_my_field: Singleton<string>;
+
+        comparator: Comparator<ITuple<Target, Router>> | undefined;
     }
 
     export interface ITuple<Target extends object, Router extends object>
@@ -118,70 +118,75 @@ export namespace HasManyToMany
 
     export class Accessor<Target extends object, Router extends object>
     {
-        private readonly stmt_: orm.SelectQueryBuilder<Router>;
-        private readonly getter_: MutableSingleton<Target[]>;
+        private readonly data_: MutableSingleton<Target[]>;
 
         private constructor
             (
-                mine: any, 
-                targetFactory: Creator<Target>,
-                routerFactory: Creator<Router>,
-                targetField: string,
-                targetInverseField: string,
-                myInverseField: string,
-                primaryKeyTuple: [string, string],
-                comp?: Comparator<ITuple<Target, Router>>
+                private readonly metadata_: IMetadata<Target, Router>,
+                private readonly mine_: any,
             )
         {
-            this.stmt_ = findRepository(routerFactory)
-                .createQueryBuilder(routerFactory.name)
-                .innerJoin(targetFactory, targetFactory.name, `${targetFactory.name}.${primaryKeyTuple[1]} = ${routerFactory.name}.${targetInverseField}`)
-                .andWhere(`${routerFactory.name}.${myInverseField} = :my_id`, { my_id: mine[primaryKeyTuple[0]] });
-            this.getter_ = new MutableSingleton(async () => 
-            {
-                const routerList: Router[] = await this.stmt_.getMany();
-                let tupleList: ITuple<Target, Router>[] = [];
-
-                for (const router of routerList)
-                    tupleList.push({
-                        router,
-                        target: await (router as any)[targetField].get()
-                    });
-                if (comp)
-                    tupleList = tupleList.sort(comp);
-
-                return tupleList.map(({ target }) => target);
-            });
+            this.data_ = new MutableSingleton(() => this._Get());
         }
 
+        /**
+         * @internal
+         */
         public static create<Target extends object, Router extends object>
             (
+                metadata: IMetadata<Target, Router>,
                 mine: any, 
-                targetFactory: Creator<Target>,
-                routerFactory: Creator<Router>,
-                targetField: string,
-                targetInverseField: string,
-                myInverseField: string,
-                primaryKeyTuple: [string, string],
-                comp?: Comparator<ITuple<Target, Router>>
             ): Accessor<Target, Router>
         {
-            return new Accessor<Target, Router>(mine, targetFactory, routerFactory, targetField, targetInverseField, myInverseField, primaryKeyTuple, comp);
+            return new Accessor<Target, Router>(metadata, mine);
         }
 
         public get(): Promise<Target[]>
         {
-            return this.getter_.get();
+            return this.data_.get();
         }
 
         public set(value: Target[]): Promise<void>
         {
-            return this.getter_.set(value);
+            return this.data_.set(value);
         }
 
-        public statement(): orm.SelectQueryBuilder<Router>
+        public statement(joinAndSelect: boolean = false): orm.SelectQueryBuilder<Router>
         {
-            return this.stmt_;
+            const router: Creator<Router> = this.metadata_.router();
+            const target: Creator<Target> = this.metadata_.target();
+            const joinArguments = [
+                target, 
+                target.name, 
+                `${target.name}.${this.metadata_.target_primary_field.get()} = ${router.name}.${this.metadata_.router_to_target_field.get()}`
+            ] as const;
+            
+            const stmt = findRepository(router)
+                .createQueryBuilder(router.name)
+                .andWhere(`${router.name}.${this.metadata_.router_to_my_field.get()} = :my_id`, { 
+                    my_id: this.mine_[this.metadata_.my_primary_field.get()] 
+                });
+            if (joinAndSelect === true)
+                stmt.innerJoinAndSelect(...joinArguments);
+            else
+                stmt.innerJoin(...joinArguments);
+            return stmt;
+        }
+
+        private async _Get(): Promise<Target[]>
+        {
+            const routerList: Router[] = await this.statement(true).getMany();
+            let tupleList: ITuple<Target, Router>[] = [];
+
+            for (const router of routerList)
+                tupleList.push({
+                    router,
+                    target: await (router as any)[this.metadata_.target_inverse].get()
+                });
+            if (this.metadata_.comparator)
+                tupleList = tupleList.sort(this.metadata_.comparator);
+
+            return tupleList.map(({ target }) => target);
         }
     }
 }

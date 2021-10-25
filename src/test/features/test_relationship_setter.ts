@@ -20,7 +20,7 @@ export async function test_relationship_setter(): Promise<void>
         async () =>
         {
             for (const group of groupList)
-                await iterate_bbs_group(group);
+                await iterate_bbs_group(group, false);
         }
     );
 }

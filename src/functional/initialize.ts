@@ -39,7 +39,7 @@ export function initialize<T extends object>
         if (output[key] instanceof BelongsAccessorBase)
         {
             if (value instanceof Object)
-                output[key].set(value);
+                output[key]._Assign(value);
             else
                 output[key].id = value;
         }
