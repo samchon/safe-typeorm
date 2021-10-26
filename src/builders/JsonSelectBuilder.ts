@@ -29,7 +29,7 @@ export class JsonSelectBuilder<
 {
     private readonly mine_: Creator<Mine>;
     private readonly input_: InputT;
-    private readonly closure_?: Function;
+    private readonly mapper_?: Function;
 
     private readonly joiner_: AppJoinBuilder<Mine>;
 
@@ -67,7 +67,7 @@ export class JsonSelectBuilder<
     {
         this.mine_ = mine;
         this.input_ = input;
-        this.closure_ = mapper;
+        this.mapper_ = mapper;
 
         this.joiner_ = new AppJoinBuilder(this.mine_);
         for (const [key, value] of Object.entries(input))
@@ -153,8 +153,8 @@ export class JsonSelectBuilder<
                     output[key] = plan(data);
             }
         }
-        return this.closure_
-            ? this.closure_(output)
+        return this.mapper_
+            ? this.mapper_(output, record)
             : output;
     }
 
@@ -270,9 +270,8 @@ export namespace JsonSelectBuilder
         export interface Mapper<Mine extends object, InputT extends Input<Mine>, Destination> 
         {
             (
-                output: Output<Mine, InputT>, 
-                index: number, 
-                array: Output<Mine, InputT>[]
+                output: Output<Mine, InputT>,
+                model: Mine,
             ): Destination;
         }
     }
