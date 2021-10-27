@@ -7,9 +7,9 @@ export function createJsonSelectBuilder<
         Destination = JsonSelectBuilder.Output<Mine, InputT>>
     (
         creator: Creator<Mine>, 
-        input: InputT,
+        input: Readonly<InputT>,
         closure?: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
     ): JsonSelectBuilder<Mine, InputT, Destination> 
 {
-    return new JsonSelectBuilder(creator, input, closure!);
+    return new JsonSelectBuilder(creator, input, closure);
 }

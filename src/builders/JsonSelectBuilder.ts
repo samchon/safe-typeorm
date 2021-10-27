@@ -28,9 +28,6 @@ export class JsonSelectBuilder<
         Destination = JsonSelectBuilder.Output<Mine, InputT>>
 {
     private readonly mine_: Creator<Mine>;
-    private readonly input_: InputT;
-    private readonly mapper_?: Function;
-
     private readonly joiner_: AppJoinBuilder<Mine>;
 
     /* -----------------------------------------------------------
@@ -46,13 +43,11 @@ export class JsonSelectBuilder<
     public constructor
         (
             mine: Creator<Mine>, 
-            input: InputT, 
-            mapper?: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
+            public readonly input: Readonly<InputT>, 
+            public readonly mapper?: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
         )
     {
         this.mine_ = mine;
-        this.input_ = input;
-        this.mapper_ = mapper;
 
         this.joiner_ = new AppJoinBuilder(this.mine_);
         for (const [key, value] of Object.entries(input))
@@ -110,7 +105,7 @@ export class JsonSelectBuilder<
     private async _Convert(record: Mine): Promise<Destination>
     {
         const output: any = toPrimitive(record);
-        for (const [key, plan] of Object.entries(this.input_))
+        for (const [key, plan] of Object.entries(this.input))
         {
             if (plan === undefined)
                 continue;
@@ -138,8 +133,8 @@ export class JsonSelectBuilder<
                     output[key] = plan(data);
             }
         }
-        return this.mapper_
-            ? this.mapper_(output, record)
+        return this.mapper
+            ? this.mapper(output, record)
             : output;
     }
 

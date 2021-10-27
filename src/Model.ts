@@ -164,7 +164,7 @@ export abstract class Model extends orm.BaseEntity
             Destination = JsonSelectBuilder.Output<T, InputT>>
         (
             this: Model.Creator<T>,
-            input: InputT,
+            input: Readonly<InputT>,
             closure?: JsonSelectBuilder.Output.Mapper<T, InputT, Destination>
         ): JsonSelectBuilder<T, InputT, Destination>
     {
