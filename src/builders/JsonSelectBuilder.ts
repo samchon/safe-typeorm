@@ -41,23 +41,8 @@ export class JsonSelectBuilder<
      * 
      * @param mine Target ORM class to perform the DB join
      * @param input List of relationship decorated fields with joining plan
-     */
-    public constructor(mine: Creator<Mine>, input: InputT);
-
-    /**
-     * Mapper Constructor.
-     * 
-     * @param mine Target ORM class to perform the DB join
-     * @param input List of relationship decorated fields with joining plan
      * @param mapper Map function to convert output type
      */
-    public constructor
-        (
-            mine: Creator<Mine>, 
-            input: InputT, 
-            mapper: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
-        );
-
     public constructor
         (
             mine: Creator<Mine>, 

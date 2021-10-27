@@ -1,6 +1,8 @@
 import * as orm from "typeorm";
 
+import { AppJoinBuilder } from "./builders/AppJoinBuilder";
 import { JoinQueryBuilder } from "./builders/JoinQueryBuilder";
+import { JsonSelectBuilder } from "./builders/JsonSelectBuilder";
 
 import { Creator as _Creator } from "./typings/Creator";
 import { Field } from "./typings/Field";
@@ -10,7 +12,9 @@ import { Operator } from "./typings/Operator";
 import { Primitive } from "./typings/Primitive";
 import { SpecialFields } from "./typings/SpecialFields";
 
+import { createAppJoinBuilder } from "./functional/createAppJoinBuilder";
 import { createJoinQueryBuilder } from "./functional/createJoinQueryBuilder";
+import { createJsonSelectBuilder } from "./functional/createJsonSelectBuilder";
 import { findRepository } from "./functional/findRepository";
 import { getColumn } from "./functional/getColumn";
 import { getWhereArguments } from "./functional/getWhereArguments";
@@ -83,7 +87,7 @@ export abstract class Model extends orm.BaseEntity
     }
 
     /* -----------------------------------------------------------
-        JOINER
+        BUILDERS
     ----------------------------------------------------------- */
     /**
      * Create join query builder.
@@ -144,6 +148,27 @@ export abstract class Model extends orm.BaseEntity
         ): orm.SelectQueryBuilder<T>
     {
         return createJoinQueryBuilder(this, ...(args as [string, (builder: JoinQueryBuilder<T>) => void]));
+    }
+
+    public static createAppJoinBuilder<T extends Model>
+        (
+            this: Model.Creator<T>,
+            closure?: AppJoinBuilder.Closure<T>
+        ): AppJoinBuilder<T>
+    {
+        return createAppJoinBuilder(this, closure);
+    }
+
+    public static createJsonSelectBuilder<T extends Model, 
+            InputT extends JsonSelectBuilder.Input<T>,
+            Destination = JsonSelectBuilder.Output<T, InputT>>
+        (
+            this: Model.Creator<T>,
+            input: InputT,
+            closure?: JsonSelectBuilder.Output.Mapper<T, InputT, Destination>
+        ): JsonSelectBuilder<T, InputT, Destination>
+    {
+        return createJsonSelectBuilder(this, input, closure);
     }
 
     /* -----------------------------------------------------------

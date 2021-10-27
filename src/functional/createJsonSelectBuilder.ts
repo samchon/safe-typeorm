@@ -1,19 +1,6 @@
 import { Creator } from "../typings";
 import { JsonSelectBuilder } from "../builders/JsonSelectBuilder";
 
-export function createJsonSelectBuilder<Mine extends object, InputT extends JsonSelectBuilder.Input<Mine>>
-    (creator: Creator<Mine>, input: InputT): JsonSelectBuilder<Mine, InputT>;
-
-export function createJsonSelectBuilder<
-        Mine extends object, 
-        InputT extends JsonSelectBuilder.Input<Mine>,
-        Destination>
-    (
-        creator: Creator<Mine>, 
-        input: InputT,
-        closure: JsonSelectBuilder.Output.Mapper<Mine, InputT, Destination>
-    ): JsonSelectBuilder<Mine, InputT, Destination>;
-
 export function createJsonSelectBuilder<
         Mine extends object, 
         InputT extends JsonSelectBuilder.Input<Mine>,
