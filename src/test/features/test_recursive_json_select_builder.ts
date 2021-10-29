@@ -8,11 +8,7 @@ export async function test_recursive_json_select_builder(): Promise<void>
     const builder = safe.createJsonSelectBuilder
     (
         BbsCategory, 
-        {
-            parent: "recursive",
-            children: undefined,
-            articles: undefined,
-        }
+        { parent: "recursive" }
     );
     const data = await builder.getOne(top);
     const regular: ICategory = data;

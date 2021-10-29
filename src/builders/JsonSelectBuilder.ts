@@ -10,9 +10,10 @@ import { Same } from "../typings/Same";
 import { AppJoinBuilder } from "./AppJoinBuilder";
 import { ArrayUtil } from "../utils/ArrayUtil";
 import { BelongsAccessorBase } from "../decorators/base/BelongsAccessorBase";
-import { DEFAULT } from "../DEFAULT";
 import { Primitive } from "../typings/Primitive";
 import { toPrimitive } from "../functional/toPrimitive";
+
+import { DEFAULT } from "../DEFAULT";
 
 /**
  * JSON Select Builder.
@@ -53,6 +54,8 @@ export class JsonSelectBuilder<
         for (const [key, value] of Object.entries(input))
             if (value instanceof JsonSelectBuilder)
                 this.joiner_.set(key as any, value.joiner_);
+            else if (value === "join")
+                this.joiner_.join(key as AppJoinBuilder.Key<Mine>);
     }
 
     /**
@@ -109,9 +112,12 @@ export class JsonSelectBuilder<
         {
             if (plan === undefined)
                 continue;
-            else if (plan instanceof JsonSelectBuilder)
+
+            const elem: any = (record as any)[key];
+            if (plan instanceof JsonSelectBuilder)
             {
-                const data = await (record as any)[key].get();
+                // HIERARCHICAL JSON-SELECT-BUILDER
+                const data = await elem.get();
                 if (data === null)
                     output[key] = null;
                 else if (data instanceof Array)
@@ -119,19 +125,21 @@ export class JsonSelectBuilder<
                 else
                     output[key] = await plan._Convert(data);
             }
-            else if (plan === "recursive")
+            else if (plan === "recursive") // RECURSIVE JOINING
                 output[key] = await this._Convert_Recursive(key, record);
-            else
+            else if (plan === "join")
             {
-                let data = (record as any)[key];
-                if (data instanceof BelongsAccessorBase)
-                    data = data.id;
-                
-                if (plan === DEFAULT)
-                    output[key] = data;
-                else if (plan instanceof Function)
-                    output[key] = plan(data);
+                // PRIMITIVE JOINING
+                const data = await elem.get();
+                if (data === null)
+                    output[key] = null;
+                else if (data instanceof Array)
+                    output[key] = await ArrayUtil.asyncMap(data, item => toPrimitive(item) as any);
+                else
+                    output[key] = toPrimitive(data);
             }
+            else if (plan === DEFAULT && elem instanceof BelongsAccessorBase)
+                output[key] = elem.id;
         }
         return this.mapper
             ? this.mapper(output, record)
@@ -165,27 +173,29 @@ export namespace JsonSelectBuilder
     /**
      * 
      */
-    export type Input<Mine extends object> = OmitNever<
+    export type Input<Mine extends object> = Partial<OmitNever<
     {
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
             ? Mine[P] extends BelongsCommon<Target, any, infer TargetOptions>
                 ? TargetOptions extends { nullable: true }
                     ? Same<Mine, Target> extends true
-                        ? "recursive" | DEFAULT | undefined
-                        : JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
+                        ? "recursive" | "join" | DEFAULT | undefined
+                        : JsonSelectBuilder<Target, any, any> | "join" | DEFAULT | undefined
                     : Same<Mine, Target> extends true 
-                        ? "recursive" | DEFAULT | undefined
-                        : JsonSelectBuilder<Target, any, any> | DEFAULT | undefined
-            : Same<Mine, Target> extends true 
-                ? "recursive" | undefined
-                : JsonSelectBuilder<Target, any, any> | undefined
+                        ? "recursive" | "join" | DEFAULT | undefined
+                        : JsonSelectBuilder<Target, any, any> | "join" | DEFAULT | undefined
+            : Same<Mine, Target> extends true
+                ? "recursive" | "join" | undefined
+                : JsonSelectBuilder<Target, any, any> | "join" | undefined
             : never
-    }>;
+    }>>;
 
     /**
      * 
      */
-    export type Output<Mine extends object, InputT extends object> = Primitive<Mine> & OmitNever<
+    export type Output<
+            Mine extends object, 
+            InputT extends object> = Primitive<Mine> & OmitNever<
     {
         [P in keyof (Mine|InputT)]
             : InputT[P] extends JsonSelectBuilder<infer Target, any, infer Destination>
@@ -193,7 +203,7 @@ export namespace JsonSelectBuilder
                     ? Options extends { nullable: true }
                         ? Destination | null
                         : Destination
-                : Mine[P] extends HasOneToOneCommon<Target, infer Ensure>
+                : Mine[P] extends HasOneCommon<Target, infer Ensure>
                     ? Ensure extends true
                         ? Destination
                         : Destination | null
@@ -203,20 +213,32 @@ export namespace JsonSelectBuilder
                     ? Options extends { nullable: true }
                         ? Output.RecursiveReference<Mine, P> | null
                         : never // never be happened
-                : Mine[P] extends HasOneToOneCommon<Mine, infer Ensure>
+                : Mine[P] extends HasOneCommon<Mine, infer Ensure>
                     ? Ensure extends true
                         ? never // never be happened
                         : Output.RecursiveReference<Mine, P> | null
-                : Mine[P] extends (Has.OneToMany<Mine> | Has.External.OneToMany<Mine>) 
+                : Mine[P] extends HasManyCommon<Mine> 
                     ? Output.RecursiveArray<Mine, P>
                 : Mine[P] extends Has.ManyToMany<Mine, any> 
                     ? Output.RecursiveArray<Mine, P>
                 : never
-            : InputT[P] extends DEFAULT 
-                ? Mine[P] extends BelongsCommon<any, infer PrimaryKey, infer Options>
+            : InputT[P] extends DEFAULT
+                ? Mine[P] extends BelongsCommon<any, infer PrimaryType, infer Options>
                     ? Options extends { nullable: true }
-                        ? PrimaryGeneratedColumn.ValueType<PrimaryKey> | null
-                        : PrimaryGeneratedColumn.ValueType<PrimaryKey>
+                        ? PrimaryGeneratedColumn.ValueType<PrimaryType> | null
+                        : PrimaryGeneratedColumn.ValueType<PrimaryType>
+                : never
+            : InputT[P] extends "join"
+                ? Mine[P] extends BelongsCommon<infer Target, any, infer Options>
+                    ? Options extends { nullable: true }
+                        ? Primitive<Target> | null
+                        : Primitive<Target>
+                : Mine[P] extends HasOneCommon<infer Target, infer Ensure>
+                    ? Ensure extends true
+                        ? Primitive<Target>
+                        : Primitive<Target> | null
+                : Mine[P] extends HasManyCommon<infer Target>
+                    ? Primitive<Target>[]
                     : never
             : never;
     }>;
@@ -265,7 +287,12 @@ export namespace JsonSelectBuilder
         | Belongs.External.OneToOne<Target, PrimaryKey, Options>
         | Belongs.External.ManyToOne<Target, PrimaryKey, Options>;
 
-    type HasOneToOneCommon<Target extends object, Ensure extends boolean>
-         = Has.OneToOne<Target, Ensure>
-         | Has.External.OneToOne<Target, Ensure>;
+    type HasOneCommon<Target extends object, Ensure extends boolean>
+        = Has.OneToOne<Target, Ensure>
+        | Has.External.OneToOne<Target, Ensure>;
+
+    type HasManyCommon<Target extends object>
+        = Has.OneToMany<Target>
+        | Has.External.OneToMany<Target>
+        | Has.ManyToMany<Target, any>;
 }

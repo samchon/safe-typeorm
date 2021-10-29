@@ -1,7 +1,6 @@
 import { equal } from "tstl/ranges/algorithm";
 
 import safe from "../..";
-import { AttachmentFile } from "../models/bbs/AttachmentFile";
 import { BbsArticle } from "../models/bbs/BbsArticle";
 import { BbsArticleContent } from "../models/bbs/BbsArticleContent";
 import { BbsArticleTag } from "../models/bbs/BbsArticleTag";
@@ -10,9 +9,9 @@ import { BbsGroup } from "../models/bbs/BbsGroup";
 
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
-import { IBbsGroup } from "../structures/IBbsGroup";
 import { IBbsArticle } from "../structures/IBbsArticle";
 import { IBbsArticleContent } from "../structures/IBbsArticleContent";
+import { IBbsGroup } from "../structures/IBbsGroup";
 
 export async function test_json_select_builder(): Promise<void>
 {
@@ -24,25 +23,15 @@ export async function test_json_select_builder(): Promise<void>
             category: safe.createJsonSelectBuilder(BbsCategory, 
             { 
                 parent: "recursive",
-                children: undefined, // INVERSE
-                articles: undefined, // INVERSE
             }),
             tags: safe.createJsonSelectBuilder(BbsArticleTag, 
-            {
-                article: undefined // INVERSE
-            }, tag => tag.value),
+                { article: undefined }, 
+                tag => tag.value
+            ),
             contents: safe.createJsonSelectBuilder(BbsArticleContent, 
             {
-                files: safe.createJsonSelectBuilder(AttachmentFile, {}),
-                article: undefined, // INVERSE
-                reviewContent: undefined,
+                files: "join",
             }),
-            __mv_last: undefined, // MATERIAL
-            review: undefined, // SUB-TYPE
-            question: undefined, // SUB-TYPE
-            answer: undefined, // SUB-TYPE
-            comments: undefined, // ONE-TO-MAY
-            scraps: undefined // FROM EXTERNAL DB
         })
     });
 
@@ -58,9 +47,8 @@ export async function test_json_select_builder(): Promise<void>
     // TYPE CHECKING
     const regular: IBbsGroup[] = data;
     const reverse: typeof data = regular;
-    reverse;
 
-    for (let i: number = 0; i < data.length; ++i)
+    for (let i: number = 0; i < reverse.length; ++i)
     {
         const modelGroup: BbsGroup = models[i];
         const jsonGroup: IBbsGroup = data[i];
