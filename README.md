@@ -179,32 +179,24 @@ Therefore, just enjoy the `JsonSelectBuilder` without any worry.
 ```typescript
 export async function test_json_select_builder(models: BbsGroup[]): Promise<void>
 {
-    const builder = safe.createJsonSelectBuilder(BbsGroup, 
-    {
-        articles: safe.createJsonSelectBuilder(BbsArticle, 
-        {
-            group: safe.DEFAULT,
-            category: safe.createJsonSelectBuilder(BbsCategory, 
-            { 
-                parent: "recursive",
-                children: undefined, // INVERSE
-                articles: undefined, // INVERSE
+    const builder = BbsGroup.createJsonSelectBuilder
+    ({
+        articles: BbsArticle.createJsonSelectBuilder
+        ({
+            group: safe.DEFAULT, // ID ONLY
+            category: BbsCategory.createJsonSelectBuilder
+            ({ 
+                parent: "recursive" as const, // RECURSIVE JOIN
             }),
-            tags: safe.createJsonSelectBuilder
+            tags: BbsArticleTag.createJsonSelectBuilder
             (
-                BbsArticleTag, 
-                { article: undefined }, 
+                {}, 
                 tag => tag.value // OUTPUT CONVERSION BY MAPPING
             ),
-            contents: safe.createJsonSelectBuilder(BbsArticleContent, 
-            {
-                article: undefined, // INVERSE
-                files: safe.createJsonSelectBuilder(AttachmentFile, {})
+            contents: BbsArticleContent.createJsonSelectBuilder
+            ({
+                files: "join" as const
             }),
-            review: undefined, // SUB-TYPE
-            question: undefined, // SUB-TYPE
-            answer: undefined, // SUB-TYPE
-            comments: undefined, // ONE-TO-MAY
         })
     });
 
@@ -231,6 +223,9 @@ When you want to execute `INSERT` query for lots of records of plural tables, yo
 However, with the `InsertCollection` class provided by this `safe-typeorm`, you don't need to consider any dependcy relationship. You also do not need to consider any performance tuning. The `InsertCollection` will analyze the dependency relationships and orders the insertion sequence automatically. Also, the `InsertCollection` utilizes the extended insertion query for the optimizing performance.
 
 ```typescript
+import safe from "safe-typeorm";
+import std from "tstl";
+
 export async function archive
     (
         comments: BbsComment[],
@@ -246,23 +241,31 @@ export async function archive
         tags: BbsArticleTag[],
     ): Promise<void>
 {
+    // PREPARE A NEW COLLECTION
     const collection: safe.InsertCollection = new safe.InsertCollection();
+    
+    // PUSH TABLE RECORDS TO THE COLLECTION WITH RANDOM SHULFFLING
+    const massive = [
+        comments,
+        questions,
+        reviews,
+        groups,
+        files,
+        answers,
+        comments,
+        articles,
+        contents,
+        tags
+    ];
+    std.ranges.shuffle(massive);
+    for (const records of massive)
+        collection.push(records);
 
-    collection.push(comments);
-    collection.push(questions);
-    collection.push(reviews);
-    collection.push(groups);
-    collection.push(files);
-    collection.push(answers);
-
+    // PUSH INDIVIDUAL RECORDS
     for (const category of categories)
         collection.push(category);
-
-    collection.push(comments);
-    collection.push(articles);
-    collection.push(contents);
-    collection.push(tags);
-
+    
+    // EXECUTE THE INSERT QUERY
     await collection.execute();
 }
 ```

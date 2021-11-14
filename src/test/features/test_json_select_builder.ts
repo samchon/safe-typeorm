@@ -15,22 +15,23 @@ import { IBbsGroup } from "../structures/IBbsGroup";
 
 export async function test_json_select_builder(): Promise<void>
 {
-    const builder = safe.createJsonSelectBuilder(BbsGroup, 
-    {
-        articles: safe.createJsonSelectBuilder(BbsArticle, 
-        {
+    const builder = BbsGroup.createJsonSelectBuilder
+    ({
+        articles: BbsArticle.createJsonSelectBuilder
+        ({
             group: safe.DEFAULT,
-            category: safe.createJsonSelectBuilder(BbsCategory, 
-            { 
-                parent: "recursive",
+            category: BbsCategory.createJsonSelectBuilder
+            ({ 
+                parent: "recursive" as const,
             }),
-            tags: safe.createJsonSelectBuilder(BbsArticleTag, 
-                { article: undefined }, 
-                tag => tag.value
+            tags: BbsArticleTag.createJsonSelectBuilder
+            (
+                {}, 
+                tag => tag.value // OUTPUT CONVERSION BY MAPPING
             ),
-            contents: safe.createJsonSelectBuilder(BbsArticleContent, 
-            {
-                files: "join",
+            contents: BbsArticleContent.createJsonSelectBuilder
+            ({
+                files: "join" as const
             }),
         })
     });
