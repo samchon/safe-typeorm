@@ -34,12 +34,14 @@ import { get_column_name_tuple } from "./internal/get_column_name_tuple";
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
+export function getWhereArguments<
+        T extends { [P in Literal]: Field; }, 
+        Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
         param: Field.MemberType<T, Literal> | null
-    ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
+    ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
 /**
  * Get arguments for the where query.
@@ -67,8 +69,8 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
  *         never can be the runtime error
  */
 export function getWhereArguments<
-        T extends object, 
-        Literal extends SpecialFields<T, Field>,
+    T extends { [P in Literal]: Field; }, 
+    Literal extends SpecialFields<T, Field>,
         OperatorType extends Operator>
     (
         creator: Creator<T>,
@@ -77,7 +79,7 @@ export function getWhereArguments<
         param: OperatorType extends "="|"!="|"<>"
             ? Field.MemberType<T, Literal> | null
             : Field.MemberType<T, Literal> 
-    ): [string, { [key: string]: Field.ValueType<T[Literal]> }];
+    ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
 /**
  * Get arguments for the where-in query.
@@ -104,13 +106,15 @@ export function getWhereArguments<
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
+export function getWhereArguments<
+        T extends { [P in Literal]: Field; }, 
+        Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: "IN",
         parameters: Array<Field.MemberType<T, Literal>>
-    ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
+    ): [string, Record<string, [Field.ValueType<T[Literal]>, Field.ValueType<T[Literal]>]>];
 
 /**
  * Get arguments for the where-between query.
@@ -138,16 +142,20 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
  * @return The exact arguments, for the `TypeORM.SelectQueryBuilder.where()` like methods, which 
  *         never can be the runtime error
  */
-export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
+export function getWhereArguments<
+        T extends { [P in Literal]: Field; }, 
+        Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
         operator: "BETWEEN",
         minimum: Field.MemberType<T, Literal>,
         maximum: Field.MemberType<T, Literal>
-    ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
+    ): [string, Record<string, Array<Field.ValueType<T[Literal]>>>];
 
-export function getWhereArguments<T extends object, Literal extends SpecialFields<T, Field>>
+export function getWhereArguments<
+        T extends { [P in Literal]: Field; }, 
+        Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
@@ -164,7 +172,7 @@ export function getWhereArguments<T extends object, Literal extends SpecialField
     {
         // SPECIALIZE OPERATOR AND PARAMETER
         let operator: Operator | "IN";
-        let param: Field.ValueType<T[Literal]>
+        let param: Field.ValueType<T[Literal]>;
 
         if (rest.length === 1)
         {

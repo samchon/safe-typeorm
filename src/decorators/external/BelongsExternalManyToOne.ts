@@ -223,7 +223,7 @@ export namespace BelongsExternalManyToOne
                     throw new OutOfRange(this.get_null_error_message("get()"));
                 else
                     return null!;
-            return output;
+            return output as CapsuleNullable<Target, Options>;
         }
 
         private get_null_error_message(symbol: string): string

@@ -228,7 +228,7 @@ export namespace BelongsExternalOneToOne
 
             if (this.metadata_.inverse !== null)
                 await (output as any)[this.metadata_.inverse].set(this.mine_);
-            return output;
+            return output as CapsuleNullable<Target, Options>;
         }
 
         private get_null_error_message(symbol: string): string

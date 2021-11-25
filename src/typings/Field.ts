@@ -27,12 +27,16 @@ export namespace Field
         : Type extends Date ? (string | Date)
         : Type;
 
-    export type MemberType<T extends object, Member extends SpecialFields<T, Field>>
+    export type MemberType<
+            T extends { [P in Member]: Field; }, 
+            Member extends SpecialFields<T, Field>>
         = Member extends "id"
             ? PrimaryType<T, Member>
             : ValueType<T[Member]>;
 
-    type PrimaryType<T extends object, Member extends SpecialFields<T, Field>>
+    type PrimaryType<
+            T extends { [P in Member]: Field; }, 
+            Member extends SpecialFields<T, Field>>
         = ValueType<T[Member]> 
         | ModelLike<T, T[Member] extends string ? "uuid" : "int", false>;
 }
