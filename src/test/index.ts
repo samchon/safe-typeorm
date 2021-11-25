@@ -15,7 +15,7 @@ async function main(): Promise<void>
         namingStrategy: new SnakeCaseStrategy(),
         logger: TestLogger,
         dropSchema: true,
-        synchronize: true
+        synchronize: true,
     })));
     safe.Model.useAdequateConnections();
 

@@ -21,7 +21,7 @@ export class BbsAnswerArticle extends safe.Model
     @safe.Belongs.OneToOne(() => BbsQuestionArticle,
         question => question.answer,
         "uuid",
-        "id",
+        "bbs_question_id",
         { unique: true }
     )
     public readonly question!: safe.Belongs.OneToOne<BbsQuestionArticle, "uuid">;

@@ -119,6 +119,16 @@ export function BelongsOneToOne<
             ? ClosureProxy.steal(inverse)
             : null;
 
+        // COLUMN
+        const columnOptions = {
+            ...take_foreign_column_options(options),
+            unique: false,
+        };
+        if (options.primary === true)
+            orm.PrimaryColumn(type, columnOptions)($class, myField);
+        else
+            orm.Column(<any>type, columnOptions)($class, myField);
+
         // DECORATOR FUNCTIONS
         if (inverseField !== null)
             orm.OneToOne
@@ -131,12 +141,6 @@ export function BelongsOneToOne<
         else
             orm.OneToOne(targetGen, options)($class, getter);
         orm.JoinColumn({ name: myField })($class, getter);
-
-        const columnOptions = take_foreign_column_options(options);
-        if (options.primary === true)
-            orm.PrimaryColumn(type, columnOptions)($class, myField);
-        else
-            orm.Column(<any>type, columnOptions)($class, myField);
 
         //----
         // DEFINITIONS
