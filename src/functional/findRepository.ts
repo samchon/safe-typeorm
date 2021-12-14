@@ -10,11 +10,13 @@ export function findRepository<T extends object>
     if (repository === undefined)
     {
         for (const connection of orm.getConnectionManager().connections)
+        {
             if (connection.hasMetadata(creator))
             {
                 repository = connection.getRepository(creator);
                 break;
             }
+        }
         if (repository === undefined)
             throw new OutOfRange(`Error on safe.findRepository(): unable to find the matched repository of the "${creator.name}".`);
     }

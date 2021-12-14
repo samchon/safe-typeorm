@@ -1,7 +1,7 @@
 import crypto from "crypto";
 
 /**
- * Utility class for AES Encryption.
+ * Utility class for the AES-128/256 encryption.
  * 
  *   - AES-128/256
  *   - CBC mode
@@ -13,30 +13,30 @@ import crypto from "crypto";
 export namespace AesPkcs5
 {
     /**
-     * Encode data
+     * Encrypt data
      * 
      * @param data Target data
      * @param key Key value of the encryption.
      * @param iv Initializer Vector for the encryption
-     * @return Encoded data
+     * @return Encrypted data
      */
-    export function encode(data: string, key: string, iv: string): string
+    export function encrypt(data: string, key: string, iv: string): string
     {
         const bytes: number = key.length * 8;
         const cipher: crypto.Cipher = crypto.createCipheriv(`AES-${bytes}-CBC`, key, iv);
 
         return cipher.update(data, "utf8", "base64") + cipher.final("base64");
     }
- 
+
     /**
-     * Decode data.
+     * Decrypt data.
      * 
      * @param data Target data
      * @param key Key value of the decryption.
      * @param iv Initializer Vector for the decryption
-     * @return Decoded data.
+     * @return Decrypted data.
      */
-    export function decode(data: string, key: string, iv: string): string
+    export function decrypt(data: string, key: string, iv: string): string
     {
         const bytes: number = key.length * 8;
         const decipher: crypto.Decipher = crypto.createDecipheriv(`AES-${bytes}-CBC`, key, iv);

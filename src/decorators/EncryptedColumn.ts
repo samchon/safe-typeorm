@@ -34,7 +34,7 @@ export function EncryptedColumn(type: EncryptedColumn.Type, options: EncryptedCo
                     const password: EncryptedColumn.IPassword = (options.password instanceof Function)
                         ? options.password(content, false)
                         : options.password;
-                    return AesPkcs5.decode(content, password.key, password.iv);
+                    return AesPkcs5.decrypt(content, password.key, password.iv);
                 }
             },
             set: function (content: string | null): void
@@ -48,7 +48,7 @@ export function EncryptedColumn(type: EncryptedColumn.Type, options: EncryptedCo
                 const password: EncryptedColumn.IPassword = (options.password instanceof Function)
                     ? options.password(content, true)
                     : options.password;
-                this[field] = AesPkcs5.encode(content, password.key, password.iv);
+                this[field] = AesPkcs5.encrypt(content, password.key, password.iv);
             }
         });
     };
