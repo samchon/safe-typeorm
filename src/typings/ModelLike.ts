@@ -1,8 +1,8 @@
 import { Belongs } from "../decorators";
-import { PrimaryGeneratedColumn } from "./PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "./PrimaryColumnType";
 
 export type ModelLike<T extends object, 
-        Primary extends PrimaryGeneratedColumn, 
+        Primary extends PrimaryColumnType, 
         Nullable extends boolean> 
     = T 
     | Belongs.ManyToOne<T, Primary, { nullable: Nullable extends true ? true : (false | undefined) }> 

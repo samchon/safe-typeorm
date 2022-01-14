@@ -1,6 +1,6 @@
 {
   "name": "safe-typeorm",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Safe Relationship Decorators for the TypeORM",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
@@ -22,11 +22,11 @@
   "bugs": {
     "url": "https://github.com/samchon/safe-typeorm/issues"
   },
-  "homepage": "https://github.com/samchon/safe-typeorm#readme",
+  "homepage": "https://github.com/samchon/safe-typeorm",
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "pluralize": "^8.0.0",
-    "tstl": "^2.5.1",
+    "tstl": "^2.5.2",
     "typeorm": "^0.2.41",
     "uuid": "^8.3.2"
   },

@@ -1,7 +1,7 @@
 import { Belongs } from "../decorators/Belongs"
 
 import { OmitNever } from "./OmitNever";
-import { PrimaryGeneratedColumn } from "./PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "./PrimaryColumnType";
 
 import { DEFAULT } from "../DEFAULT"
 
@@ -18,19 +18,19 @@ export namespace Initialized
             : T[P] extends Belongs.OneToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
                     ? never
-                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
+                    : Entity | PrimaryColumnType.ValueType<Primary>
             : T[P] extends Belongs.ManyToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
                     ? never
-                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
+                    : Entity | PrimaryColumnType.ValueType<Primary>
             : T[P] extends Belongs.External.OneToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
                     ? never
-                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
+                    : Entity | PrimaryColumnType.ValueType<Primary>
             : T[P] extends Belongs.External.ManyToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
                     ? never
-                    : Entity | PrimaryGeneratedColumn.ValueType<Primary>
+                    : Entity | PrimaryColumnType.ValueType<Primary>
             : never;
     };
 
@@ -40,19 +40,19 @@ export namespace Initialized
             ? (T[P] | DEFAULT | null)
             : T[P] extends Belongs.OneToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
-                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    ? Entity | PrimaryColumnType.ValueType<Primary> | null
                     : never
             : T[P] extends Belongs.External.OneToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
-                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    ? Entity | PrimaryColumnType.ValueType<Primary> | null
                     : never
             : T[P] extends Belongs.ManyToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
-                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    ? Entity | PrimaryColumnType.ValueType<Primary> | null
                     : never
             : T[P] extends Belongs.External.ManyToOne<infer Entity, infer Primary, infer Options>
                 ? Options extends { nullable: true }
-                    ? Entity | PrimaryGeneratedColumn.ValueType<Primary> | null
+                    ? Entity | PrimaryColumnType.ValueType<Primary> | null
                     : never
             : never;
     };

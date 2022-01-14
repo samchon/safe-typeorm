@@ -1,6 +1,6 @@
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
-import { PrimaryGeneratedColumn } from "./PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "./PrimaryColumnType";
 import { SpecialFields } from "./SpecialFields";
 
 export type Relationship<T extends object> = Relationship.Joinable<T> 
@@ -26,8 +26,8 @@ export namespace Relationship
         : never;
 
     export type Joinable<T extends object>
-        = Belongs.ManyToOne<T, PrimaryGeneratedColumn, any> 
-        | Belongs.OneToOne<T, PrimaryGeneratedColumn, any> 
+        = Belongs.ManyToOne<T, PrimaryColumnType, any> 
+        | Belongs.OneToOne<T, PrimaryColumnType, any> 
         | Has.OneToOne<T> 
         | Has.OneToMany<T>;
 

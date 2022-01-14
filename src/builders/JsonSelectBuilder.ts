@@ -3,7 +3,7 @@ import { Has } from "../decorators/Has";
 
 import { Creator } from "../typings/Creator";
 import { OmitNever } from "../typings/OmitNever";
-import { PrimaryGeneratedColumn } from "../typings/PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "../typings/PrimaryColumnType";
 import { Relationship } from "../typings/Relationship";
 import { Same } from "../typings/Same";
 
@@ -225,8 +225,8 @@ export namespace JsonSelectBuilder
             : InputT[P] extends DEFAULT
                 ? Mine[P] extends BelongsCommon<any, infer PrimaryType, infer Options>
                     ? Options extends { nullable: true }
-                        ? PrimaryGeneratedColumn.ValueType<PrimaryType> | null
-                        : PrimaryGeneratedColumn.ValueType<PrimaryType>
+                        ? PrimaryColumnType.ValueType<PrimaryType> | null
+                        : PrimaryColumnType.ValueType<PrimaryType>
                 : never
             : InputT[P] extends "join"
                 ? Mine[P] extends BelongsCommon<infer Target, any, infer Options>
@@ -280,7 +280,7 @@ export namespace JsonSelectBuilder
 
     type BelongsCommon<
             Target extends object, 
-            PrimaryKey extends PrimaryGeneratedColumn, 
+            PrimaryKey extends PrimaryColumnType, 
             Options extends { nullable: boolean }>
         = Belongs.ManyToOne<Target, PrimaryKey, Options>
         | Belongs.OneToOne<Target, PrimaryKey, Options>

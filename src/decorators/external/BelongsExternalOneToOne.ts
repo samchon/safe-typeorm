@@ -6,7 +6,8 @@ import { Singleton } from "tstl/thread/Singleton";
 
 import { CapsuleNullable } from "../../typings/CapsuleNullable";
 import { Creator } from "../../typings/Creator";
-import { PrimaryGeneratedColumn } from "../../typings/PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "../../typings/PrimaryColumnType";
+import { StringColumnType } from "../../typings/StringColumnType";
 import { findRepository } from "../../functional/findRepository";
 
 import { BelongsAccessorBase } from "../base/BelongsAccessorBase";
@@ -18,13 +19,13 @@ import { get_primary_field } from "../base/get_primary_field";
 
 export type BelongsExternalOneToOne<
         Target extends object,
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsExternalOneToOne.IOptions<Type>> = {}>
     = BelongsExternalOneToOne.Accessor<Target, Type, Options>;
 
 export function BelongsExternalOneToOne<
         Target extends object,
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsExternalOneToOne.IOptions<Type>>>
     (
         targetGen: Creator.Generator<Target>, 
@@ -36,7 +37,7 @@ export function BelongsExternalOneToOne<
 export function BelongsExternalOneToOne<
         Mine extends object,
         Target extends object,
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsExternalOneToOne.IOptions<Type>>>
     (
         targetGen: Creator.Generator<Target>, 
@@ -49,7 +50,7 @@ export function BelongsExternalOneToOne<
 export function BelongsExternalOneToOne<
         Mine extends object,
         Target extends object,
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsExternalOneToOne.IOptions<Type>>>
     (
         target: Creator.Generator<Target>, 
@@ -63,10 +64,6 @@ export function BelongsExternalOneToOne<
     const type: Type = args[0];
     const foreign_key_field: string = args[1];
     const options: Options = args[2] || {};
-
-    // UUID LENGTH
-    if (type === "uuid" && options.length === undefined)
-        options.length = 36;
 
     return function ($class, $property)
     {
@@ -121,19 +118,19 @@ export namespace BelongsExternalOneToOne
         nullable: boolean;
     }
 
-    export interface IOptions<Type extends PrimaryGeneratedColumn>
+    export interface IOptions<Type extends PrimaryColumnType>
         extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
     {
         index: boolean;
         primary: boolean;
         unique: boolean;
-        unsigned: Type extends "uuid" ? never : boolean;
+        unsigned: Type extends StringColumnType ? never : boolean;
         length: number;
     }
 
     export class Accessor<
             Target extends object,
-            Type extends PrimaryGeneratedColumn,
+            Type extends PrimaryColumnType,
             Options extends Partial<IOptions<Type>>>
         extends BelongsAccessorBase<Target, Type, Options>
     {
@@ -153,7 +150,7 @@ export namespace BelongsExternalOneToOne
          * @internal
          */
         public static create<Target extends object,
-                Type extends PrimaryGeneratedColumn,
+                Type extends PrimaryColumnType,
                 Options extends Partial<IOptions<Type>>>
             (
                 metadata: IMetadata<Target>,
@@ -163,11 +160,11 @@ export namespace BelongsExternalOneToOne
             return new Accessor(metadata, mine);
         }
 
-        public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
+        public get id(): CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>
         {
             return this.mine_[this.metadata_.foreign_key_field];
         }
-        public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
+        public set id(value: CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>)
         {
             if (value === this.id)
                 return;

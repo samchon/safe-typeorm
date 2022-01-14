@@ -67,15 +67,15 @@ export abstract class Model extends orm.BaseEntity
     /**
      * Update current entity data to the database.
      * 
-     * If the primary key field is not a type of the {@link PrimaryGeneratedColumn}, `TypeORM` 
+     * If the primary key field is not a type of the {@link PrimaryColumnType}, `TypeORM` 
      * can't distinguish whether a {@link Model} instance is newly created or updated from 
      * ordinary. 
      * 
      * Therefore, when you call the {@link save} method in a {@link Model} instance whose primary 
-     * key field a type of is not {@link PrimaryGeneratedColumn}, the `TypeORM` always execute the 
+     * key field a type of is not {@link PrimaryColumnType}, the `TypeORM` always execute the 
      * `INSERT` query instead of the `UPDATE` statement.
      * 
-     * In such reason, when type of a primary is not the {@link PrimaryGeneratedColumn}, you have 
+     * In such reason, when type of a primary is not the {@link PrimaryColumnType}, you have 
      * to distinguish `INSERT` and `UPDATE` queries by calling one of the {@link save} and 
      * {@link update} method by yourself.
      * 

@@ -40,5 +40,5 @@ export function getColumn<T extends object, Literal extends SpecialFields<T, Fie
         : tuple[1];
     return (alias === null)
         ? target
-        : `${target} AS \`${alias}\``;
+        : `${target} AS ${alias}`;
 }

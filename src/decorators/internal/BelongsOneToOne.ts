@@ -5,7 +5,8 @@ import { Singleton } from "tstl/thread/Singleton";
 
 import { CapsuleNullable } from "../../typings/CapsuleNullable";
 import { Creator } from "../../typings/Creator";
-import { PrimaryGeneratedColumn } from "../../typings/PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "../../typings/PrimaryColumnType";
+import { StringColumnType } from "../../typings/StringColumnType";
 import { findRepository } from "../../functional/findRepository";
 
 import { BelongsAccessorBase } from "../base/BelongsAccessorBase";
@@ -26,7 +27,7 @@ import { take_foreign_column_options } from "../base/take_foreign_column_options
  */
 export type BelongsOneToOne<
         Target extends object, 
-        Type extends PrimaryGeneratedColumn, 
+        Type extends PrimaryColumnType, 
         Options extends Partial<BelongsOneToOne.IOptions<Type>> = {}> 
     = BelongsOneToOne.Accessor<Target, Type, Options>;
 
@@ -46,7 +47,7 @@ export type BelongsOneToOne<
  */
 export function BelongsOneToOne<
         Target extends object, 
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsOneToOne.IOptions<Type>>>
     (
         targetGen: Creator.Generator<Target>, 
@@ -75,7 +76,7 @@ export function BelongsOneToOne<
 export function BelongsOneToOne<
         Mine extends object,
         Target extends object, 
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsOneToOne.IOptions<Type>>>
     (
         targetGen: Creator.Generator<Target>, 
@@ -88,7 +89,7 @@ export function BelongsOneToOne<
 export function BelongsOneToOne<
         Mine extends object,
         Target extends object, 
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<BelongsOneToOne.IOptions<Type>>>
     (
         targetGen: Creator.Generator<Target>,
@@ -102,10 +103,6 @@ export function BelongsOneToOne<
     const type: Type = args[0];
     const myField: string = args[1];
     const options: Options = take_default_cascade_options(args[2] || {});
-    
-    // UUID LENGTH
-    if (type === "uuid" && options.length === undefined)
-        options.length = 36;
 
     return function ($class, $property)
     {
@@ -192,18 +189,18 @@ export namespace BelongsOneToOne
         nullable: boolean;
     }
 
-    export interface IOptions<Type extends PrimaryGeneratedColumn>
+    export interface IOptions<Type extends PrimaryColumnType>
         extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
     {
         index: boolean;
         primary: boolean;
         unique: boolean;
-        unsigned: Type extends "uuid" ? never : boolean;
+        unsigned: Type extends StringColumnType ? never : boolean;
         length: number;
     }
 
     export class Accessor<Target extends object,
-            Type extends PrimaryGeneratedColumn,
+            Type extends PrimaryColumnType,
             Options extends Partial<IOptions<Type>>>
         extends BelongsAccessorBase<Target, Type, Options>
     {
@@ -224,7 +221,7 @@ export namespace BelongsOneToOne
          */
         public static create<
                 Target extends object, 
-                Type extends PrimaryGeneratedColumn, 
+                Type extends PrimaryColumnType, 
                 Options extends Partial<IOptions<Type>>>
             (
                 metadata: IMetadata<Target>,
@@ -237,14 +234,14 @@ export namespace BelongsOneToOne
         /**
          * 
          */
-        public get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
+        public get id(): CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>
         {
             const output = this.mine_[this.metadata_.foreign_key_field];
             if ((output === null || output === undefined) && this.metadata_.nullable === false)
                 throw new DomainError(this.get_null_error_message("id"));
             return output;
         }
-        public set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>)
+        public set id(value: CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>)
         {
             if (value === null && this.metadata_.nullable === false)
                 throw new DomainError(this.get_null_error_message("id"));

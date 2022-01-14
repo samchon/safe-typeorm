@@ -1,12 +1,12 @@
 import { CapsuleNullable } from "../../typings/CapsuleNullable";
-import { PrimaryGeneratedColumn } from "../../typings/PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "../../typings/PrimaryColumnType";
 
 export abstract class BelongsAccessorBase<Target extends object,
-        Type extends PrimaryGeneratedColumn,
+        Type extends PrimaryColumnType,
         Options extends Partial<{ nullable: boolean }>>
 {
-    public abstract get id(): CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>
-    public abstract set id(value: CapsuleNullable<PrimaryGeneratedColumn.ValueType<Type>, Options>);
+    public abstract get id(): CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>
+    public abstract set id(value: CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>);
 
     public abstract set(obj: CapsuleNullable<Target, Options>): Promise<void>;
     public abstract reload(): Promise<CapsuleNullable<Target, Options>>;

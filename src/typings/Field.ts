@@ -1,6 +1,6 @@
 import { Belongs } from "../decorators/Belongs";
 import { ModelLike } from "./ModelLike";
-import { PrimaryGeneratedColumn } from "./PrimaryGeneratedColumn";
+import { PrimaryColumnType } from "./PrimaryColumnType";
 import { SpecialFields } from "./SpecialFields";
 
 export type Field
@@ -8,8 +8,8 @@ export type Field
     | string
     | boolean
     | Date
-    | Belongs.ManyToOne<any, PrimaryGeneratedColumn>
-    | Belongs.OneToOne<any, PrimaryGeneratedColumn>
+    | Belongs.ManyToOne<any, PrimaryColumnType>
+    | Belongs.OneToOne<any, PrimaryColumnType>
     | null;
 
 export namespace Field
@@ -18,12 +18,12 @@ export namespace Field
         = Type extends string ? Type
         : Type extends Belongs.ManyToOne<infer Target, infer KeyType, infer Options> 
             ? Options extends { nullable: true }
-                ? (ModelLike<Target, KeyType, true> | PrimaryGeneratedColumn.ValueType<KeyType> | null)
-                : (ModelLike<Target, KeyType, false> | PrimaryGeneratedColumn.ValueType<KeyType>)
+                ? (ModelLike<Target, KeyType, true> | PrimaryColumnType.ValueType<KeyType> | null)
+                : (ModelLike<Target, KeyType, false> | PrimaryColumnType.ValueType<KeyType>)
         : Type extends Belongs.OneToOne<infer Target, infer KeyType, infer Options>
             ? Options extends { nullable: true }
-                ? (ModelLike<Target, KeyType, true> | PrimaryGeneratedColumn.ValueType<KeyType> | null)
-                : (ModelLike<Target, KeyType, false> | PrimaryGeneratedColumn.ValueType<KeyType>)
+                ? (ModelLike<Target, KeyType, true> | PrimaryColumnType.ValueType<KeyType> | null)
+                : (ModelLike<Target, KeyType, false> | PrimaryColumnType.ValueType<KeyType>)
         : Type extends Date ? (string | Date)
         : Type;
 
