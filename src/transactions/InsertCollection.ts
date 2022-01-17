@@ -16,12 +16,12 @@ export class InsertCollection
 {
     private dict_: Map<Creator<object>, Pair<object[], boolean>>;
 
-    private readonly befores_: Vector<InsertPocket.Process>;
-    private readonly afters_: Vector<InsertPocket.Process>;
+    private readonly befores_: Vector<InsertCollection.Process>;
+    private readonly afters_: Vector<InsertCollection.Process>;
     private readonly mutex_: Mutex;
     private readonly limit_: number;
 
-    public constructor(limit: number = 1000)
+    public constructor(limit: number = InsertCollection.DEFAULT_PIECE_COUNT)
     {
         this.dict_ = new Map();
 
@@ -45,12 +45,12 @@ export class InsertCollection
             return this._Push([input], ignore)[0];
     }
 
-    public before(process: InsertPocket.Process): void
+    public before(process: InsertCollection.Process): void
     {
         this.befores_.push_back(process);
     }
 
-    public after(process: InsertPocket.Process): void
+    public after(process: InsertCollection.Process): void
     {
         this.afters_.push_back(process);
     }
@@ -131,13 +131,18 @@ export class InsertCollection
     }
 }
 
-export namespace InsertPocket
+export namespace InsertCollection
 {
     export interface Process
     {
         (): Promise<any>;
         (manager: orm.EntityManager): Promise<any>;
     }
+
+    /**
+     * Default piece count for the extended insert query.
+     */
+    export let DEFAULT_PIECE_COUNT: number = 1000;
 }
 
 function getDependencies<T extends object>
