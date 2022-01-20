@@ -19,16 +19,14 @@ export class InsertCollection
     private readonly befores_: Vector<InsertCollection.Process>;
     private readonly afters_: Vector<InsertCollection.Process>;
     private readonly mutex_: Mutex;
-    private readonly limit_: number;
 
-    public constructor(limit: number = InsertCollection.DEFAULT_PIECE_COUNT)
+    public constructor(public limit: number = InsertCollection.DEFAULT_LIMIT)
     {
         this.dict_ = new Map();
 
         this.befores_ = new Vector();
         this.afters_ = new Vector();
         this.mutex_ = new Mutex();
-        this.limit_ = limit;
     }
 
     /* -----------------------------------------------------------
@@ -97,7 +95,7 @@ export class InsertCollection
             for (const tuple of this._Get_record_tuples())
                 while (tuple.first.length !== 0)
                 {
-                    const pieces: object[] = tuple.first.splice(0, this.limit_);
+                    const pieces: object[] = tuple.first.splice(0, this.limit);
                     if (manager !== undefined)
                         await insert(manager, pieces, tuple.second);
                     else
@@ -142,7 +140,7 @@ export namespace InsertCollection
     /**
      * Default piece count for the extended insert query.
      */
-    export let DEFAULT_PIECE_COUNT: number = 1000;
+    export let DEFAULT_LIMIT: number = 1000;
 }
 
 function getDependencies<T extends object>
