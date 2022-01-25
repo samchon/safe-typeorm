@@ -1,5 +1,8 @@
 import * as orm from "typeorm";
 
+/**
+ * @internal
+ */
 export function take_default_cascade_options<
         Options extends Pick<orm.RelationOptions, "lazy"|"onDelete"|"onUpdate">>
     (options: Options): Options

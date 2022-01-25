@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export namespace RelationshipVariable
 {
     export function helper(type: "has" | "belongs", property: string)

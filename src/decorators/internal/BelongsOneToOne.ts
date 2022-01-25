@@ -139,6 +139,10 @@ export function BelongsOneToOne<
             orm.OneToOne(targetGen, options)($class, getter);
         orm.JoinColumn({ name: myField })($class, getter);
 
+        // INDEXING IF REQUIRED, BUT NOT RECOMMEND
+        if (options.index === true)
+            orm.Index()($class, myField);
+
         //----
         // DEFINITIONS
         //----

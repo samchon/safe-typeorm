@@ -16,6 +16,7 @@ import { HasExternalOneToMany } from "./HasExternalOneToMany";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
 import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
+import { take_index_option } from "../base/take_index_option";
 
 export type BelongsExternalManyToOne<
         Target extends object,
@@ -68,7 +69,9 @@ export function BelongsExternalManyToOne<
     return function ($class, $property)
     {
         // DECORATOR
-        orm.Column(type as any, options)($class, foreign_key_field);
+        orm.Column(type as any, take_index_option(options))($class, foreign_key_field);
+        if (options.index === true)
+            orm.Index()($class, foreign_key_field);
 
         // METADATA
         const metadata: BelongsExternalManyToOne.IMetadata<Target> = {

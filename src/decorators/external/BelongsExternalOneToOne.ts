@@ -16,6 +16,7 @@ import { HasExternalOneToOne } from "./HasExternalOneToOne";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
 import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
+import { take_index_option } from "../base/take_index_option";
 
 export type BelongsExternalOneToOne<
         Target extends object,
@@ -71,7 +72,11 @@ export function BelongsExternalOneToOne<
         if (options.primary === true)
             orm.PrimaryColumn(type, options as any)($class, foreign_key_field);
         else
-            orm.Column(type as any, options)($class, foreign_key_field);
+        {
+            orm.Column(type as any, take_index_option(options))($class, foreign_key_field);
+            if (options.index === true)
+                orm.Index()($class, foreign_key_field);
+        }
 
         // DEFINE METADATA
         const metadata: BelongsExternalOneToOne.IMetadata<Target> = {

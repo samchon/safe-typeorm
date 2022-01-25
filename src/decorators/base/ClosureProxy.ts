@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export namespace ClosureProxy
 {
     export function steal<Func extends Closure<any, any>>(func: Func): string

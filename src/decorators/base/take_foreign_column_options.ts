@@ -1,7 +1,10 @@
 import * as orm from "typeorm";
 
+/**
+ * @internal
+ */
 export function take_foreign_column_options<Options extends orm.RelationOptions>
-    (options: Options): Omit<Options, keyof orm.RelationOptions>
+    (options: Options): Omit<Options, keyof orm.RelationOptions | "index">
 {
     const ret: any = { ...options };
     for (const key of RELATION_OPTION_KEYS)
@@ -11,7 +14,10 @@ export function take_foreign_column_options<Options extends orm.RelationOptions>
     return ret;
 }
 
-const RELATION_OPTION_KEYS: Array<keyof orm.RelationOptions> = [
+/**
+ * @internal
+ */
+const RELATION_OPTION_KEYS: Array<keyof orm.RelationOptions | "index"> = [
     "cascade", 
     "onDelete",
     "onUpdate",
@@ -19,5 +25,6 @@ const RELATION_OPTION_KEYS: Array<keyof orm.RelationOptions> = [
     "lazy", 
     "eager", 
     "persistence", 
-    "orphanedRowAction"
+    "orphanedRowAction",
+    "index"
 ];

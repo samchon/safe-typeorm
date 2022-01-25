@@ -101,7 +101,7 @@ export function BelongsManyToOne<
         ? args.splice(0, 1)[0]
         : undefined;
     const type: Type = args[0];
-    const field: string = args[1];
+    const myField: string = args[1];
     const options: Options = take_default_cascade_options(args[2] || {});
 
     return function ($class, $property)
@@ -127,8 +127,12 @@ export function BelongsManyToOne<
             ($class, getter);
         else
             orm.ManyToOne(target, options)($class, getter);
-        orm.JoinColumn({ name: field })($class, getter);
-        orm.Column(<any>type, take_foreign_column_options(options))($class, field);
+        orm.JoinColumn({ name: myField })($class, getter);
+        orm.Column(<any>type, take_foreign_column_options(options))($class, myField);
+
+        // INDEXING
+        if (options.index === true)
+            orm.Index()($class, myField);
 
         //----
         // DEFINITIONS
@@ -140,7 +144,7 @@ export function BelongsManyToOne<
             inverse: inverse_property,
 
             property: $property as string,
-            foreign_key_field: field,
+            foreign_key_field: myField,
             getter,
             target_primary_field: new Singleton(() => get_primary_field(target())),
 

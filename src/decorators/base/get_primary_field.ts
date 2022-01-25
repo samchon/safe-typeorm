@@ -1,6 +1,9 @@
 import { Creator } from "../../typings/Creator";
 import { findRepository } from "../../functional/findRepository";
 
+/**
+ * @internal
+ */
 export function get_primary_field(target: Creator<any>): string
 {
     const columns = findRepository(target).metadata.primaryColumns;
