@@ -14,7 +14,7 @@ import { insert } from "../functional/insert";
 
 export class InsertCollection
 {
-    private dict_: Map<Creator<object>, Pair<object[], boolean>>;
+    private dict_: Map<Creator<object>, Pair<object[], string|boolean>>;
 
     private readonly befores_: Vector<InsertCollection.Process>;
     private readonly afters_: Vector<InsertCollection.Process>;
@@ -32,10 +32,10 @@ export class InsertCollection
     /* -----------------------------------------------------------
         ELEMENTS I/O
     ----------------------------------------------------------- */
-    public push<T extends object>(record: T, ignore?: boolean): T;
-    public push<T extends object>(records: T[], ignore?: boolean): T[];
+    public push<T extends object>(record: T, ignore?: string|boolean): T;
+    public push<T extends object>(records: T[], ignore?: string|boolean): T[];
 
-    public push<T extends object>(input: T | T[], ignore: boolean = false): T | T[]
+    public push<T extends object>(input: T | T[], ignore: string|boolean = false): T | T[]
     {
         if (input instanceof Array)
             return this._Push(input, ignore);
@@ -53,13 +53,13 @@ export class InsertCollection
         this.afters_.push_back(process);
     }
 
-    private _Push<T extends object>(records: T[], ignore: boolean): T[]
+    private _Push<T extends object>(records: T[], ignore: string | boolean): T[]
     {
         if (records.length === 0)
             return records;
 
         const creator: Creator<T> = records[0].constructor as Creator<T>;
-        let tuple: Pair<object[], boolean> | undefined = this.dict_.get(creator);
+        let tuple: Pair<object[], string|boolean> | undefined = this.dict_.get(creator);
 
         if (tuple === undefined)
         {
@@ -112,15 +112,15 @@ export class InsertCollection
             throw new DomainError("Error on InsertCollection.execute(): it's already on executing.");
     }
 
-    private _Get_record_tuples(): Pair<object[], boolean>[]
+    private _Get_record_tuples(): Pair<object[], string|boolean>[]
     {
-        function compare(x: Pair<object[], boolean>, y: Pair<object[], boolean>): boolean
+        function compare(x: Pair<object[], string|boolean>, y: Pair<object[], string|boolean>): boolean
         {
             const children: Set<Creator<object>> = getDependencies(y.first[0].constructor as Creator<object>);
             return !children.has(x.first[0].constructor as Creator<object>);
         }
 
-        const output: Vector<Pair<object[], boolean>> = new Vector();
+        const output: Vector<Pair<object[], string|boolean>> = new Vector();
         for (const [_, tuple] of this.dict_)
             output.push_back(tuple);
         

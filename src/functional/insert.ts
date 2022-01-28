@@ -5,9 +5,10 @@ import { v4 } from "uuid";
 import { Creator } from "../typings";
 import { ITableInfo } from "./internal/ITableInfo";
 import { findRepository } from "./findRepository";
+import { VariadicSingleton } from "tstl";
 
-export function insert<T extends object>(records: T | T[], ignore?: boolean): Promise<void>;
-export function insert<T extends object>(manager: orm.EntityManager, records: T | T[], ignore?: boolean): Promise<void>;
+export function insert<T extends object>(records: T | T[], ignore?: string|boolean): Promise<void>;
+export function insert<T extends object>(manager: orm.EntityManager, records: T | T[], ignore?: string|boolean): Promise<void>;
 
 export async function insert<T extends object>(...args: any[]): Promise<void>
 {
@@ -26,7 +27,7 @@ export async function insert<T extends object>(...args: any[]): Promise<void>
 }
 
 async function _Insert<T extends object>
-    (manager: orm.EntityManager, records: T | T[], ignore?: boolean): Promise<void>
+    (manager: orm.EntityManager, records: T | T[], ignore?: string|boolean): Promise<void>
 {
     if (ignore === undefined)
         ignore = false;
@@ -57,8 +58,14 @@ async function _Insert<T extends object>
         .insert()
         .values(records)
         .updateEntity(false);
-    if (ignore === true)
-        stmt.orIgnore();
+
+    const type = dbms.get(manager);
+    if (typeof ignore === "boolean" || (type !== "postgres" && type !== "aurora-data-api-pg"))
+        stmt.orIgnore(ignore);
+    else
+        stmt.onConflict(ignore);
     
     await stmt.execute();
 }
+
+const dbms = new VariadicSingleton((manager: orm.EntityManager) => manager.connection.options.type);
