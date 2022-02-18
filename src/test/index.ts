@@ -4,34 +4,31 @@ import safe, { SnakeCaseStrategy } from "..";
 import { DynamicImportIterator } from "./internal/procedures/DynamicImportIterator";
 import { TestLogger } from "./internal/procedures/TestLogger";
 
-async function main(): Promise<void>
-{
+async function main(): Promise<void> {
     const schemas: string[] = ["bbs", "blog"];
-    const connections: orm.Connection[] = await orm.createConnections(schemas.map(name => ({
-        type: "sqlite",
-        name,
-        database: `:memory:`,
-        entities: [`${__dirname}/models/${name}/**/*.${__filename.substr(-2)}`],
-        namingStrategy: new SnakeCaseStrategy(),
-        logger: TestLogger,
-        dropSchema: true,
-        synchronize: true,
-    })));
-    safe.Model.useAdequateConnections();
-
-    await DynamicImportIterator.main
-    (
-        `${__dirname}/features`, 
-        {
-            prefix: "test",
-            parameters: []
-        }
+    const connections: orm.Connection[] = await orm.createConnections(
+        schemas.map(name => ({
+            type: "sqlite",
+            name,
+            database: `:memory:`,
+            entities: [
+                `${__dirname}/models/${name}/**/*.${__filename.substr(-2)}`
+            ],
+            namingStrategy: new SnakeCaseStrategy(),
+            logger: TestLogger,
+            dropSchema: true,
+            synchronize: true
+        }))
     );
-    for (const conn of connections)
-        await conn.close();
+    safe.useAdequateConnections();
+
+    await DynamicImportIterator.main(`${__dirname}/features`, {
+        prefix: "test",
+        parameters: []
+    });
+    for (const conn of connections) await conn.close();
 }
-main().catch(exp =>
-{
+main().catch(exp => {
     console.log(exp);
     process.exit(-1);
 });
