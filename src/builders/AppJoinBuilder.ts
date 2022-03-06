@@ -6,11 +6,7 @@ import { SpecialFields } from "../typings/SpecialFields";
 import { ReflectAdaptor } from "../decorators/base/ReflectAdaptor";
 
 import { IAppJoinChildTuple } from "./internal/IAppJoinChildTuple";
-import { app_join_belongs_many_to_one } from "./internal/app_join_belongs_many_to_one";
-import { app_join_belongs_one_to_one } from "./internal/app_join_belongs_one_to_one";
-import { app_join_has_many_to_many } from "./internal/app_join_has_many_to_many";
-import { app_join_has_one_to_many } from "./internal/app_join_has_one_to_many";
-import { app_join_has_one_to_one } from "./internal/app_join_has_one_to_one";
+import { get_app_join_function } from "./internal/get_app_join_function";
 
 /**
  * Application level join builder.
@@ -74,8 +70,6 @@ export class AppJoinBuilder<Mine extends object>
      */
     public constructor(mine: Creator<Mine>)
     {
-        new Array(3)
-
         this.mine_ = mine;
         this.children_ = new Map();
     }
@@ -209,21 +203,16 @@ export class AppJoinBuilder<Mine extends object>
     {
         for (const [field, child] of this.children_.entries())
         {
-            // JOIN WITH RELATED ENTITIES
-            let output: Relationship.TargetType<Mine, any>[];
-            if (child.metadata.type === "Belongs.ManyToOne" || child.metadata.type === "Belongs.External.ManyToOne")
-                output = await app_join_belongs_many_to_one(this.mine_, child as any, data, field);
-            else if (child.metadata.type === "Belongs.OneToOne" || child.metadata.type === "Belongs.External.OneToOne")
-                output = await app_join_belongs_one_to_one(child as any, data, field);
-            else if (child.metadata.type === "Has.OneToOne" || child.metadata.type === "Has.External.OneToOne")
-                output = await app_join_has_one_to_one(this.mine_, child as any, data, field);
-            else if (child.metadata.type === "Has.OneToMany" || child.metadata.type === "Has.External.OneToMany")
-                output = await app_join_has_one_to_many(this.mine_, child as any, data, field);
-            else if (child.metadata.type === "Has.ManyToMany")
-                output = await app_join_has_many_to_many(this.mine_, child as any, data, field);
-            else
-                continue;
-            
+            // CALL APP JOIN FUNCTION
+            const func: Function = get_app_join_function(child.metadata.type);
+            const output: Relationship.TargetType<Mine, any>[] = await func
+            (
+                this.mine_,
+                child.metadata,
+                data,
+                field
+            );
+
             // HIERARCHICAL CALL
             if (output.length !== 0)
                 await child.builder._Execute(output);

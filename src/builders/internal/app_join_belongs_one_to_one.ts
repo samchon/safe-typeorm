@@ -1,51 +1,73 @@
 import { Belongs } from "../../decorators/Belongs";
 import { Creator } from "../../typings/Creator";
+import { SpecialFields } from "../../typings/SpecialFields";
 import { ITableInfo } from "../../functional/internal/ITableInfo";
 
-import { IAppJoinChildTuple } from "./IAppJoinChildTuple";
 import { get_records_by_where_in } from "./get_records_by_where_in";
 
 /**
  * @internal
  */
-export async function app_join_belongs_one_to_one
+export async function app_join_belongs_one_to_one<
+        Mine extends object,
+        Target extends object,
+        Field extends SpecialFields<Mine, Belongs.OneToOne<Target, any> | Belongs.External.OneToOne<Target, any>>>
     (
-        child: IAppJoinChildTuple<any, Belongs.ManyToOne.IMetadata<any> | Belongs.OneToOne.IMetadata<any>>,
-        data: any[], 
-        field: any,
-    ): Promise<any[]>
+        mine: Creator<Mine>,
+        metadata: Belongs.OneToOne.IMetadata<Target> | Belongs.External.OneToOne.IMetadata<Target>,
+        myData: Mine[], 
+        field: Field,
+        targetData?: Target[]
+    ): Promise<Target[]>
 {
     // NO DATA
-    if (data.length === 0)
+    if (myData.length === 0)
         return [];
 
     // NO REFERENCE
-    const idList: any[] = data
-        .map(elem => elem[field].id)
+    const idList: any[] = myData
+        .map(elem => (<any>elem[field] as Belongs.ManyToOne<Target, any>).id)
         .filter(id => id !== null);
     if (idList.length === 0)
         return [];
 
     // THE TARGET INFO
-    const target: Creator<any> = child.metadata.target();
+    const target: Creator<Target> = metadata.target();
     const table: ITableInfo = ITableInfo.get(target);
     
     // LOAD TARGET DATA
-    const output: any[] = await get_records_by_where_in(target, table.primaryColumn, idList);
+    const output: Target[] 
+        = targetData
+        || await get_records_by_where_in(target, table.primaryColumn, idList);
 
     // LINK RELATIONSHIPS
-    const dict: Map<any, any> = new Map(output.map(elem => [ elem[table.primaryColumn], elem ]));
-    for (const elem of data)
+    const dict: Map<any, any> = new Map(output.map(elem => [ (elem as any)[table.primaryColumn], elem ]));
+    for (const elem of myData)
     {
-        const id: any | null = elem[field].id;
-        if (id === null)
+        const accessor = <any>elem[field] as Belongs.ManyToOne<Target, any>;
+        if (accessor.id === null)
             continue;
 
-        const reference: any = dict.get(id)!;
-        await elem[field].set(reference);
+        const reference: any | undefined = dict.get(accessor.id);
+        if (reference === undefined)
+            continue;
 
-        if (child.metadata.inverse !== null)
-            await reference[child.metadata.inverse].set(elem);
+        await accessor.set(reference);
+        if (metadata.inverse !== null)
+            await reference[metadata.inverse].set(elem);
+    }
+
+    // RECURSIVE
+    if (<any>target === mine && targetData === undefined)
+    {
+        const surplus: Target[] = await app_join_belongs_one_to_one
+        (
+            mine, 
+            metadata, 
+            <any>output as Mine[], 
+            field
+        );
+        output.push(...surplus);
     }
     return output;
 }

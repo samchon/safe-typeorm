@@ -4,49 +4,69 @@ import { Creator } from "../../typings/Creator";
 import { Has } from "../../decorators/Has";
 import { ITableInfo } from "../../functional/internal/ITableInfo";
 
-import { IAppJoinChildTuple } from "./IAppJoinChildTuple";
 import { get_records_by_where_in } from "./get_records_by_where_in";
+import { SpecialFields } from "../../typings/SpecialFields";
+import { Belongs } from "../../decorators";
 
 /**
  * @internal
  */
-export async function app_join_has_one_to_one
+export async function app_join_has_one_to_one<
+        Mine extends object,
+        Target extends object,
+        Field extends SpecialFields<Mine, Has.OneToOne.IMetadata<Target> | Has.External.OneToOne.IMetadata<Target>>>
     (
-        mine: Creator<any>,
-        child: IAppJoinChildTuple<any, Has.OneToOne.IMetadata<any>>,
-        data: any[], 
-        field: any,
-    ): Promise<any[]>
+        mine: Creator<Mine>,
+        metadata: Has.OneToOne.IMetadata<Target> | Has.External.OneToOne.IMetadata<Target>,
+        myData: Mine[], 
+        field: Field,
+        targetData?: Target[]
+    ): Promise<Target[]>
 {
-    if (data.length === 0)
+    if (myData.length === 0)
         return [];
 
     // MY TABLE & DATA
     const myTable: ITableInfo = ITableInfo.get(mine);
-    const myDict: Map<any, Pair<any, any | null>> = new Map(data.map(record => 
+    const myDict: Map<any, Pair<Mine, Target | null>> = new Map(myData.map(record => 
     [
-        record[myTable.primaryColumn], 
+        (record as any)[myTable.primaryColumn], 
         new Pair(record, null)
     ]));
-    const myIdList: any[] = data.map(rec => rec[myTable.primaryColumn]);
+    const myIdList: any[] = myData.map(rec => (rec as any)[myTable.primaryColumn]);
     
     // LOAD TARGET DATA
-    const target: Creator<any> = child.metadata.target();
-    const output: any[] = await get_records_by_where_in(target, child.metadata.inverse, myIdList);
+    const target: Creator<Target> = metadata.target();
+    const output: Target[] 
+        = targetData
+        || await get_records_by_where_in(target, metadata.inverse, myIdList);
 
     // LINK RELATIONSHIPS
     for (const targetRecord of output)
     {
-        const tuple: any = myDict.get(targetRecord[child.metadata.inverse].id)!;
+        const inverse: Belongs.OneToOne<Mine, any> = (targetRecord as any)[metadata.inverse];
+        const tuple: Pair<Mine, Target | null> | undefined = myDict.get(inverse.id);
+
+        if (tuple === undefined)
+            continue;
+
         tuple.second = targetRecord;
-        await targetRecord[child.metadata.inverse].set(tuple.first);
+        await inverse.set(tuple.first);
     }
     for (const tuple of myDict.values())
-        await tuple.first[field].set(tuple.second);
+        await (<any>tuple.first[field] as Has.OneToOne<Target>).set(tuple.second);
 
     // RECURSIVE
-    if (target === mine)
-        await app_join_has_one_to_one(mine, child, output, field);
-
+    if (<any>target === mine && targetData === undefined)
+    {
+        const surplus: Target[] = await app_join_has_one_to_one
+        (
+            mine, 
+            metadata, 
+            <any>output as Mine[], 
+            field
+        );
+        output.push(...surplus);
+    }
     return output;
 }

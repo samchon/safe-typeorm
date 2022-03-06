@@ -1,3 +1,4 @@
+export * from "./appJoin";
 export * from "./createAppJoinBuilder";
 export * from "./createJoinQueryBuilder";
 export * from "./createJsonSelectBuilder";
