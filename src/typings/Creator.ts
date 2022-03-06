@@ -4,7 +4,7 @@
  * @template T The target class type.
  * @author Jeongho Nam - https://github.com/samchon
  */
-export type Creator<T extends Object> = 
+export type Creator<T extends object> = 
 {
     new(...args: any[]): T;
 };

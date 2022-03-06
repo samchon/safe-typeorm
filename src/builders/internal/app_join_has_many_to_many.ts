@@ -9,74 +9,165 @@ import { findRepository } from "../../functional/findRepository";
 
 import { AppJoinBuilder } from "../AppJoinBuilder";
 import { JoinQueryBuilder } from "../JoinQueryBuilder";
-
-import { IAppJoinChildTuple } from "./IAppJoinChildTuple";
+import { get_records_by_where_in } from "./get_records_by_where_in";
+import { Belongs } from "../../decorators/Belongs";
 
 /**
  * @internal
  */
-export async function app_join_has_many_to_many
+export async function app_join_has_many_to_many<
+        Mine extends object,
+        Target extends object,
+        Router extends object,
+        Field extends Has.ManyToMany.IMetadata<Target, Router>>
     (
-        mine: Creator<any>,
-        child: IAppJoinChildTuple<any, Has.ManyToMany.IMetadata<any, any>>,
-        data: any[],
-        field: any
-    ): Promise<any[]>
+        mine: Creator<Mine>,
+        metadata: Has.ManyToMany.IMetadata<Target, Router>,
+        myData: Mine[],
+        field: Field,
+        targetData?: Target[],
+        routerData?: Router[],
+    ): Promise<Target[]>
 {
-    if (data.length === 0)
+    // NO DATA OR MANUAL JOIN
+    if (myData.length === 0)
         return [];
+    else if (targetData !== undefined)
+        return app_join_has_many_to_many_manual
+        (
+            mine, 
+            metadata, 
+            myData, 
+            field,
+            targetData,
+            routerData
+        );
 
     // MY TABLE & DATA
     const myTable: ITableInfo = ITableInfo.get(mine);
-    const myDict: Map<any, Pair<any, any[]>> = new Map(data.map(elem => [
-        elem[myTable.primaryColumn],
+    const myDict: Map<any, Pair<Mine, Has.ManyToMany.ITuple<Target, Router>[]>> = new Map(myData.map(elem => [
+        (elem as any)[myTable.primaryColumn],
         new Pair(elem, [])
     ]));
-    const myIdList: any[] = data.map(rec => rec[myTable.primaryColumn]);
+    const myIdList: any[] = myData.map(rec => (rec as any)[myTable.primaryColumn]);
 
     // LOAD TARGET DATA
-    const router: Creator<any> = child.metadata.router();
-    const stmt: orm.SelectQueryBuilder<any> = 
+    const router: Creator<Router> = metadata.router();
+    const stmt: orm.SelectQueryBuilder<Router> = 
         findRepository(router)
         .createQueryBuilder();
-    new JoinQueryBuilder(stmt, router).innerJoinAndSelect(child.metadata.target_inverse);
+    new JoinQueryBuilder(stmt, router)
+        .innerJoinAndSelect(<any>metadata.target_inverse);
 
-    const routeList: any[] = [];
+    const routeList: Router[] = [];
     while (myIdList.length !== 0)
     {
         const some: any[] = myIdList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
-        routeList.push(...await stmt
+        const records: Router[] = await stmt
             .clone()
-            .andWhere(...getWhereArguments(router, child.metadata.my_inverse as "id", "IN", some))
-            .getMany()
-        );
+            .andWhere(...getWhereArguments(router, metadata.my_inverse as "id", "IN", some))
+            .getMany();
+        routeList.push(...records);
     }
 
-    const output: any[] = [];
+    const output: Target[] = [];
 
     // LINK RELATIONSHIPS
     for (const router of routeList)
     {
-        const entry: any = myDict.get(router[child.metadata.my_inverse].id)!;
-        const target: any = await router[child.metadata.target_inverse].get();
+        const entry: Pair<Mine, Has.ManyToMany.ITuple<Target, Router>[]> | undefined = myDict.get((router as any)[metadata.my_inverse].id);
+        if (entry === undefined)
+            continue;
 
-        const tuple: Has.ManyToMany.ITuple<any, any> = {
-            router: router,
-            target: target,
+        const target: Target = await (router as any)[metadata.target_inverse].get();
+        const tuple: Has.ManyToMany.ITuple<Target, Router> = {
+            router,
+            target,
         };
         entry.second.push(tuple);
         output.push(target);
     }
     for (const entry of myDict.values())
     {
-        if (child.metadata.comparator)
-            entry.second = entry.second.sort(child.metadata.comparator);
-        await entry.first[field].set(entry.second.map(elem => elem.target));
+        if (metadata.comparator)
+            entry.second = entry.second.sort(metadata.comparator);
+        await (entry.first as any)[field].set(entry.second.map(elem => elem.target));
     }
 
     // RECURSIVE
-    if (child.metadata.target() === mine)
-        await app_join_has_many_to_many(mine, child, output, field);
-
+    if (<any>metadata.target() === mine)
+    {
+        const surplus: Target[] = await app_join_has_many_to_many
+        (
+            mine, 
+            metadata, 
+            <any>output as Mine[], 
+            field
+        );
+        output.push(...surplus);
+    }
     return output;
+}
+
+async function app_join_has_many_to_many_manual<
+        Mine extends object,
+        Target extends object,
+        Router extends object,
+        Field extends Has.ManyToMany.IMetadata<Target, Router>>
+    (
+        mine: Creator<Mine>,
+        metadata: Has.ManyToMany.IMetadata<Target, Router>,
+        myData: Mine[],
+        field: Field,
+        targetData: Target[],
+        routerData?: Router[],
+    ): Promise<Target[]>
+{
+    // MY TABLE & DATA
+    const myTable: ITableInfo = ITableInfo.get(mine);
+    const myDict: Map<any, Pair<Mine, Target[]>> = new Map(myData.map(elem => [
+        (elem as any)[myTable.primaryColumn],
+        new Pair(elem, [])
+    ]));
+    const myIdList: any[] = myData.map(rec => (rec as any)[myTable.primaryColumn]);
+
+    // TARGET TABLE & DATA
+    const targetTable: ITableInfo = ITableInfo.get(metadata.target());
+    const targetDict: Map<any, Target> = new Map(targetData.map(elem => [
+        (elem as any)[targetTable.primaryColumn],
+        elem
+    ]));
+
+    // LOAD ROUTER DATA
+    if (routerData === undefined)
+        routerData = await get_records_by_where_in
+        (
+            metadata.router(),
+            metadata.my_inverse,
+            myIdList
+        );
+
+    // LINK RELATIONSHIPS
+    for (const router of routerData)
+    {
+        const myInverse = (router as any)[metadata.my_inverse] as Belongs.ManyToOne<Mine, any>;
+        const myTuple: Pair<Mine, Target[]> | undefined = myDict.get(myInverse.id);
+        if (myTuple === undefined)
+            continue;
+
+        const targetInverse = (router as any)[metadata.target_inverse] as Belongs.ManyToOne<Target, any>;
+        const target: Target | undefined = targetDict.get(targetInverse.id);
+        if (target === undefined)
+            continue;
+
+        myTuple.second.push(target);
+    }
+    for (const entry of myDict.values())
+    {
+        const accessor: Has.ManyToMany<Target, Router> = (entry.first as any)[field];
+        await accessor.set(entry.second);
+    }
+
+    // RETURNS
+    return targetData;
 }
