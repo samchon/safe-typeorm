@@ -7,6 +7,7 @@ import { ITableInfo } from "../../functional/internal/ITableInfo";
 import { get_records_by_where_in } from "./get_records_by_where_in";
 import { SpecialFields } from "../../typings/SpecialFields";
 import { Belongs } from "../../decorators";
+import { IAppJoinChildTuple } from "./IAppJoinChildTuple";
 
 /**
  * @internal
@@ -20,7 +21,7 @@ export async function app_join_has_one_to_one<
         metadata: Has.OneToOne.IMetadata<Target> | Has.External.OneToOne.IMetadata<Target>,
         myData: Mine[], 
         field: Field,
-        targetData?: Target[]
+        options: IAppJoinChildTuple.IOptions<Target>
     ): Promise<Target[]>
 {
     if (myData.length === 0)
@@ -37,9 +38,14 @@ export async function app_join_has_one_to_one<
     
     // LOAD TARGET DATA
     const target: Creator<Target> = metadata.target();
-    const output: Target[] 
-        = targetData
-        || await get_records_by_where_in(target, metadata.inverse, myIdList);
+    const output: Target[] = options.targetData || 
+        await get_records_by_where_in
+        (
+            target, 
+            metadata.inverse, 
+            myIdList,
+            options.filter
+        );
 
     // LINK RELATIONSHIPS
     for (const targetRecord of output)
@@ -57,14 +63,15 @@ export async function app_join_has_one_to_one<
         await (<any>tuple.first[field] as Has.OneToOne<Target>).set(tuple.second);
 
     // RECURSIVE
-    if (<any>target === mine && targetData === undefined)
+    if (<any>target === mine && !options.targetData)
     {
         const surplus: Target[] = await app_join_has_one_to_one
         (
             mine, 
             metadata, 
             <any>output as Mine[], 
-            field
+            field,
+            options
         );
         output.push(...surplus);
     }

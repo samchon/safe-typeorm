@@ -60,6 +60,11 @@ export async function appJoin<
     if (metadata === undefined)
         throw new OutOfRange(`Error on safe.appJoin(): unable to find the matched relationship accessor "${accessor}" from the "${creator.name}" class.`);
 
+    const options = {
+        targetData: args[0] || null,
+        routerData: args[1] || null,
+    };
+
     // CALL THE APP JOIN FUNCTION
     const func: Function = get_app_join_function(metadata.type);
     return func
@@ -68,6 +73,6 @@ export async function appJoin<
         metadata, 
         mine, 
         accessor, 
-        ...args
+        options
     );
 }

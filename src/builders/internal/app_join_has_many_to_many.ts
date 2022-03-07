@@ -11,6 +11,7 @@ import { AppJoinBuilder } from "../AppJoinBuilder";
 import { JoinQueryBuilder } from "../JoinQueryBuilder";
 import { get_records_by_where_in } from "./get_records_by_where_in";
 import { Belongs } from "../../decorators/Belongs";
+import { IAppJoinChildTuple } from "./IAppJoinChildTuple";
 
 /**
  * @internal
@@ -25,22 +26,21 @@ export async function app_join_has_many_to_many<
         metadata: Has.ManyToMany.IMetadata<Target, Router>,
         myData: Mine[],
         field: Field,
-        targetData?: Target[],
-        routerData?: Router[],
+        options: app_join_has_many_to_many.IOptions<Target, Router>
     ): Promise<Target[]>
 {
     // NO DATA OR MANUAL JOIN
     if (myData.length === 0)
         return [];
-    else if (targetData !== undefined)
+    else if (options.targetData)
         return app_join_has_many_to_many_manual
         (
             mine, 
             metadata, 
             myData, 
             field,
-            targetData,
-            routerData
+            options.targetData,
+            options.routerData
         );
 
     // MY TABLE & DATA
@@ -63,16 +63,16 @@ export async function app_join_has_many_to_many<
     while (myIdList.length !== 0)
     {
         const some: any[] = myIdList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
-        const records: Router[] = await stmt
+        const partial: orm.SelectQueryBuilder<Router> = await stmt
             .clone()
-            .andWhere(...getWhereArguments(router, metadata.my_inverse as "id", "IN", some))
-            .getMany();
-        routeList.push(...records);
+            .andWhere(...getWhereArguments(router, metadata.my_inverse as "id", "IN", some));
+        if (options.filter)
+            options.filter(<any>partial as orm.SelectQueryBuilder<Target>);
+        routeList.push(...await partial.getMany());
     }
 
-    const output: Target[] = [];
-
     // LINK RELATIONSHIPS
+    const output: Target[] = [];
     for (const router of routeList)
     {
         const entry: Pair<Mine, Has.ManyToMany.ITuple<Target, Router>[]> | undefined = myDict.get((router as any)[metadata.my_inverse].id);
@@ -102,11 +102,20 @@ export async function app_join_has_many_to_many<
             mine, 
             metadata, 
             <any>output as Mine[], 
-            field
+            field,
+            options
         );
         output.push(...surplus);
     }
     return output;
+}
+export namespace app_join_has_many_to_many
+{
+    export interface IOptions<Target extends object, Router extends object> 
+        extends IAppJoinChildTuple.IOptions<Target>
+    {
+        routerData: Router[] | null;
+    }
 }
 
 async function app_join_has_many_to_many_manual<
@@ -120,7 +129,7 @@ async function app_join_has_many_to_many_manual<
         myData: Mine[],
         field: Field,
         targetData: Target[],
-        routerData?: Router[],
+        routerData: Router[] | null,
     ): Promise<Target[]>
 {
     // MY TABLE & DATA
@@ -139,12 +148,13 @@ async function app_join_has_many_to_many_manual<
     ]));
 
     // LOAD ROUTER DATA
-    if (routerData === undefined)
+    if (routerData === null)
         routerData = await get_records_by_where_in
         (
             metadata.router(),
             metadata.my_inverse,
-            myIdList
+            myIdList,
+            null
         );
 
     // LINK RELATIONSHIPS

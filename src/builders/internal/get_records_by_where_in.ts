@@ -1,3 +1,4 @@
+import * as orm from "typeorm";
 import { Creator } from "../../typings/Creator";
 
 import { AppJoinBuilder } from "../AppJoinBuilder";
@@ -7,11 +8,12 @@ import { getWhereArguments } from "../../functional/getWhereArguments";
 /**
  * @internal
  */
-export async function get_records_by_where_in
+export async function get_records_by_where_in<Target extends object>
     (
-        target: Creator<any>, 
+        target: Creator<Target>, 
         field: string, 
-        idList: any[]
+        idList: any[],
+        filter: null | ((stmt: orm.SelectQueryBuilder<Target>) => void)
     ): Promise<any[]>
 {
     // LOAD TARGET DATA
@@ -19,12 +21,12 @@ export async function get_records_by_where_in
     while (idList.length !== 0)
     {
         const some: any[] = idList.splice(0, AppJoinBuilder.MAX_VARIABLE_COUNT);
-        output.push
-        (...await findRepository(target)
+        const stmt: orm.SelectQueryBuilder<Target> = await findRepository(target)
             .createQueryBuilder()
-            .andWhere(...getWhereArguments(target, field as "id", "IN", some))
-            .getMany()
-        );
+            .andWhere(...getWhereArguments(target, field as "id", "IN", some));
+        if (filter)
+            filter(stmt);
+        output.push(...await stmt.getMany());
     }
     return output;
 }

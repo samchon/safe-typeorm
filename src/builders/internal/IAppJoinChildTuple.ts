@@ -1,3 +1,5 @@
+import * as orm from "typeorm";
+
 import { AppJoinBuilder } from "../AppJoinBuilder";
 import { ReflectAdaptor } from "../../decorators/base/ReflectAdaptor";
 
@@ -12,4 +14,13 @@ export interface IAppJoinChildTuple<
 {
     metadata: Metadata;
     builder: AppJoinBuilder<Relationship.TargetType<Mine, any>>;
+    filter: null | ((stmt: orm.SelectQueryBuilder<Relationship.TargetType<Mine, any>>) => void);
+}
+export namespace IAppJoinChildTuple
+{
+    export interface IOptions<Target extends object>
+    {
+        filter: null | ((stmt: orm.SelectQueryBuilder<Target>) => void);
+        targetData: Target[] | null;
+    }
 }
