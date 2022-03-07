@@ -1,3 +1,5 @@
+import * as orm from "typeorm";
+
 import { Belongs } from "../decorators/Belongs";
 import { Has } from "../decorators/Has";
 
@@ -52,10 +54,12 @@ export class JsonSelectBuilder<
 
         this.joiner_ = new AppJoinBuilder(this.mine_);
         for (const [key, value] of Object.entries(input))
+        {
             if (value instanceof JsonSelectBuilder)
                 this.joiner_.set(key as any, value.joiner_);
             else if (value === "join")
                 this.joiner_.join(key as AppJoinBuilder.Key<Mine>);
+        }
     }
 
     /**
@@ -179,14 +183,14 @@ export namespace JsonSelectBuilder
             ? Mine[P] extends BelongsCommon<Target, any, infer TargetOptions>
                 ? TargetOptions extends { nullable: true }
                     ? Same<Mine, Target> extends true
-                        ? "recursive" | "join" | DEFAULT | undefined
-                        : JsonSelectBuilder<Target, any, any> | "join" | DEFAULT | undefined
+                        ? "recursive" | Tuplize<Target, "join"> | DEFAULT | undefined
+                        : Tuplize<Target, JsonSelectBuilder<Target, any, any>> | Tuplize<Target, "join"> | DEFAULT | undefined
                     : Same<Mine, Target> extends true 
-                        ? "recursive" | "join" | DEFAULT | undefined
-                        : JsonSelectBuilder<Target, any, any> | "join" | DEFAULT | undefined
+                        ? "recursive" | Tuplize<Target, "join"> | DEFAULT | undefined
+                        : Tuplize<Target, JsonSelectBuilder<Target, any, any>> | Tuplize<Target, "join"> | DEFAULT | undefined
             : Same<Mine, Target> extends true
-                ? "recursive" | "join" | undefined
-                : JsonSelectBuilder<Target, any, any> | "join" | undefined
+                ? "recursive" | Tuplize<Target, "join"> | undefined
+                : Tuplize<Target, JsonSelectBuilder<Target, any, any>> | Tuplize<Target, "join"> | undefined
             : never
     }>>;
 
@@ -198,7 +202,7 @@ export namespace JsonSelectBuilder
             InputT extends object> = Primitive<Mine> & OmitNever<
     {
         [P in keyof (Mine|InputT)]
-            : InputT[P] extends JsonSelectBuilder<infer Target, any, infer Destination>
+            : Escape<InputT[P]> extends JsonSelectBuilder<infer Target, any, infer Destination>
                 ? Mine[P] extends BelongsCommon<Target, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Destination | null
@@ -208,7 +212,7 @@ export namespace JsonSelectBuilder
                         ? Destination
                         : Destination | null
                 : Destination[]
-            : InputT[P] extends "recursive"
+            : Escape<InputT[P]> extends "recursive"
                 ? Mine[P] extends BelongsCommon<Mine, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Output.RecursiveReference<Mine, P> | null
@@ -228,7 +232,7 @@ export namespace JsonSelectBuilder
                         ? PrimaryColumnType.ValueType<PrimaryType> | null
                         : PrimaryColumnType.ValueType<PrimaryType>
                 : never
-            : InputT[P] extends "join"
+            : Escape<InputT[P]> extends "join"
                 ? Mine[P] extends BelongsCommon<infer Target, any, infer Options>
                     ? Options extends { nullable: true }
                         ? Primitive<Target> | null
@@ -295,4 +299,9 @@ export namespace JsonSelectBuilder
         = Has.OneToMany<Target>
         | Has.External.OneToMany<Target>
         | Has.ManyToMany<Target, any>;
+
+    type Tuplize<Target extends object, Value> 
+        = Value 
+        | [Value, (stmt: orm.SelectQueryBuilder<Target>) => void];
+    type Escape<T> = T extends [infer F, Function] ? F : T;
 }

@@ -1,3 +1,5 @@
+import * as orm from "typeorm";
+
 import { Creator } from "../typings/Creator";
 import { OmitNever } from "../typings/OmitNever";
 import { Relationship } from "../typings/Relationship";
@@ -92,16 +94,23 @@ export class AppJoinBuilder<Mine extends object>
      * Also, calling additional methods to the returned `AppJoinBuilder` instance for 
      * the target neighbor entity would be affected, too.
      * 
-     * @param field Field of *Mine* who've defined the relationship decorator to join
+     * @param target Field of *Mine* who've defined the relationship decorator to join or tuple with filter function
      * @param closure Closure function for additional app joins for the target entity
      * @returns Emplaced `AppJoinBuilder` instance for the target entity
      */
     public join<Field extends AppJoinBuilder.Key<Mine>>
         (
-            field: Field,
+            target: Field | 
+            [
+                Field, 
+                (stmt: orm.SelectQueryBuilder<Relationship.TargetType<Mine, Field>>) => void
+            ],
             closure?: AppJoinBuilder.Closure<Relationship.TargetType<Mine, Field>>
         ): AppJoinBuilder<Relationship.TargetType<Mine, Field>>
     {
+        const field: Field = target instanceof Array ? target[0] : target;
+        const filter = target instanceof Array ? target[1] : null;
+
         // PREPARE BUILDER
         let child: IAppJoinChildTuple<Mine> | undefined = this.children_.get(field);
         if (child === undefined)
@@ -109,7 +118,7 @@ export class AppJoinBuilder<Mine extends object>
             const metadata: ReflectAdaptor.Metadata<Relationship.TargetType<Mine, Field>> = ReflectAdaptor.get(this.mine_.prototype, field)!;
             const builder: AppJoinBuilder<Relationship.TargetType<Mine, Field>> = new AppJoinBuilder(metadata.target());
 
-            child = { metadata, builder };
+            child = { metadata, builder, filter };
             this.children_.set(field, child);
         }
 
@@ -165,15 +174,31 @@ export class AppJoinBuilder<Mine extends object>
         ): AppJoinBuilder<Mine>
     {
         const builder: AppJoinBuilder<Mine> = new AppJoinBuilder(creator);
-        for (const [key, value] of Object.entries(input))
-            if (!value)
+        for (const [label, data] of Object.entries(input))
+        {
+            if (!data)
                 continue;
+
+            const key: SpecialFields<Mine, Relationship<any>> = label as SpecialFields<Mine, Relationship<any>>;
+            const filter: ((stmt: orm.SelectQueryBuilder<Relationship.TargetType<Mine, any>>) => void) | null = data instanceof Array ? data[1] : null;
+            const value: "join" | AppJoinBuilder.Closure<any> | AppJoinBuilder<any> = data instanceof Array ? data[0] : data;
+
+            if (value instanceof AppJoinBuilder)
+                if (filter !== null)
+                    builder.set(key, filter, value);
+                else
+                    builder.set(key, value);
             else if (value === "join")
-                builder.join(key as AppJoinBuilder.Key<Mine>);
+                if (filter !== null)
+                    builder.join([key, filter]);
+                else
+                    builder.join(key);
             else if (typeof value === "function")
-                builder.join(key as AppJoinBuilder.Key<Mine>, value as AppJoinBuilder.Closure<Relationship.TargetType<Mine, any>>);
-            else
-                builder.set(key as AppJoinBuilder.Key<Mine>, value as AppJoinBuilder<any>);
+                if (filter !== null)
+                    builder.join([key, filter], value);
+                else
+                    builder.join(key, value);
+        }
         return builder;
     }
 
@@ -210,7 +235,11 @@ export class AppJoinBuilder<Mine extends object>
                 this.mine_,
                 child.metadata,
                 data,
-                field
+                field,
+                {
+                    targetData: null,
+                    routerData: null
+                }
             );
 
             // HIERARCHICAL CALL
@@ -327,13 +356,34 @@ export class AppJoinBuilder<Mine extends object>
     public set<Field extends AppJoinBuilder.Key<Mine>>
         (
             field: Field,
+            builder: AppJoinBuilder<Relationship.TargetType<Mine, Field>>,
+        ): this;
+
+    public set<Field extends AppJoinBuilder.Key<Mine>>
+        (
+            field: Field,
+            filter: (stmt: orm.SelectQueryBuilder<Relationship.TargetType<Mine, any>>) => void,
             builder: AppJoinBuilder<Relationship.TargetType<Mine, Field>>
+        ): this;
+
+    public set<Field extends AppJoinBuilder.Key<Mine>>
+        (
+            field: Field,
+            ...args: [AppJoinBuilder<Relationship.TargetType<Mine, Field>>]
+                | [
+                    (stmt: orm.SelectQueryBuilder<Relationship.TargetType<Mine, any>>) => void,
+                    AppJoinBuilder<Relationship.TargetType<Mine, Field>>
+                ]
         ): this
     {
         const metadata: ReflectAdaptor.Metadata<Relationship.TargetType<Mine, Field>> = ReflectAdaptor.get(this.mine_.prototype, field)!;
+        const builder = args.length === 1 ? args[0] : args[1];
+        const filter = args.length === 1 ? null : args[0];
+
         this.children_.set(field, {
             metadata,
-            builder
+            builder,
+            filter
         });
         return this;
     }
@@ -380,7 +430,10 @@ export namespace AppJoinBuilder
     {
         [P in keyof Mine]: Mine[P] extends Relationship<infer Target>
             ? (AppJoinBuilder<Target> | undefined | Closure<Target> | "join") 
-            : never;
+            | [
+                (AppJoinBuilder<Target> | undefined | Closure<Target> | "join"), 
+                (condition: orm.SelectQueryBuilder<Target>) => void
+            ] : never;
     }>;
 
     /**
