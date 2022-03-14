@@ -5,7 +5,7 @@ import { BbsArticle } from "../models/bbs/BbsArticle";
 import { BbsGroup } from "../models/bbs/BbsGroup";
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 
-export async function test_app_join_builder_filter(): Promise<void>
+export async function test_json_select_builder_filter(): Promise<void>
 {
     // FILTERING
     const groupList: BbsGroup[] = await generate_random_clean_groups();
@@ -21,16 +21,22 @@ export async function test_app_join_builder_filter(): Promise<void>
         stmt.andWhere(...BbsArticle.getWhereArguments("id", "IN", articleList));
     };
 
-    // APP JOIN WITH FILTER
-    const app = new safe.AppJoinBuilder(BbsGroup);
-    app.join(["articles" as const, filter]);
-    await app.execute(groupList);
-
-    // DO TEST
-    for (const group of groupList)
-    {
-        const articles: BbsArticle[] = await group.articles.get();
+    // JSON WITH FILTER
+    const json = safe.createJsonSelectBuilder
+    (
+        BbsGroup,
+        {
+            articles: [
+                safe.createJsonSelectBuilder
+                (
+                    BbsArticle,
+                    {}
+                ), 
+                filter
+            ]
+        }
+    );
+    for (const { articles } of await json.getMany(groupList))
         if (articles.length !== 1)
-            throw new Error("Bug on AppJoinBuilder.execute(): failed to filter.");
-    }
+            throw new Error("Bug on JsonSelectBuilder.getMany(): failed to filter.");
 }

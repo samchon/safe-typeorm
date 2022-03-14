@@ -16,6 +16,7 @@ import { Primitive } from "../typings/Primitive";
 import { toPrimitive } from "../functional/toPrimitive";
 
 import { DEFAULT } from "../DEFAULT";
+import { SpecialFields } from "../typings/SpecialFields";
 
 /**
  * JSON Select Builder.
@@ -53,20 +54,22 @@ export class JsonSelectBuilder<
         this.mine_ = mine;
 
         this.joiner_ = new AppJoinBuilder(this.mine_);
-        for (const [key, value] of Object.entries(input))
+        for (const [label, data] of Object.entries(input))
         {
+            const key: SpecialFields<Mine, Relationship<any>> = label as SpecialFields<Mine, Relationship<any>>;
+            const filter: ((stmt: orm.SelectQueryBuilder<Relationship.TargetType<Mine, any>>) => void) | null = data instanceof Array ? data[1] : null;
+            const value: DEFAULT | "recursive" | "join" | JsonSelectBuilder<any, any, any> = data instanceof Array ? data[0] : data;
+
             if (value instanceof JsonSelectBuilder)
-                this.joiner_.set(key as any, value.joiner_);
+                if (filter !== null)
+                    this.joiner_.set(key, filter, value.joiner_);
+                else
+                    this.joiner_.set(key, value.joiner_);
             else if (value === "join")
-                this.joiner_.join(key as AppJoinBuilder.Key<Mine>);
-            else if (value instanceof Array)
-            {
-                const [builder, filter] = value;
-                if (builder instanceof JsonSelectBuilder)
-                    this.joiner_.set(key as any, filter, builder as any);
-                else if (builder === "join")
-                    this.joiner_.join([key, filter] as any);
-            }
+                if (filter !== null)
+                    this.joiner_.join([key, filter]);
+                else
+                    this.joiner_.join(key);
         }
     }
 
