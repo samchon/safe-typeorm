@@ -15,7 +15,7 @@ async function test(groupList: BbsGroup[]): Promise<void>
     }
 }
 
-export async function app_join_builder_filter(): Promise<void>
+export async function test_app_join_builder_filter(): Promise<void>
 {
     const groupList: BbsGroup[] = await generate_random_clean_groups();
     const articleList: BbsArticle[] = [];
@@ -30,13 +30,16 @@ export async function app_join_builder_filter(): Promise<void>
         stmt.andWhere(...BbsArticle.getWhereArguments("id", "IN", articleList));
     };
 
+    // TEST-APP-JOIN
     const app = new safe.AppJoinBuilder(BbsGroup);
+    app.join(["articles" as const, filter]);
     await app.execute(groupList);
     await test(groupList);
 
+    const reloaded: BbsGroup[] = await BbsGroup.findByIds(groupList.map(g => g.id));
     const json = safe.createJsonSelectBuilder(BbsGroup, {
         articles: ["join" as const, filter]
     });
-    await json.join(groupList);
-    await test(groupList);
+    await json.join(reloaded);
+    await test(reloaded);
 }

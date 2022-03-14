@@ -237,6 +237,7 @@ export class AppJoinBuilder<Mine extends object>
                 data,
                 field,
                 {
+                    filter: child.filter || null,
                     targetData: null,
                     routerData: null
                 }

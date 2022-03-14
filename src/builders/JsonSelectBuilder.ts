@@ -59,6 +59,14 @@ export class JsonSelectBuilder<
                 this.joiner_.set(key as any, value.joiner_);
             else if (value === "join")
                 this.joiner_.join(key as AppJoinBuilder.Key<Mine>);
+            else if (value instanceof Array)
+            {
+                const [builder, filter] = value;
+                if (builder instanceof JsonSelectBuilder)
+                    this.joiner_.set(key as any, filter, builder as any);
+                else if (builder === "join")
+                    this.joiner_.join([key, filter] as any);
+            }
         }
     }
 
@@ -112,12 +120,14 @@ export class JsonSelectBuilder<
     private async _Convert(record: Mine): Promise<Destination>
     {
         const output: any = toPrimitive(record);
-        for (const [key, plan] of Object.entries(this.input))
+        for (const [key, value] of Object.entries(this.input))
         {
-            if (plan === undefined)
+            if (value === undefined)
                 continue;
 
+            const plan = value instanceof Array ? value[0] : value;
             const elem: any = (record as any)[key];
+
             if (plan instanceof JsonSelectBuilder)
             {
                 // HIERARCHICAL JSON-SELECT-BUILDER
