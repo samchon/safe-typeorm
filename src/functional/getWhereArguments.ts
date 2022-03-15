@@ -112,7 +112,7 @@ export function getWhereArguments<
     (
         creator: Creator<T>,
         fieldLike: `${Literal}` | `${string}.${Literal}`,
-        operator: "IN",
+        operator: "IN" | "NOT IN",
         parameters: Array<Field.MemberType<T, Literal>>
     ): [string, Record<string, [Field.ValueType<T[Literal]>, Field.ValueType<T[Literal]>]>];
 
@@ -171,7 +171,7 @@ export function getWhereArguments<
     if (rest.length <= 2)
     {
         // SPECIALIZE OPERATOR AND PARAMETER
-        let operator: Operator | "IN";
+        let operator: Operator | "IN" | "NOT IN";
         let param: Field.ValueType<T[Literal]>;
 
         if (rest.length === 1)
@@ -199,7 +199,7 @@ export function getWhereArguments<
 
         // RETURNS WITH BINDING
         const uuid: string = crypto.randomBytes(64).toString("hex");
-        const binding: string = (operator === "IN")
+        const binding: string = (operator === "IN" || operator === "NOT IN")
             ? `(:...${uuid})`
             : `:${uuid}`;
         return [`${column} ${operator} ${binding}`, { [uuid]: param }];
