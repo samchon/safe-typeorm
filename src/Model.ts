@@ -302,7 +302,7 @@ export abstract class Model extends orm.BaseEntity
         (
             this: Model.Creator<T>,
             fieldLike: `${Literal}` | `${string}.${Literal}`,
-            operator: "IN",
+            operator: "IN" | "NOT IN",
             parameters: Array<Field.MemberType<T, Literal>>,
         ): [string, Record<string, Array<Field.ValueType<T[Literal]>>>];
     

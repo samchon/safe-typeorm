@@ -153,6 +153,8 @@ function getDependencies<T extends object>
     if (output === undefined)
     {
         output = new Set();
+        dependencies.set(target, output);
+
         for (const meta of connection.entityMetadatas)
         {
             const child: Creator<object> = meta.target as Creator<object>;
@@ -168,7 +170,6 @@ function getDependencies<T extends object>
                     break;
                 }
         }
-        dependencies.set(target, output);
     }
     return output;
 }
