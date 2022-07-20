@@ -9,6 +9,7 @@ import { SpecialFields } from "../typings/SpecialFields";
 import { BelongsAccessorBase } from "../decorators/base/BelongsAccessorBase";
 import { findRepository } from "./findRepository";
 import { get_column_name_tuple } from "./internal/get_column_name_tuple";
+import { WhereColumnType } from "../typings/WhereColumnType";
 
 /**
  * Get arguments for the where-equal query.
@@ -39,7 +40,7 @@ export function getWhereArguments<
         Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
-        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         param: Field.MemberType<T, Literal> | null
     ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
@@ -69,12 +70,12 @@ export function getWhereArguments<
  *         never can be the runtime error
  */
 export function getWhereArguments<
-    T extends { [P in Literal]: Field; }, 
-    Literal extends SpecialFields<T, Field>,
+        T extends { [P in Literal]: Field; }, 
+        Literal extends SpecialFields<T, Field>,
         OperatorType extends Operator>
     (
         creator: Creator<T>,
-        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         operator: OperatorType,
         param: OperatorType extends "="|"!="|"<>"
             ? Field.MemberType<T, Literal> | null
@@ -111,7 +112,7 @@ export function getWhereArguments<
         Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
-        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         operator: "IN" | "NOT IN",
         parameters: Array<Field.MemberType<T, Literal>>
     ): [string, Record<string, [Field.ValueType<T[Literal]>, Field.ValueType<T[Literal]>]>];
@@ -147,7 +148,7 @@ export function getWhereArguments<
         Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
-        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         operator: "BETWEEN",
         minimum: Field.MemberType<T, Literal>,
         maximum: Field.MemberType<T, Literal>
@@ -158,14 +159,23 @@ export function getWhereArguments<
         Literal extends SpecialFields<T, Field>>
     (
         creator: Creator<T>,
-        fieldLike: `${Literal}` | `${string}.${Literal}`,
+        fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         ...rest: any[]
     ): [string, any]
 {
-    const tuple: [string, string] = get_column_name_tuple(creator, fieldLike);
+    const tuple: [string, string] = get_column_name_tuple
+    (
+        creator, 
+        typeof fieldLike === "string" 
+            ? fieldLike 
+            : fieldLike[0]
+    );
     const column: string = tuple[0]
         ? `${tuple[0]}.${tuple[1]}`
         : tuple[1];
+    const left: string = typeof fieldLike === "string" 
+        ? column 
+        : fieldLike[1](column);
 
     // MOST OPERATORS
     if (rest.length <= 2)
@@ -190,9 +200,9 @@ export function getWhereArguments<
         if (param === null)
         {
             if (operator === "=")
-                return [`${column} IS NULL`] as any;
+                return [`${left} IS NULL`] as any;
             else if (operator === "!=" || operator === "<>")
-                return [`${column} IS NOT NULL`] as any;
+                return [`${left} IS NOT NULL`] as any;
             else
                 throw new InvalidArgument(`Error on ${creator.name}.getColumn(): unable to bind null value for the ${operator} operator.`);
         }
@@ -202,7 +212,7 @@ export function getWhereArguments<
         const binding: string = (operator === "IN" || operator === "NOT IN")
             ? `(:...${uuid})`
             : `:${uuid}`;
-        return [`${column} ${operator} ${binding}`, { [uuid]: param }];
+        return [`${left} ${operator} ${binding}`, { [uuid]: param }];
     }
 
     // BETWEEN OPERATOR
@@ -211,7 +221,7 @@ export function getWhereArguments<
     const minimum: Field.ValueType<T[Literal]> = _Decompose_entity(rest[1]);
     const maximum: Field.ValueType<T[Literal]> = _Decompose_entity(rest[2]);
 
-    return [`${column} BETWEEN :${from} AND :${to}`, 
+    return [`${left} BETWEEN :${from} AND :${to}`, 
     {
         [from]: minimum,
         [to]: maximum
