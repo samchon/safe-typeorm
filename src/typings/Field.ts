@@ -9,18 +9,20 @@ export type Field
     | boolean
     | Date
     | Belongs.ManyToOne<any, PrimaryColumnType>
+    | Belongs.External.ManyToOne<any, PrimaryColumnType>
     | Belongs.OneToOne<any, PrimaryColumnType>
+    | Belongs.External.OneToOne<any, PrimaryColumnType>
     | null;
 
 export namespace Field
 {
     export type ValueType<Type extends Field> 
         = Type extends string ? Type
-        : Type extends Belongs.ManyToOne<infer Target, infer KeyType, infer Options> 
+        : Type extends (Belongs.ManyToOne<infer Target, infer KeyType, infer Options> | Belongs.External.ManyToOne<infer Target, infer KeyType, infer Options>)
             ? Options extends { nullable: true }
                 ? (ModelLike<Target, KeyType, true> | PrimaryColumnType.ValueType<KeyType> | null)
                 : (ModelLike<Target, KeyType, false> | PrimaryColumnType.ValueType<KeyType>)
-        : Type extends Belongs.OneToOne<infer Target, infer KeyType, infer Options>
+        : Type extends (Belongs.OneToOne<infer Target, infer KeyType, infer Options> | Belongs.External.OneToOne<infer Target, infer KeyType, infer Options>)
             ? Options extends { nullable: true }
                 ? (ModelLike<Target, KeyType, true> | PrimaryColumnType.ValueType<KeyType> | null)
                 : (ModelLike<Target, KeyType, false> | PrimaryColumnType.ValueType<KeyType>)

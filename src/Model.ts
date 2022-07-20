@@ -22,6 +22,7 @@ import { initialize } from "./functional/initialize";
 import { insert } from "./functional/insert";
 import { toPrimitive } from "./functional/toPrimitive";
 import { update } from "./functional/update";
+import { WhereColumnType } from "./typings/WhereColumnType";
 
 /**
  * The basic model class.
@@ -233,7 +234,7 @@ export abstract class Model extends orm.BaseEntity
             Literal extends SpecialFields<T, Field>>
         (
             this: Model.Creator<T>,
-            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             param: Field.MemberType<T, Literal> | null
         ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
@@ -267,7 +268,7 @@ export abstract class Model extends orm.BaseEntity
             OperatorType extends Operator>
         (
             this: Model.Creator<T>,
-            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             operator: OperatorType,
             param: OperatorType extends "="|"!="|"<>" 
                 ? Field.MemberType<T, Literal> | null
@@ -301,7 +302,7 @@ export abstract class Model extends orm.BaseEntity
             Literal extends SpecialFields<T, Field>>
         (
             this: Model.Creator<T>,
-            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             operator: "IN" | "NOT IN",
             parameters: Array<Field.MemberType<T, Literal>>,
         ): [string, Record<string, Array<Field.ValueType<T[Literal]>>>];
@@ -336,7 +337,7 @@ export abstract class Model extends orm.BaseEntity
             Literal extends SpecialFields<T, Field>>
         (
             this: Model.Creator<T>,
-            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             operator: "BETWEEN",
             minimum: Field.MemberType<T, Literal>,
             maximum: Field.MemberType<T, Literal>
@@ -347,7 +348,7 @@ export abstract class Model extends orm.BaseEntity
             Literal extends SpecialFields<T, Field>>
         (
             this: Model.Creator<T>,
-            fieldLike: `${Literal}` | `${string}.${Literal}`,
+            fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             ...rest: any[]
         ): [string, any]
     {

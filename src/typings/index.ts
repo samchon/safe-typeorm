@@ -11,3 +11,4 @@ export * from "./Relationship";
 export * from "./Same";
 export * from "./SpecialFields";
 export * from "./StringColumnType";
+export * from "./WhereColumnType";
