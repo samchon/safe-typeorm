@@ -10,7 +10,7 @@ export async function generate_random_external_db()
     await collection.execute();
 
     return {
-        group: await BbsGroup.findOneOrFail(group.id),
+        group: await BbsGroup.findOneOrFail({ id: group.id }),
         users: await BlogUser.findByIds(users.map(u => u.id))
     };
 }

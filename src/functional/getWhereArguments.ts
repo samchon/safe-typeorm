@@ -41,7 +41,7 @@ export function getWhereArguments<
     (
         creator: Creator<T>,
         fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
-        param: Field.MemberType<T, Literal> | null
+        param: Field.MemberType<T, Literal> | null | (() => string)
     ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
 /**
@@ -77,9 +77,9 @@ export function getWhereArguments<
         creator: Creator<T>,
         fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         operator: OperatorType,
-        param: OperatorType extends "="|"!="|"<>"
+        param: (OperatorType extends "="|"!="|"<>"
             ? Field.MemberType<T, Literal> | null
-            : Field.MemberType<T, Literal> 
+            : Field.MemberType<T, Literal>) | (() => string) 
     ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
 /**
@@ -114,7 +114,7 @@ export function getWhereArguments<
         creator: Creator<T>,
         fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         operator: "IN" | "NOT IN",
-        parameters: Array<Field.MemberType<T, Literal>>
+        parameters: Array<Field.MemberType<T, Literal>> | (() => string)
     ): [string, Record<string, [Field.ValueType<T[Literal]>, Field.ValueType<T[Literal]>]>];
 
 /**
@@ -150,8 +150,8 @@ export function getWhereArguments<
         creator: Creator<T>,
         fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
         operator: "BETWEEN",
-        minimum: Field.MemberType<T, Literal>,
-        maximum: Field.MemberType<T, Literal>
+        minimum: Field.MemberType<T, Literal> | (() => string),
+        maximum: Field.MemberType<T, Literal> | (() => string)
     ): [string, Record<string, Array<Field.ValueType<T[Literal]>>>];
 
 export function getWhereArguments<
@@ -207,6 +207,10 @@ export function getWhereArguments<
                 throw new InvalidArgument(`Error on ${creator.name}.getColumn(): unable to bind null value for the ${operator} operator.`);
         }
 
+        // RETURNS RAW QUERY
+        if (typeof param === "function")
+            return [`${left} ${operator} ${param()}`, {}];
+
         // RETURNS WITH BINDING
         const uuid: string = crypto.randomBytes(64).toString("hex");
         const binding: string = (operator === "IN" || operator === "NOT IN")
@@ -221,7 +225,7 @@ export function getWhereArguments<
     const minimum: Field.ValueType<T[Literal]> = _Decompose_entity(rest[1]);
     const maximum: Field.ValueType<T[Literal]> = _Decompose_entity(rest[2]);
 
-    return [`${left} BETWEEN :${from} AND :${to}`, 
+    return [`${left} BETWEEN ${typeof minimum === "function" ? minimum() : `:${from}`} AND ${typeof maximum === "function" ? maximum() : `:${to}`}`,
     {
         [from]: minimum,
         [to]: maximum
@@ -238,7 +242,7 @@ function _Decompose_parameter(param: any): any
 
 function _Decompose_entity(param: any): any
 {
-    if (param instanceof Object && !(param instanceof Date))
+    if (typeof param !== "function" && param instanceof Object && !(param instanceof Date))
     {
         if (param instanceof BelongsAccessorBase)
             param = param.id;

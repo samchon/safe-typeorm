@@ -235,7 +235,7 @@ export abstract class Model extends orm.BaseEntity
         (
             this: Model.Creator<T>,
             fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
-            param: Field.MemberType<T, Literal> | null
+            param: Field.MemberType<T, Literal> | null | (() => string)
         ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
     /**
@@ -270,9 +270,9 @@ export abstract class Model extends orm.BaseEntity
             this: Model.Creator<T>,
             fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             operator: OperatorType,
-            param: OperatorType extends "="|"!="|"<>" 
+            param: (OperatorType extends "="|"!="|"<>" 
                 ? Field.MemberType<T, Literal> | null
-                : Field.MemberType<T, Literal>
+                : Field.MemberType<T, Literal>) | (() => string)
         ): [string, Record<string, [Field.ValueType<T[Literal]>, Field.ValueType<T[Literal]>]>];
 
     /**
@@ -304,7 +304,7 @@ export abstract class Model extends orm.BaseEntity
             this: Model.Creator<T>,
             fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             operator: "IN" | "NOT IN",
-            parameters: Array<Field.MemberType<T, Literal>>,
+            parameters: Array<Field.MemberType<T, Literal>> | (() => string),
         ): [string, Record<string, Array<Field.ValueType<T[Literal]>>>];
     
     /**
@@ -339,8 +339,8 @@ export abstract class Model extends orm.BaseEntity
             this: Model.Creator<T>,
             fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
             operator: "BETWEEN",
-            minimum: Field.MemberType<T, Literal>,
-            maximum: Field.MemberType<T, Literal>
+            minimum: Field.MemberType<T, Literal> | (() => string),
+            maximum: Field.MemberType<T, Literal> | (() => string)
         ): [string, { [key: string]: Array<Field.ValueType<T[Literal]>> }];
 
     public static getWhereArguments<
