@@ -1,42 +1,30 @@
 import * as orm from "typeorm";
-import safe from "../..";
 
+import safe from "../..";
+import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { BbsArticle } from "../models/bbs/BbsArticle";
 import { BbsGroup } from "../models/bbs/BbsGroup";
-import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 
-export async function test_json_select_builder_filter(): Promise<void>
-{
+export async function test_json_select_builder_filter(): Promise<void> {
     // FILTERING
     const groupList: BbsGroup[] = await generate_random_clean_groups();
     const articleList: BbsArticle[] = [];
 
-    for (const group of groupList)
-    {
+    for (const group of groupList) {
         const articles: BbsArticle[] = await group.articles.get();
         articleList.push(articles[0]);
     }
-    const filter = (stmt: orm.SelectQueryBuilder<BbsArticle>) =>
-    {
+    const filter = (stmt: orm.SelectQueryBuilder<BbsArticle>) => {
         stmt.andWhere(...BbsArticle.getWhereArguments("id", "IN", articleList));
     };
 
     // JSON WITH FILTER
-    const json = safe.createJsonSelectBuilder
-    (
-        BbsGroup,
-        {
-            articles: [
-                safe.createJsonSelectBuilder
-                (
-                    BbsArticle,
-                    {}
-                ), 
-                filter
-            ]
-        }
-    );
+    const json = safe.createJsonSelectBuilder(BbsGroup, {
+        articles: [safe.createJsonSelectBuilder(BbsArticle, {}), filter],
+    });
     for (const { articles } of await json.getMany(groupList))
         if (articles.length !== 1)
-            throw new Error("Bug on JsonSelectBuilder.getMany(): failed to filter.");
+            throw new Error(
+                "Bug on JsonSelectBuilder.getMany(): failed to filter.",
+            );
 }

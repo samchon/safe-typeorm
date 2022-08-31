@@ -1,6 +1,5 @@
-class _Default 
-{
-    public readonly __title__!: "SafeTypeORM.DEFAULT"
+class _Default {
+    public readonly __title__!: "SafeTypeORM.DEFAULT";
     public readonly __description__!: "This is a dummy class to implement the default option.";
 }
 

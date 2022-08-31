@@ -1,51 +1,46 @@
-import * as orm from "typeorm";
 import { ConditionVariable } from "tstl/thread/ConditionVariable";
+import * as orm from "typeorm";
 
-export class Transaction
-{
-    public static async run<T>
-        (
-            connection: orm.Connection,
-            closure: (manager: orm.EntityManager, transaction: Transaction) => Promise<T>
-        ): Promise<T>
-    {
-        let transaction!: Transaction;
-        let error: Error | null = null;
-        let ret: T;
+export class Transaction {
+    public static async run<T>(
+        connection: orm.Connection,
+        closure: (
+            manager: orm.EntityManager,
+            transaction: Transaction,
+        ) => Promise<T>,
+    ): Promise<T> {
+        interface IOutput {
+            transaction: Transaction;
+            result: T;
+            error: Error | null;
+        }
+        const output: IOutput = {} as IOutput;
 
-        try
-        {
-            ret = await connection.transaction(async manager => 
-            {
-                transaction = new Transaction(manager);
-                return await closure(manager, transaction);
+        try {
+            output.result = await connection.transaction(async (manager) => {
+                output.transaction = new Transaction(manager);
+                return closure(manager, output.transaction);
             });
-            transaction.success_ = true;
-        }
-        catch (exp) 
-        {
-            transaction.success_ = false;
-            error = exp as Error;
+            output.transaction.success_ = true;
+        } catch (exp) {
+            output.transaction.success_ = false;
+            output.error = exp as Error;
         }
 
-        await transaction.cv_.notify_all();
-        if (error !== null)
-            throw error;
-        else
-            return ret!;
+        await output.transaction.cv_.notify_all();
+        if (output.error !== null) throw output.error;
+        return output.result;
     }
 
     private readonly cv_: ConditionVariable;
     private success_: boolean | undefined;
 
-    private constructor(public readonly manager: orm.EntityManager)
-    {
+    private constructor(public readonly manager: orm.EntityManager) {
         this.cv_ = new ConditionVariable();
         this.success_ = undefined;
     }
 
-    public async join(): Promise<boolean>
-    {
+    public async join(): Promise<boolean> {
         await this.cv_.wait();
         return this.success_!;
     }

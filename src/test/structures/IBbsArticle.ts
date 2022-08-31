@@ -1,8 +1,7 @@
 import { IBbsArticleContent } from "./IBbsArticleContent";
 import { IBbsCategory } from "./IBbsCategory";
 
-export interface IBbsArticle
-{
+export interface IBbsArticle {
     id: string;
     writer: string;
     ip: string;

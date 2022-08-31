@@ -1,7 +1,6 @@
 import { IBbsArticle } from "./IBbsArticle";
 
-export interface IBbsGroup
-{
+export interface IBbsGroup {
     id: string;
     code: string;
     name: string;

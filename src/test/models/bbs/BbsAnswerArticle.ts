@@ -1,28 +1,32 @@
 import * as orm from "typeorm";
-import safe from "../../..";
 
+import safe from "../../..";
 import { BbsArticle } from "./BbsArticle";
 import { BbsQuestionArticle } from "./BbsQuestionArticle";
 
 @orm.Entity()
-export class BbsAnswerArticle extends safe.Model
-{
+export class BbsAnswerArticle extends safe.Model {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
-    @safe.Belongs.OneToOne(() => BbsArticle,
-        article => article.answer,
+    @safe.Belongs.OneToOne(
+        () => BbsArticle,
+        (article) => article.answer,
         "uuid",
         "id",
-        { primary: true }
+        { primary: true },
     )
     public readonly base!: safe.Belongs.OneToOne<BbsArticle, "uuid">;
 
-    @safe.Belongs.OneToOne(() => BbsQuestionArticle,
-        question => question.answer,
+    @safe.Belongs.OneToOne(
+        () => BbsQuestionArticle,
+        (question) => question.answer,
         "uuid",
         "bbs_question_id",
-        { unique: true }
+        { unique: true },
     )
-    public readonly question!: safe.Belongs.OneToOne<BbsQuestionArticle, "uuid">;
+    public readonly question!: safe.Belongs.OneToOne<
+        BbsQuestionArticle,
+        "uuid"
+    >;
 }

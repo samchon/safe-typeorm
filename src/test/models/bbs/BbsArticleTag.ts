@@ -1,20 +1,20 @@
 import * as orm from "typeorm";
-import safe from "../../..";
 
+import safe from "../../..";
 import { BbsArticle } from "./BbsArticle";
 
 @orm.Unique(["bbs_article_id", "value"])
 @orm.Entity()
-export class BbsArticleTag extends safe.Model
-{
+export class BbsArticleTag extends safe.Model {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
     @orm.PrimaryGeneratedColumn("uuid")
     public readonly id!: string;
 
-    @safe.Belongs.ManyToOne(() => BbsArticle,
-        article => article.tags,
+    @safe.Belongs.ManyToOne(
+        () => BbsArticle,
+        (article) => article.tags,
         "uuid",
         "bbs_article_id",
         // INDEXED

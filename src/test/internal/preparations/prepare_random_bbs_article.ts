@@ -1,11 +1,12 @@
 import safe from "../../..";
 import { BbsArticle } from "../../models/bbs/BbsArticle";
 import { BbsGroup } from "../../models/bbs/BbsGroup";
-
 import { RandomGenerator } from "../procedures/RandomGenerator";
 
-export function prepare_random_bbs_article(group: BbsGroup, created_at: Date): BbsArticle
-{
+export function prepare_random_bbs_article(
+    group: BbsGroup,
+    created_at: Date,
+): BbsArticle {
     return BbsArticle.initialize({
         id: safe.DEFAULT,
         group,
@@ -13,6 +14,6 @@ export function prepare_random_bbs_article(group: BbsGroup, created_at: Date): B
         writer: RandomGenerator.name(),
         ip: RandomGenerator.ip(),
         created_at,
-        deleted_at: null
+        deleted_at: null,
     });
 }

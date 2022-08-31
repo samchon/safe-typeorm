@@ -1,5 +1,4 @@
-export interface IAttachmentFile
-{
+export interface IAttachmentFile {
     id: string;
     name: string;
     extension: string | null;

@@ -7,6 +7,9 @@
   "scripts": {
     "build": "rimraf lib && tsc",
     "dev": "npm run build -- --watch",
+    "eslint": "eslint src",
+    "eslint:fix": "eslint src --fix",
+    "prettier": "prettier src --write",
     "test": "node lib/test"
   },
   "repository": {
@@ -31,13 +34,18 @@
     "uuid": "^8.3.2"
   },
   "devDependencies": {
+    "@trivago/prettier-plugin-sort-imports": "^3.3.0",
     "@types/bcryptjs": "^2.4.2",
     "@types/cli": "^0.11.20",
     "@types/node": "^14.14.21",
     "@types/pluralize": "^0.0.29",
     "@types/uuid": "^8.3.0",
+    "@typescript-eslint/eslint-plugin": "^5.36.1",
+    "@typescript-eslint/parser": "^5.36.1",
     "cagen": "^1.0.0",
     "cli": "^1.0.1",
+    "eslint": "^8.23.0",
+    "prettier": "^2.7.1",
     "rimraf": "^3.0.2",
     "sloc": "^0.2.1",
     "sqlite3": "^5.0.2",
