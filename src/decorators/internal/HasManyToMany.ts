@@ -11,6 +11,7 @@ import { ClosureProxy } from "../base/ClosureProxy";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
 import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
+import { BelongsOneToOne } from "./BelongsOneToOne";
 
 /**
  * Type for a variable using the `Has.ManyToMany` decorator.
@@ -50,8 +51,8 @@ export function HasManyToMany<
     (
         target: Creator.Generator<Target>,
         router: Creator.Generator<Router>,
-        targetInverse: (router: Router) => BelongsManyToOne<Target, any>,
-        myInverse: (router: Router) => BelongsManyToOne<Mine, any>,
+        targetInverse: (router: Router) => BelongsManyToOne<Target, any> | BelongsOneToOne<Target, any>,
+        myInverse: (router: Router) => BelongsManyToOne<Mine, any> | BelongsOneToOne<Target, any>,
         comparator?: Comparator<HasManyToMany.ITuple<Target, Router>>
     ): PropertyDecorator
 {
