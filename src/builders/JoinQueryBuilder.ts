@@ -1,3 +1,4 @@
+import { DomainError } from "tstl/exception/DomainError";
 import * as orm from "typeorm";
 
 import { Belongs } from "../decorators/Belongs";
@@ -50,6 +51,14 @@ export class JoinQueryBuilder<Mine extends object> {
     private readonly mine_: Creator<Mine>;
     private readonly alias_: string;
 
+    private readonly joined_: Map<
+        SpecialFields<Mine, Relationship.Joinable<any>>,
+        IJoined
+    >;
+
+    /* -----------------------------------------------------------
+        CONNSTRUCTOR
+    ----------------------------------------------------------- */
     /**
      * Default Constructor.
      *
@@ -65,6 +74,58 @@ export class JoinQueryBuilder<Mine extends object> {
         this.stmt_ = stmt;
         this.mine_ = mine;
         this.alias_ = alias === undefined ? mine.name : alias;
+        this.joined_ = new Map();
+    }
+
+    private _Take_join<
+        Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
+    >(
+        method: IJoined.Method,
+        field: SpecialFields<Mine, Relationship.Joinable<any>>,
+        alias: string | undefined,
+        closure:
+            | ((
+                  builder: JoinQueryBuilder<
+                      Relationship.Joinable.TargetType<Mine, Field>
+                  >,
+              ) => void)
+            | undefined,
+        joiner: (asset: IAsset<Mine, Field>) => void,
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+        // PREPARE ASSET
+        const asset: IAsset<Mine, Field> = prepare_asset(
+            this.mine_,
+            field,
+            alias,
+        );
+
+        // CHECK OLDBIE
+        const oldbie: IJoined | undefined = this.joined_.get(field);
+        if (oldbie !== undefined) {
+            if (method !== oldbie.method)
+                throw new DomainError(
+                    `Error on safe.JoinQueryBuilder.${method}(): ${this.mine_.name}.${field} already has been joined by ${oldbie.method}().`,
+                );
+            else if (asset.alias !== oldbie.alias)
+                throw new DomainError(
+                    `Error on safe.JoinQueryBuilder.${method}(): ${this.mine_.name}.${field} already has been joined with another alias "${oldbie.alias}".`,
+                );
+            return oldbie.builder;
+        }
+
+        // DO JOIN
+        joiner(asset);
+
+        // BUILDER
+        const builder = new JoinQueryBuilder(
+            this.stmt_,
+            asset.metadata.target(),
+            asset.alias,
+        );
+        this.joined_.set(field, { method, alias: asset.alias, builder });
+
+        if (closure) closure(builder);
+        return builder;
     }
 
     /* -----------------------------------------------------------
@@ -146,8 +207,7 @@ export class JoinQueryBuilder<Mine extends object> {
         ) => void,
     ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
         return this._Join_atomic(
-            (target, alias, condition) =>
-                this.stmt_.innerJoin(target, alias, condition),
+            "innerJoin",
             field,
             ...get_parametric_tuple(alias, closure),
         );
@@ -229,8 +289,7 @@ export class JoinQueryBuilder<Mine extends object> {
         ) => void,
     ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
         return this._Join_atomic(
-            (target, alias, condition) =>
-                this.stmt_.leftJoin(target, alias, condition),
+            "leftJoin",
             field,
             ...get_parametric_tuple(alias, closure),
         );
@@ -239,11 +298,7 @@ export class JoinQueryBuilder<Mine extends object> {
     private _Join_atomic<
         Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
     >(
-        joiner: (
-            target: Creator<Relationship.Joinable.TargetType<Mine, Field>>,
-            alias: string,
-            condition: string,
-        ) => orm.SelectQueryBuilder<any>,
+        method: "innerJoin" | "leftJoin",
         field: Field,
         alias: string | undefined,
         closure:
@@ -254,44 +309,31 @@ export class JoinQueryBuilder<Mine extends object> {
               ) => void)
             | undefined,
     ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
-        // PREPRAE ASSET
-        const asset: IAsset<Mine, Field> = prepare_asset(
-            this.mine_,
-            field,
-            alias,
-        );
+        return this._Take_join(method, field, alias, closure, (asset) => {
+            // LIST UP EACH FIELDS
+            const [myField, targetField] = (() => {
+                if (asset.belongs === true)
+                    return [
+                        asset.metadata.foreign_key_field,
+                        get_primary_column(asset.metadata.target()),
+                    ];
 
-        // LIST UP EACH FIELDS
-        const [myField, targetField] = (() => {
-            if (asset.belongs === true)
+                const inverseMetadata: Belongs.ManyToOne.IMetadata<Mine> =
+                    ReflectAdaptor.get(
+                        asset.metadata.target().prototype,
+                        asset.metadata.inverse,
+                    ) as Belongs.ManyToOne.IMetadata<Mine>;
+
                 return [
-                    asset.metadata.foreign_key_field,
-                    get_primary_column(asset.metadata.target()),
+                    get_primary_column(this.mine_),
+                    inverseMetadata.foreign_key_field,
                 ];
+            })();
 
-            const inverseMetadata: Belongs.ManyToOne.IMetadata<Mine> =
-                ReflectAdaptor.get(
-                    asset.metadata.target().prototype,
-                    asset.metadata.inverse,
-                ) as Belongs.ManyToOne.IMetadata<Mine>;
-
-            return [
-                inverseMetadata.foreign_key_field,
-                get_primary_column(this.mine_),
-            ];
-        })();
-
-        // DO JOIN
-        const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
-        joiner(asset.metadata.target(), asset.alias, condition);
-
-        // CALL-BACK
-        return call_back(
-            this.stmt_,
-            asset.metadata.target(),
-            asset.alias,
-            closure,
-        );
+            // DO JOIN
+            const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
+            this.stmt_[method](asset.metadata.target(), asset.alias, condition);
+        });
     }
 
     /* -----------------------------------------------------------
@@ -383,7 +425,7 @@ export class JoinQueryBuilder<Mine extends object> {
         ) => void,
     ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
         return this._Join_and_select(
-            (field, alias) => this.stmt_.innerJoinAndSelect(field, alias),
+            "innerJoinAndSelect",
             field,
             ...get_parametric_tuple(alias, closure),
         );
@@ -475,7 +517,7 @@ export class JoinQueryBuilder<Mine extends object> {
         ) => void,
     ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
         return this._Join_and_select(
-            (field, alias) => this.stmt_.leftJoinAndSelect(field, alias),
+            "leftJoinAndSelect",
             field,
             ...get_parametric_tuple(alias, closure),
         );
@@ -484,7 +526,7 @@ export class JoinQueryBuilder<Mine extends object> {
     private _Join_and_select<
         Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
     >(
-        joiner: (field: string, alias: string) => orm.SelectQueryBuilder<any>,
+        method: "innerJoinAndSelect" | "leftJoinAndSelect",
         field: Field,
         alias: string | undefined,
         closure:
@@ -495,33 +537,16 @@ export class JoinQueryBuilder<Mine extends object> {
               ) => void)
             | undefined,
     ) {
-        // PREPARE ASSET
-        const asset: IAsset<Mine, Field> = prepare_asset(
-            this.mine_,
-            field,
-            alias,
-        );
-        const index: string = RelationshipVariable.getter(
-            asset.belongs ? "belongs" : "has",
-            field,
-        );
-
-        // DO JOIN
-        joiner(`${this.alias_}.${index}`, asset.alias);
-
-        // CALL-BACK
-        return call_back(
-            this.stmt_,
-            asset.metadata.target(),
-            asset.alias,
-            closure,
-        );
+        return this._Take_join(method, field, alias, closure, (asset) => {
+            const index: string = RelationshipVariable.getter(
+                asset.belongs ? "belongs" : "has",
+                field,
+            );
+            this.stmt_[method](`${this.alias_}.${index}`, asset.alias);
+        });
     }
 }
 
-/* -----------------------------------------------------------
-    BACKGROUND
------------------------------------------------------------ */
 type IAsset<
     Mine extends object,
     Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
@@ -567,21 +592,6 @@ function prepare_asset<
     };
 }
 
-function call_back<Target extends object>(
-    stmt: orm.SelectQueryBuilder<any>,
-    target: Creator<Target>,
-    alias: string,
-    closure: ((builder: JoinQueryBuilder<Target>) => void) | undefined,
-): JoinQueryBuilder<Target> {
-    const ret: JoinQueryBuilder<Target> = new JoinQueryBuilder(
-        stmt,
-        target,
-        alias,
-    );
-    if (closure !== undefined) closure(ret);
-    return ret;
-}
-
 function get_parametric_tuple<Func extends Function>(
     x?: string | Func,
     y?: Func,
@@ -591,4 +601,17 @@ function get_parametric_tuple<Func extends Function>(
 
 function get_primary_column(creator: Creator<object>): string {
     return ITableInfo.get(creator).primaryColumn;
+}
+
+interface IJoined {
+    method: IJoined.Method;
+    alias: string;
+    builder: JoinQueryBuilder<any>;
+}
+namespace IJoined {
+    export type Method =
+        | "innerJoin"
+        | "leftJoin"
+        | "innerJoinAndSelect"
+        | "leftJoinAndSelect";
 }
