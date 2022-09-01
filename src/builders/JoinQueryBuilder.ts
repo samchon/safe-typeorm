@@ -1,4 +1,5 @@
 import { DomainError } from "tstl/exception/DomainError";
+import { OutOfRange } from "tstl/exception/OutOfRange";
 import * as orm from "typeorm";
 
 import { Belongs } from "../decorators/Belongs";
@@ -126,6 +127,34 @@ export class JoinQueryBuilder<Mine extends object> {
 
         if (closure) closure(builder);
         return builder;
+    }
+
+    /* -----------------------------------------------------------
+        ACCESSORS
+    ----------------------------------------------------------- */
+    public has(
+        field: SpecialFields<Mine, Relationship.Joinable<any>>,
+    ): boolean {
+        return this.joined_.has(field);
+    }
+
+    public get<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>(
+        field: SpecialFields<Mine, Relationship.Joinable<any>>,
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+        const found: IJoined | undefined = this.joined_.get(field);
+        if (found === undefined)
+            throw new OutOfRange(
+                `Error on safe.JoinQueryBuilder.get(): unable to find the matched key - "${field}".`,
+            );
+        return found.builder;
+    }
+
+    public size(): number {
+        return this.joined_.size;
+    }
+
+    public empty(): boolean {
+        return this.size() === 0;
     }
 
     /* -----------------------------------------------------------
