@@ -1,25 +1,25 @@
 import * as orm from "typeorm";
-import safe from "../../..";
 
+import safe from "../../..";
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
 import { BbsArticleContentFile } from "./BbsArticleContentFile";
 import { BbsReviewArticleContent } from "./BbsReviewArticleContent";
 
 @orm.Entity()
-export class BbsArticleContent extends safe.Model
-{
+export class BbsArticleContent extends safe.Model {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
     @orm.PrimaryGeneratedColumn("uuid")
     public readonly id!: string;
 
-    @safe.Belongs.ManyToOne(() => BbsArticle,
-        article => article.contents,
+    @safe.Belongs.ManyToOne(
+        () => BbsArticle,
+        (article) => article.contents,
         "uuid",
         "bbs_article_id",
-        { index: true }
+        { index: true },
     )
     public readonly article!: safe.Belongs.ManyToOne<BbsArticle, "uuid">;
 
@@ -35,20 +35,18 @@ export class BbsArticleContent extends safe.Model
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @safe.Has.OneToOne
-    (
-        () => BbsReviewArticleContent,
-        rc => rc.base
-    )
+    @safe.Has.OneToOne(() => BbsReviewArticleContent, (rc) => rc.base)
     public readonly reviewContent!: safe.Has.OneToOne<BbsReviewArticleContent>;
 
-    @safe.Has.ManyToMany
-    (
+    @safe.Has.ManyToMany(
         () => AttachmentFile,
         () => BbsArticleContentFile,
-        router => router.file,
-        router => router.content,
-        (x, y) => x.router.sequence - y.router.sequence
+        (router) => router.file,
+        (router) => router.content,
+        (x, y) => x.router.sequence - y.router.sequence,
     )
-    public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsArticleContentFile>;
+    public readonly files!: safe.Has.ManyToMany<
+        AttachmentFile,
+        BbsArticleContentFile
+    >;
 }

@@ -1,27 +1,25 @@
 import orm from "typeorm";
-import safe from "../..";
 
+import safe from "../..";
 import { BbsArticle } from "../models/bbs/BbsArticle";
 import { BbsArticleContent } from "../models/bbs/BbsArticleContent";
 import { BbsCategory } from "../models/bbs/BbsCategory";
 import { BbsGroup } from "../models/bbs/BbsGroup";
 import { BbsQuestionArticle } from "../models/bbs/BbsQuestionArticle";
 
-export async function test_safe_query_builder(): Promise<void>
-{
+export async function test_safe_query_builder(): Promise<void> {
     const group: BbsGroup = await BbsGroup.findOneOrFail();
     const category: BbsCategory = await BbsCategory.findOneOrFail();
 
     const stmt: orm.SelectQueryBuilder<BbsQuestionArticle> = safe
-        .createJoinQueryBuilder(BbsQuestionArticle, question =>
-        {
-            question.innerJoin("base", article =>
-            {
+        .createJoinQueryBuilder(BbsQuestionArticle, (question) => {
+            question.innerJoin("base", (article) => {
                 article.innerJoin("group");
                 article.innerJoin("category");
                 article.innerJoin("__mv_last").innerJoin("content");
             });
-            question.leftJoin("answer")
+            question
+                .leftJoin("answer")
                 .leftJoin("base", "AA")
                 .leftJoin("__mv_last", "AL")
                 .leftJoin("content", "AC");

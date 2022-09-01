@@ -9,58 +9,43 @@ import { BbsArticleTag } from "../models/bbs/BbsArticleTag";
 import { BbsComment } from "../models/bbs/BbsComment";
 import { BbsGroup } from "../models/bbs/BbsGroup";
 
-function reload<Mine extends { id: string }>
-    (records: Mine[]): Promise<Mine[]>
-{
+function reload<Mine extends { id: string }>(records: Mine[]): Promise<Mine[]> {
     return safe
         .findRepository(records[0].constructor as safe.typings.Creator<Mine>)
         .createQueryBuilder()
-        .andWhereInIds(records.map(record => record.id))
+        .andWhereInIds(records.map((record) => record.id))
         .getMany();
 }
 
 async function test<
-        Mine extends safe.Model
-            & { id: string } 
-            & { [key in Field]: Relationship<Target> },
-        Target extends object,
-        Field extends safe.typings.SpecialFields<Mine, Relationship<Target>>>
-    (
-        records: Mine[],
-        field: Field,
-        targets: Target[],
-    ): Promise<void>
-{
-    if (records.length === 0)
-        return;
+    Mine extends safe.Model & { id: string } & {
+        [key in Field]: Relationship<Target>;
+    },
+    Target extends object,
+    Field extends safe.typings.SpecialFields<Mine, Relationship<Target>>,
+>(records: Mine[], field: Field, targets: Target[]): Promise<void> {
+    if (records.length === 0) return;
 
     const reloaded: Mine[] = await reload(records);
     await safe.appJoin<Mine, Target, Field>(reloaded, field);
-    await must_not_query_anything
-    (
+    await must_not_query_anything(
         `appJoin(${records[0].constructor.name}, "${field}")`,
-        async () =>
-        {
-            for (const elem of reloaded)
-                await elem[field].get();
-        }
+        async () => {
+            for (const elem of reloaded) await elem[field].get();
+        },
     );
-    
+
     const retry: Mine[] = await reload(records);
     await safe.appJoin<Mine, Target, Field>(retry, field, targets);
-    await must_not_query_anything
-    (
+    await must_not_query_anything(
         `appJoin(${records[0].constructor.name}, "${field}", targets)`,
-        async () =>
-        {
-            for (const elem of retry)
-                await elem[field].get();
-        }
+        async () => {
+            for (const elem of retry) await elem[field].get();
+        },
     );
 }
 
-export async function test_app_join(): Promise<void>
-{
+export async function test_app_join(): Promise<void> {
     const groupList: BbsGroup[] = await generate_random_clean_groups();
     const articleList: BbsArticle[] = [];
     const tagList: BbsArticleTag[] = [];
@@ -70,20 +55,17 @@ export async function test_app_join(): Promise<void>
     const commentFileList: AttachmentFile[] = [];
 
     for (const group of groupList)
-        for (const article of await group.articles.get())
-        {
+        for (const article of await group.articles.get()) {
             articleList.push(article);
-            for (const content of await article.contents.get())
-            {
+            for (const content of await article.contents.get()) {
                 contentList.push(content);
-                contentFileList.push(...await content.files.get());
+                contentFileList.push(...(await content.files.get()));
             }
-            for (const comment of await article.comments.get())
-            {
+            for (const comment of await article.comments.get()) {
                 commentList.push(comment);
-                commentFileList.push(...await comment.files.get());
+                commentFileList.push(...(await comment.files.get()));
             }
-            tagList.push(...await article.tags.get());
+            tagList.push(...(await article.tags.get()));
         }
 
     await test(groupList, "articles", articleList);

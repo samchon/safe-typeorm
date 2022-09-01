@@ -1,39 +1,40 @@
-import * as orm from "typeorm";
 import { DomainError } from "tstl/exception/DomainError";
 import { MutableSingleton } from "tstl/thread/MutableSingleton";
 import { Singleton } from "tstl/thread/Singleton";
+import * as orm from "typeorm";
+
+import { findRepository } from "../../functional/findRepository";
 
 import { CapsuleNullable } from "../../typings/CapsuleNullable";
 import { Creator } from "../../typings/Creator";
 import { PrimaryColumnType } from "../../typings/PrimaryColumnType";
 import { StringColumnType } from "../../typings/StringColumnType";
-import { findRepository } from "../../functional/findRepository";
 
 import { BelongsAccessorBase } from "../base/BelongsAccessorBase";
 import { ClosureProxy } from "../base/ClosureProxy";
-import { HasOneToOne } from "./HasOneToOne";
 import { ReflectAdaptor } from "../base/ReflectAdaptor";
 import { RelationshipVariable } from "../base/RelationshipVariable";
 import { get_primary_field } from "../base/get_primary_field";
 import { take_default_cascade_options } from "../base/take_default_cascade_options";
 import { take_foreign_column_options } from "../base/take_foreign_column_options";
+import { HasOneToOne } from "./HasOneToOne";
 
 /**
  * Type of a variable using the `Belongs.OneToOne` decorator.
- * 
+ *
  * @template Target Type of the target model class who has this model class as 1: 1
  * @template Type Type of a type for a primary key column of the *Target* model class
  * @template Options Type of the surplus options defining the foreign referencing column
  */
 export type BelongsOneToOne<
-        Target extends object, 
-        Type extends PrimaryColumnType, 
-        Options extends Partial<BelongsOneToOne.IOptions<Type>> = {}> 
-    = BelongsOneToOne.Accessor<Target, Type, Options>;
+    Target extends object,
+    Type extends PrimaryColumnType,
+    Options extends Partial<BelongsOneToOne.IOptions<Type>> = {},
+> = BelongsOneToOne.Accessor<Target, Type, Options>;
 
 /**
  * Decorator function for the "1: 1 belongs" relationship.
- * 
+ *
  * @template Target Type of the target model class who has this model class as 1: 1
  * @template Type Type of a type for a primary key column of the *Target* model class
  * @template Options Type of the surplus options describing the foreign referencing column
@@ -46,19 +47,19 @@ export type BelongsOneToOne<
  * @return The *PropertyDecorator* function
  */
 export function BelongsOneToOne<
-        Target extends object, 
-        Type extends PrimaryColumnType,
-        Options extends Partial<BelongsOneToOne.IOptions<Type>>>
-    (
-        targetGen: Creator.Generator<Target>, 
-        type: Type,
-        myField: string, 
-        options?: Options
-    ): PropertyDecorator;
+    Target extends object,
+    Type extends PrimaryColumnType,
+    Options extends Partial<BelongsOneToOne.IOptions<Type>>,
+>(
+    targetGen: Creator.Generator<Target>,
+    type: Type,
+    myField: string,
+    options?: Options,
+): PropertyDecorator;
 
 /**
  * Decorator funtion for the "1: 1 belongs" relationship.
- * 
+ *
  * @template Mine Type of this model class who is using it, the `Belongs.OneToOne` decorator
  * @template Target Type of the target model class who has this model class *Mine* as 1: 1
  * @template Type Type of the primary key of the *Target* model class
@@ -74,44 +75,44 @@ export function BelongsOneToOne<
  * @return The *PropertyDecorator* function
  */
 export function BelongsOneToOne<
-        Mine extends object,
-        Target extends object, 
-        Type extends PrimaryColumnType,
-        Options extends Partial<BelongsOneToOne.IOptions<Type>>>
-    (
-        targetGen: Creator.Generator<Target>, 
-        inverse: (target: Target) => HasOneToOne<Mine>,
-        type: Type,
-        myField: string, 
-        options?: Options
-    ): PropertyDecorator;
+    Mine extends object,
+    Target extends object,
+    Type extends PrimaryColumnType,
+    Options extends Partial<BelongsOneToOne.IOptions<Type>>,
+>(
+    targetGen: Creator.Generator<Target>,
+    inverse: (target: Target) => HasOneToOne<Mine>,
+    type: Type,
+    myField: string,
+    options?: Options,
+): PropertyDecorator;
 
 export function BelongsOneToOne<
-        Mine extends object,
-        Target extends object, 
-        Type extends PrimaryColumnType,
-        Options extends Partial<BelongsOneToOne.IOptions<Type>>>
-    (
-        targetGen: Creator.Generator<Target>,
-        ...args: any[]
-    ): PropertyDecorator
-{
+    Mine extends object,
+    Target extends object,
+    Type extends PrimaryColumnType,
+    Options extends Partial<BelongsOneToOne.IOptions<Type>>,
+>(targetGen: Creator.Generator<Target>, ...args: any[]): PropertyDecorator {
     // LIST UP PARAMETERS
-    const inverse = typeof args[0] === "function"
-        ? args.splice(0, 1)[0]
-        : undefined;
+    const inverse =
+        typeof args[0] === "function" ? args.splice(0, 1)[0] : undefined;
     const type: Type = args[0];
     const myField: string = args[1];
     const options: Options = take_default_cascade_options(args[2] || {});
 
-    return function ($class, $property)
-    {
+    return function ($class, $property) {
         //----
         // PRELIMINARIES
         //----
         // LIST UP PROPERTIES
-        const label: string = RelationshipVariable.helper("belongs", $property as string);
-        const getter: string = RelationshipVariable.getter("belongs", $property as string);
+        const label: string = RelationshipVariable.helper(
+            "belongs",
+            $property as string,
+        );
+        const getter: string = RelationshipVariable.getter(
+            "belongs",
+            $property as string,
+        );
         const inverseField: string | null = inverse
             ? ClosureProxy.steal(inverse)
             : null;
@@ -123,25 +124,20 @@ export function BelongsOneToOne<
         };
         if (options.primary === true)
             orm.PrimaryColumn(type, columnOptions)($class, myField);
-        else
-            orm.Column(<any>type, columnOptions)($class, myField);
+        else orm.Column(<any>type, columnOptions)($class, myField);
 
         // DECORATOR FUNCTIONS
         if (inverseField !== null)
-            orm.OneToOne
-            (
+            orm.OneToOne(
                 targetGen,
                 RelationshipVariable.getter("has", inverseField),
-                options
-            )
-            ($class, getter);
-        else
-            orm.OneToOne(targetGen, options)($class, getter);
+                options,
+            )($class, getter);
+        else orm.OneToOne(targetGen, options)($class, getter);
         orm.JoinColumn({ name: myField })($class, getter);
 
         // INDEXING IF REQUIRED, BUT NOT RECOMMEND
-        if (options.index === true)
-            orm.Index()($class, myField);
+        if (options.index === true) orm.Index()($class, myField);
 
         //----
         // DEFINITIONS
@@ -155,32 +151,33 @@ export function BelongsOneToOne<
             property: $property as string,
             foreign_key_field: myField,
             getter,
-            target_primary_field: new Singleton(() => get_primary_field(targetGen())),
+            target_primary_field: new Singleton(() =>
+                get_primary_field(targetGen()),
+            ),
 
-            nullable: !!options.nullable
+            nullable: !!options.nullable,
         };
         ReflectAdaptor.set($class, $property, metadata);
 
         // ACCESSOR
-        Object.defineProperty($class, $property, 
-        {
-            get: function (): BelongsOneToOne.Accessor<Target, Type, Options>
-            {
+        Object.defineProperty($class, $property, {
+            get: function (): BelongsOneToOne.Accessor<Target, Type, Options> {
                 if (this[label] === undefined)
-                    this[label] = BelongsOneToOne.Accessor.create(metadata, this);
+                    this[label] = BelongsOneToOne.Accessor.create(
+                        metadata,
+                        this,
+                    );
                 return this[label];
-            }
+            },
         });
-    }
+    };
 }
 
-export namespace BelongsOneToOne
-{
+export namespace BelongsOneToOne {
     /**
      * @internal
      */
-    export interface IMetadata<T extends object>
-    {
+    export interface IMetadata<T extends object> {
         type: "Belongs.OneToOne";
         target: () => Creator<T>;
         inverse: string | null;
@@ -194,8 +191,9 @@ export namespace BelongsOneToOne
     }
 
     export interface IOptions<Type extends PrimaryColumnType>
-        extends Required<Omit<orm.RelationOptions, "primary"|"eager"|"lazy">>
-    {
+        extends Required<
+            Omit<orm.RelationOptions, "primary" | "eager" | "lazy">
+        > {
         index: boolean;
         primary: boolean;
         unique: boolean;
@@ -203,19 +201,17 @@ export namespace BelongsOneToOne
         length: number;
     }
 
-    export class Accessor<Target extends object,
-            Type extends PrimaryColumnType,
-            Options extends Partial<IOptions<Type>>>
-        extends BelongsAccessorBase<Target, Type, Options>
-    {
+    export class Accessor<
+        Target extends object,
+        Type extends PrimaryColumnType,
+        Options extends Partial<IOptions<Type>>,
+    > extends BelongsAccessorBase<Target, Type, Options> {
         private singleton_: MutableSingleton<CapsuleNullable<Target, Options>>;
 
-        private constructor
-            (
-                private readonly metadata_: IMetadata<Target>,
-                private readonly mine_: any
-            )
-        {
+        private constructor(
+            private readonly metadata_: IMetadata<Target>,
+            private readonly mine_: any,
+        ) {
             super();
             this.singleton_ = new MutableSingleton(() => this._Get());
         }
@@ -224,54 +220,59 @@ export namespace BelongsOneToOne
          * @internal
          */
         public static create<
-                Target extends object, 
-                Type extends PrimaryColumnType, 
-                Options extends Partial<IOptions<Type>>>
-            (
-                metadata: IMetadata<Target>,
-                mine: any
-            ): Accessor<Target, Type, Options>
-        {
+            Target extends object,
+            Type extends PrimaryColumnType,
+            Options extends Partial<IOptions<Type>>,
+        >(
+            metadata: IMetadata<Target>,
+            mine: any,
+        ): Accessor<Target, Type, Options> {
             return new Accessor(metadata, mine);
         }
 
         /**
-         * 
+         *
          */
-        public get id(): CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>
-        {
+        public get id(): CapsuleNullable<
+            PrimaryColumnType.ValueType<Type>,
+            Options
+        > {
             const output = this.mine_[this.metadata_.foreign_key_field];
-            if ((output === null || output === undefined) && this.metadata_.nullable === false)
+            if (
+                (output === null || output === undefined) &&
+                this.metadata_.nullable === false
+            )
                 throw new DomainError(this.get_null_error_message("id"));
             return output;
         }
-        public set id(value: CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>)
-        {
+        public set id(
+            value: CapsuleNullable<PrimaryColumnType.ValueType<Type>, Options>,
+        ) {
             if (value === null && this.metadata_.nullable === false)
                 throw new DomainError(this.get_null_error_message("id"));
 
             const previous = this.mine_[this.metadata_.foreign_key_field];
             this.mine_[this.metadata_.foreign_key_field] = value;
 
-            if (previous !== value)
-            {
+            if (previous !== value) {
                 this.singleton_ = new MutableSingleton(() => this._Get());
                 delete this.mine_[`__${this.metadata_.getter}__`];
                 delete this.mine_[`__has_${this.metadata_.getter}__`];
             }
         }
 
-        public statement(): orm.QueryBuilder<Target>
-        {
+        public statement(): orm.QueryBuilder<Target> {
             const creator: Creator<Target> = this.metadata_.target();
 
             return findRepository(creator)
                 .createQueryBuilder(creator.name)
-                .andWhere(`${creator.name}.${this.metadata_.target_primary_field} = :id`, { id: this.id });
+                .andWhere(
+                    `${creator.name}.${this.metadata_.target_primary_field} = :id`,
+                    { id: this.id },
+                );
         }
-        
-        public async set(obj: CapsuleNullable<Target, Options>): Promise<void>
-        {
+
+        public async set(obj: CapsuleNullable<Target, Options>): Promise<void> {
             // VALIDATION
             if (obj === null && this.metadata_.nullable === false)
                 throw new DomainError(this.get_null_error_message("set()"));
@@ -281,11 +282,13 @@ export namespace BelongsOneToOne
             await singleton.set(obj);
 
             // ASSIGN PROPERTIES
-            if (singleton === this.singleton_)
-            {
-                this.mine_[this.metadata_.foreign_key_field] = (obj !== null)
-                    ? (obj as any)[this.metadata_.target_primary_field.get()]
-                    : null;
+            if (singleton === this.singleton_) {
+                this.mine_[this.metadata_.foreign_key_field] =
+                    obj !== null
+                        ? (obj as any)[
+                              this.metadata_.target_primary_field.get()
+                          ]
+                        : null;
                 this.mine_[`__${this.metadata_.getter}__`] = obj;
                 this.mine_[`__has_${this.metadata_.getter}__`] = true;
             }
@@ -294,26 +297,26 @@ export namespace BelongsOneToOne
         /**
          * @internal
          */
-        protected _Assign(obj: CapsuleNullable<Target, Options>): void
-        {
+        protected _Assign(obj: CapsuleNullable<Target, Options>): void {
             // VALIDATION
             if (obj === null && this.metadata_.nullable === false)
-                throw new DomainError(this.get_null_error_message("initialize()"));
+                throw new DomainError(
+                    this.get_null_error_message("initialize()"),
+                );
 
             // ENFORCED ASSIGNMENTS
             this.singleton_["value_"] = obj;
-            this.mine_[this.metadata_.foreign_key_field] = (obj !== null)
-                ? (obj as any)[this.metadata_.target_primary_field.get()]
-                : null;
+            this.mine_[this.metadata_.foreign_key_field] =
+                obj !== null
+                    ? (obj as any)[this.metadata_.target_primary_field.get()]
+                    : null;
             this.mine_[`__${this.metadata_.getter}__`] = obj;
             this.mine_[`__has_${this.metadata_.getter}__`] = true;
         }
 
-        public async reload(): Promise<CapsuleNullable<Target, Options>>
-        {
+        public async reload(): Promise<CapsuleNullable<Target, Options>> {
             const id = this.id;
-            if (id === null || id === undefined)
-            {
+            if (id === null || id === undefined) {
                 if (this.metadata_.nullable === false)
                     throw new DomainError(this.get_null_error_message("get()"));
                 return null!;
@@ -321,11 +324,9 @@ export namespace BelongsOneToOne
             return await this.singleton_.reload();
         }
 
-        public async get(): Promise<CapsuleNullable<Target, Options>>
-        {
+        public async get(): Promise<CapsuleNullable<Target, Options>> {
             const id = this.id;
-            if (id === null || id === undefined)
-            {
+            if (id === null || id === undefined) {
                 if (this.metadata_.nullable === false)
                     throw new DomainError(this.get_null_error_message("get()"));
                 return null!;
@@ -333,9 +334,10 @@ export namespace BelongsOneToOne
             return await this.singleton_.get();
         }
 
-        private async _Get(): Promise<CapsuleNullable<Target, Options>>
-        {
-            const output: CapsuleNullable<Target, Options> = await this.mine_[this.metadata_.getter];
+        private async _Get(): Promise<CapsuleNullable<Target, Options>> {
+            const output: CapsuleNullable<Target, Options> = await this.mine_[
+                this.metadata_.getter
+            ];
             if (output === null && this.metadata_.nullable === false)
                 throw new DomainError(this.get_null_error_message("get()"));
             else if (output !== null && this.metadata_.inverse !== null)
@@ -344,8 +346,7 @@ export namespace BelongsOneToOne
             return output;
         }
 
-        private get_null_error_message(symbol: string): string
-        {
+        private get_null_error_message(symbol: string): string {
             return `Error on ${this.mine_.constructor.name}.${this.metadata_.property}.${symbol}: must not be null`;
         }
     }

@@ -1,4 +1,5 @@
 import safe from "../../..";
+import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { BbsArticle } from "../../models/bbs/BbsArticle";
 import { BbsGroup } from "../../models/bbs/BbsGroup";
 import { BbsReviewArticle } from "../../models/bbs/BbsReviewArticle";
@@ -6,8 +7,9 @@ import { collect_random_bbs_article } from "../collectors/collect_random_bbs_art
 import { collect_random_bbs_review_article } from "../collectors/collect_random_bbs_review_article";
 import { prepare_random_bbs_group } from "../preparations/prepare_random_bbs_group";
 
-export async function generate_random_bbs_review_articles(): Promise<BbsReviewArticle[]>
-{
+export async function generate_random_bbs_review_articles(): Promise<
+    BbsReviewArticle[]
+> {
     const collection: safe.InsertCollection = new safe.InsertCollection();
     const group: BbsGroup = prepare_random_bbs_group();
     collection.push(group);
@@ -15,17 +17,20 @@ export async function generate_random_bbs_review_articles(): Promise<BbsReviewAr
     const articleList: BbsArticle[] = [];
     const reviewList: BbsReviewArticle[] = [];
 
-    for (let i: number = 0; i < 10; ++i)
-    {
-        const article: BbsArticle = await collect_random_bbs_article(collection, group);
-        const review: BbsReviewArticle = await collect_random_bbs_review_article(collection, article);
+    await ArrayUtil.asyncRepeat(10, async () => {
+        const article: BbsArticle = await collect_random_bbs_article(
+            collection,
+            group,
+        );
+        const review: BbsReviewArticle =
+            await collect_random_bbs_review_article(collection, article);
 
         articleList.push(article);
         reviewList.push(review);
-    }
+    });
     await group.articles.set(articleList);
 
     await collection.execute();
 
-    return BbsReviewArticle.findByIds(reviewList.map(r => r.base.id));
+    return BbsReviewArticle.findByIds(reviewList.map((r) => r.base.id));
 }

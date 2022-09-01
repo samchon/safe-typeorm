@@ -1,10 +1,10 @@
 import * as orm from "typeorm";
+
 import safe from "../../..";
 import { BlogUserScrap } from "./BlogUserScrap";
 
 @orm.Entity()
-export class BlogUser extends safe.Model
-{
+export class BlogUser extends safe.Model {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
@@ -24,11 +24,10 @@ export class BlogUser extends safe.Model
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @safe.Has.OneToMany
-    (
+    @safe.Has.OneToMany(
         () => BlogUserScrap,
-        scrap => scrap.user,
-        (x, y) => x.created_at.getTime() - y.created_at.getTime()
+        (scrap) => scrap.user,
+        (x, y) => x.created_at.getTime() - y.created_at.getTime(),
     )
     public readonly scraps!: safe.Has.OneToMany<BlogUserScrap>;
 }

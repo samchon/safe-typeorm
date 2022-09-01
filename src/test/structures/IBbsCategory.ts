@@ -1,5 +1,4 @@
-export interface IBbsCategory
-{
+export interface IBbsCategory {
     id: string;
     parent: IBbsCategory | null;
     code: string;

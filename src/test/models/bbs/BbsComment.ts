@@ -1,19 +1,19 @@
 import * as orm from "typeorm";
-import safe from "../../..";
 
+import safe from "../../..";
 import { AttachmentFile } from "./AttachmentFile";
 import { BbsArticle } from "./BbsArticle";
 import { BbsCommentFile } from "./BbsCommentFile";
 
 @orm.Index(["bbs_article_id", "created_at"])
 @orm.Entity()
-export class BbsComment extends safe.Model
-{
+export class BbsComment extends safe.Model {
     @orm.PrimaryGeneratedColumn("uuid")
     public readonly id!: string;
 
-    @safe.Belongs.ManyToOne(() => BbsArticle,
-        article => article.comments,
+    @safe.Belongs.ManyToOne(
+        () => BbsArticle,
+        (article) => article.comments,
         "uuid",
         "bbs_article_id",
         // INDEXED
@@ -23,13 +23,12 @@ export class BbsComment extends safe.Model
     @orm.Column("text")
     public readonly content!: string;
 
-    @safe.Has.ManyToMany
-    (
+    @safe.Has.ManyToMany(
         () => AttachmentFile,
         () => BbsCommentFile,
-        router => router.file,
-        router => router.comment,
-        (x, y) => x.router.sequence  - y.router.sequence
+        (router) => router.file,
+        (router) => router.comment,
+        (x, y) => x.router.sequence - y.router.sequence,
     )
     public readonly files!: safe.Has.ManyToMany<AttachmentFile, BbsCommentFile>;
 

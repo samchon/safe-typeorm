@@ -1,7 +1,8 @@
 import { Singleton } from "tstl/thread/Singleton";
-import { Has } from "../../decorators";
+
 import { Belongs } from "../../decorators/Belongs";
 
+import { Has } from "../../decorators";
 import { app_join_belongs_many_to_one } from "./app_join_belongs_many_to_one";
 import { app_join_belongs_one_to_one } from "./app_join_belongs_one_to_one";
 import { app_join_has_many_to_many } from "./app_join_has_many_to_many";
@@ -11,16 +12,15 @@ import { app_join_has_one_to_one } from "./app_join_has_one_to_one";
 /**
  * @internal
  */
-export function get_app_join_function(type: Type)
-{
+export function get_app_join_function(type: Type) {
     return singleton.get()[type];
 }
 
 /**
  * @internal
  */
-type Type 
-    = Deduct<Belongs.ManyToOne.IMetadata<any>>
+type Type =
+    | Deduct<Belongs.ManyToOne.IMetadata<any>>
     | Deduct<Belongs.OneToOne.IMetadata<any>>
     | Deduct<Has.OneToOne.IMetadata<any>>
     | Deduct<Has.OneToMany.IMetadata<any>>
@@ -33,7 +33,9 @@ type Type
 /**
  * @internal
  */
-type Deduct<T extends { type: string }> = T extends { type: infer Type } ? Type : never;
+type Deduct<T extends { type: string }> = T extends { type: infer Type }
+    ? Type
+    : never;
 
 /**
  * @internal
@@ -47,5 +49,5 @@ const singleton = new Singleton(() => ({
     "Has.External.OneToOne": app_join_has_one_to_one,
     "Has.OneToMany": app_join_has_one_to_many,
     "Has.External.OneToMany": app_join_has_one_to_many,
-    "Has.ManyToMany": app_join_has_many_to_many
+    "Has.ManyToMany": app_join_has_many_to_many,
 }));

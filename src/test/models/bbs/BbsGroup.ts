@@ -1,11 +1,10 @@
 import * as orm from "typeorm";
-import safe from "../../..";
 
+import safe from "../../..";
 import { BbsArticle } from "./BbsArticle";
 
 @orm.Entity()
-export class BbsGroup extends safe.Model
-{
+export class BbsGroup extends safe.Model {
     /* -----------------------------------------------------------
         COLUMNS
     ----------------------------------------------------------- */
@@ -29,11 +28,10 @@ export class BbsGroup extends safe.Model
     /* -----------------------------------------------------------
         HAS
     ----------------------------------------------------------- */
-    @safe.Has.OneToMany
-    (
-        () => BbsArticle, 
-        article => article.group,
-        (x, y) => x.created_at.getTime() - y.created_at.getTime()
+    @safe.Has.OneToMany(
+        () => BbsArticle,
+        (article) => article.group,
+        (x, y) => x.created_at.getTime() - y.created_at.getTime(),
     )
     public readonly articles!: safe.Has.OneToMany<BbsArticle>;
 }
