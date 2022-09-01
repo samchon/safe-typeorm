@@ -4,8 +4,8 @@ import { BbsGroup } from "../models/bbs/BbsGroup";
 
 export async function test_join_query_builder_duplicated_join(): Promise<void> {
     const group: BbsGroup = await generate_random_normal_bbs_group();
-    const stmt = BbsGroup.createQueryBuilder();
-    const builder = new safe.JoinQueryBuilder(stmt, BbsGroup);
+    const builder: safe.JoinQueryBuilder<BbsGroup> =
+        BbsGroup.createJoinQueryBuilder();
 
     builder.innerJoin("articles", (article) => {
         article.innerJoin("__mv_last").innerJoin("content");
@@ -21,7 +21,6 @@ export async function test_join_query_builder_duplicated_join(): Promise<void> {
         article.innerJoin("tags");
     });
 
-    stmt.andWhere(...BbsGroup.getWhereArguments("code", group.code));
-    console.log(stmt.getQuery());
-    await stmt.getMany();
+    builder.andWhere("code", group.code);
+    await builder.statement().getMany();
 }

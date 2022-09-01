@@ -24,6 +24,7 @@ export async function test_safe_query_builder(): Promise<void> {
                 .leftJoin("__mv_last", "AL")
                 .leftJoin("content", "AC");
         })
+        .statement()
         .andWhere(...BbsArticle.getWhereArguments("group", group))
         .andWhere(...BbsCategory.getWhereArguments("code", "!=", category.code))
         .select([

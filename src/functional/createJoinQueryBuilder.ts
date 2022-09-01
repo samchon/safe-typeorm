@@ -23,12 +23,12 @@ import { findRepository } from "./findRepository";
  *
  * @template T Type of a model class
  * @param closure A callback function who can join related tables very easily and safely
- * @return The newly created `TyperORM.SelectQueryBuilder` instance
+ * @return The newly created `JoinQueryBuilder` instance
  */
 export function createJoinQueryBuilder<T extends object>(
     creator: Creator<T>,
-    closure: (builder: JoinQueryBuilder<T>) => void,
-): orm.SelectQueryBuilder<T>;
+    closure: (builder: JoinQueryBuilder<T, T>) => void,
+): JoinQueryBuilder<T, T>;
 
 /**
  * Create join query builder from manager.
@@ -48,13 +48,13 @@ export function createJoinQueryBuilder<T extends object>(
  * @template T Type of a model class
  * @param manager Entity manager of TypeORM, maybe used for the transaction scope
  * @param closure A callback function who can join related tables very easily and safely
- * @return The newly created `TyperORM.SelectQueryBuilder` instance
+ * @return The newly created `JoinQueryBuilder` instance
  */
 export function createJoinQueryBuilder<T extends object>(
     manager: orm.EntityManager,
     creator: Creator<T>,
-    closure: (builder: JoinQueryBuilder<T>) => void,
-): orm.SelectQueryBuilder<T>;
+    closure: (builder: JoinQueryBuilder<T, T>) => void,
+): JoinQueryBuilder<T, T>;
 
 /**
  * Create join query builder with alias.
@@ -74,13 +74,13 @@ export function createJoinQueryBuilder<T extends object>(
  * @template T Type of a model class
  * @param alias Alias for the table *T*
  * @param closure A callback function who can join related tables very easily and safely
- * @return The newly created `TyperORM.SelectQueryBuilder` instance
+ * @return The newly created `JoinQueryBuilder` instance
  */
 export function createJoinQueryBuilder<T extends object>(
     creator: Creator<T>,
     alias: string,
-    closure: (builder: JoinQueryBuilder<T>) => void,
-): orm.SelectQueryBuilder<T>;
+    closure?: (builder: JoinQueryBuilder<T, T>) => void,
+): JoinQueryBuilder<T, T>;
 
 /**
  * Create join query builder from manager with alias.
@@ -101,35 +101,40 @@ export function createJoinQueryBuilder<T extends object>(
  * @param manager Entity manager of TypeORM, maybe used for the transaction scope
  * @param alias Alias for the table *T*
  * @param closure A callback function who can join related tables very easily and safely
- * @return The newly created `TyperORM.SelectQueryBuilder` instance
+ * @return The newly created `JoinQueryBuilder` instance
  */
 export function createJoinQueryBuilder<T extends object>(
     manager: orm.EntityManager,
     creator: Creator<T>,
     alias: string,
-    closure: (builder: JoinQueryBuilder<T>) => void,
-): orm.SelectQueryBuilder<T>;
+    closure?: (builder: JoinQueryBuilder<T, T>) => void,
+): JoinQueryBuilder<T, T>;
 
 export function createJoinQueryBuilder<T extends object>(
     ...args: any[]
-): orm.SelectQueryBuilder<T> {
+): JoinQueryBuilder<T, T> {
     // LIST UP PARAMETERS
-    const manager: orm.EntityManager | null =
-        args[0] instanceof orm.EntityManager ? args[0] : null;
-    const creator: Creator<T> = manager !== null ? args[1] : args[0];
-    args.splice(0, manager !== null ? 2 : 1);
+    const index: number = args[0] instanceof orm.EntityManager ? 1 : 0;
 
-    // LIST UP ALIAS AND CLOSURE
-    const [alias, closure]: [string, (builder: JoinQueryBuilder<T>) => void] =
-        args.length === 1 ? [creator.name, args[0]] : [args[0], args[1]];
+    const manager: orm.EntityManager | null = index === 1 ? args[0] : null;
+    const creator: Creator<T> = args[index];
+    const alias: string | undefined =
+        typeof args[index + 1] === "string" ? args[index + 1] : undefined;
+    const closure = alias !== undefined ? args[index + 2] : args[index + 1];
 
+    // STATEMENT
     const stmt: orm.SelectQueryBuilder<T> = (
         manager !== null
             ? manager.getRepository(creator)
             : findRepository(creator)
     ).createQueryBuilder(alias);
-    const builder: JoinQueryBuilder<T> = new JoinQueryBuilder(stmt, creator);
 
-    closure(builder);
-    return stmt;
+    // JOINER
+    const builder: JoinQueryBuilder<T, T> = JoinQueryBuilder.create(
+        stmt,
+        creator,
+        alias,
+    );
+    if (closure) closure(builder);
+    return builder;
 }

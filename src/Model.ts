@@ -108,12 +108,12 @@ export abstract class Model extends orm.BaseEntity {
      *
      * @template T Type of a model class that is derived from the `Model`
      * @param closure A callback function who can join related tables very easily and safely
-     * @return The newly created `TyperORM.SelectQueryBuilder` instance
+     * @return The newly created `JoinQueryBuilder` instance
      */
     public static createJoinQueryBuilder<T extends Model>(
         this: Model.Creator<T>,
-        closure: (builder: JoinQueryBuilder<T>) => void,
-    ): orm.SelectQueryBuilder<T>;
+        closure?: (builder: JoinQueryBuilder<T, T>) => void,
+    ): JoinQueryBuilder<T, T>;
 
     /**
      * Create join query builder with alias.
@@ -133,21 +133,21 @@ export abstract class Model extends orm.BaseEntity {
      * @template T Type of a model class that is derived from the `Model`
      * @param alias Alias for the table *T*
      * @param closure A callback function who can join related tables very easily and safely
-     * @return The newly created `TyperORM.SelectQueryBuilder` instance
+     * @return The newly created `JoinQueryBuilder` instance
      */
     public static createJoinQueryBuilder<T extends Model>(
         this: Model.Creator<T>,
         alias: string,
-        closure: (builder: JoinQueryBuilder<T>) => void,
-    ): orm.SelectQueryBuilder<T>;
+        closure?: (builder: JoinQueryBuilder<T, T>) => void,
+    ): JoinQueryBuilder<T, T>;
 
     public static createJoinQueryBuilder<T extends Model>(
         this: Model.Creator<T>,
         ...args: any[]
-    ): orm.SelectQueryBuilder<T> {
+    ): JoinQueryBuilder<T, T> {
         return createJoinQueryBuilder(
             this,
-            ...(args as [string, (builder: JoinQueryBuilder<T>) => void]),
+            ...(args as [string, (builder: JoinQueryBuilder<T, T>) => void]),
         );
     }
 

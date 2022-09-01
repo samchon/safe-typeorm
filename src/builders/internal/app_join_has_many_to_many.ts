@@ -61,7 +61,7 @@ export async function app_join_has_many_to_many<
     const router: Creator<Router> = metadata.router();
     const stmt: orm.SelectQueryBuilder<Router> =
         findRepository(router).createQueryBuilder();
-    new JoinQueryBuilder(stmt, router).innerJoinAndSelect(
+    JoinQueryBuilder.create(stmt, router).innerJoinAndSelect(
         <any>metadata.target_inverse,
     );
 
