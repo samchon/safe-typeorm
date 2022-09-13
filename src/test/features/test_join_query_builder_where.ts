@@ -12,7 +12,7 @@ export async function test_join_query_builder_where() {
         article.innerJoin("contents", "BC", (content) => {
             content.orWhere("title", json[1].articles[0].contents[0].title);
         });
-        article.orWhere("id", json[2].articles[0].id);
+        article.orWhere("id", () => `'${json[2].articles[0].id}'`);
     });
     builder.orWhere("code", json[0].code);
 

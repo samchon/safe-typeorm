@@ -27,7 +27,7 @@ import { findRepository } from "./findRepository";
  */
 export function createJoinQueryBuilder<T extends object>(
     creator: Creator<T>,
-    closure: (builder: JoinQueryBuilder<T, T>) => void,
+    closure?: (builder: JoinQueryBuilder<T, T>) => void,
 ): JoinQueryBuilder<T, T>;
 
 /**
@@ -53,7 +53,7 @@ export function createJoinQueryBuilder<T extends object>(
 export function createJoinQueryBuilder<T extends object>(
     manager: orm.EntityManager,
     creator: Creator<T>,
-    closure: (builder: JoinQueryBuilder<T, T>) => void,
+    closure?: (builder: JoinQueryBuilder<T, T>) => void,
 ): JoinQueryBuilder<T, T>;
 
 /**

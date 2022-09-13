@@ -1,6 +1,6 @@
 {
   "name": "safe-typeorm",
-  "version": "2.0.0-dev.20220901",
+  "version": "2.0.0-dev.20220913-5",
   "description": "Make TypeORM much safer",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",

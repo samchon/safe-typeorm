@@ -15,7 +15,7 @@ import { Relationship } from "../typings/Relationship";
 import { SpecialFields } from "../typings/SpecialFields";
 
 import { getWhereArguments } from "../functional";
-import { Operator } from "../typings";
+import { FieldLike, Operator } from "../typings";
 
 /**
  * DB level join query builder.
@@ -52,11 +52,8 @@ import { Operator } from "../typings";
  * @reference [stackoverflow/join-queries-vs-multiple-queries](https://stackoverflow.com/questions/1067016/join-queries-vs-multiple-queries)
  * @author Jeongho Nam - https://github.com/samchon
  */
-export class JoinQueryBuilder<
-    Mine extends object,
-    Query extends object = Mine,
-> {
-    private readonly stmt_: orm.SelectQueryBuilder<Query>;
+export class JoinQueryBuilder<Mine extends object, Query extends object = any> {
+    private readonly stmt_: IStatement<Query>;
     private readonly mine_: Creator<Mine>;
     private readonly alias_: string;
 
@@ -76,14 +73,23 @@ export class JoinQueryBuilder<
         mine: Creator<Mine>,
         alias?: string,
     ): JoinQueryBuilder<Mine, Query> {
-        return new JoinQueryBuilder(stmt, mine, alias);
+        return new JoinQueryBuilder(
+            {
+                query: stmt,
+                groupped: false,
+                ordered: false,
+                selected: false,
+            },
+            mine,
+            alias,
+        );
     }
 
     /**
      * @hidden
      */
     private constructor(
-        stmt: orm.SelectQueryBuilder<Query>,
+        stmt: IStatement<Query>,
         mine: Creator<Mine>,
         alias?: string,
     ) {
@@ -155,7 +161,7 @@ export class JoinQueryBuilder<
     }
 
     public get<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>(
-        field: SpecialFields<Mine, Relationship.Joinable<any>>,
+        field: Field,
     ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         const found: IJoined | undefined = this.joined_.get(field);
         if (found === undefined)
@@ -174,33 +180,79 @@ export class JoinQueryBuilder<
     }
 
     public statement(): orm.SelectQueryBuilder<any> {
-        return this.stmt_;
+        return this.stmt_.query;
     }
 
     /* -----------------------------------------------------------
         STATEMENTS
     ----------------------------------------------------------- */
-    public addSelect(
-        field: SpecialFields<Mine, Relationship.Joinable<any>>,
+    private _Decompose_field_like<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
+    ): { column: string; symbol: string } {
+        const escape = (field: Literal) =>
+            (
+                ReflectAdaptor.get(
+                    this.mine_.prototype,
+                    field,
+                ) as Belongs.ManyToOne.IMetadata<any>
+            )?.foreign_key_field || field;
+        const symbol = (column: string) => `${this.alias_}.${column}`;
+
+        if (typeof fieldLike === "string") {
+            const column: string = escape(fieldLike);
+            return { column, symbol: symbol(column) };
+        } else {
+            const column: string = escape(fieldLike[0]);
+            const closure: (str: string) => string = fieldLike[1];
+
+            return {
+                column,
+                symbol: closure(symbol(column)),
+            };
+        }
+    }
+
+    public addSelect<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
         alias?: string,
     ): this {
-        this.stmt_.addSelect(`${this.alias_}.${field}`, alias || field);
+        const { column, symbol } = this._Decompose_field_like(fieldLike);
+        alias ||= column;
+
+        if (this.stmt_.selected === false) {
+            this.stmt_.query.select(symbol, alias);
+            this.stmt_.selected = true;
+        } else {
+            this.stmt_.query.addSelect(symbol, alias || column);
+        }
         return this;
     }
 
-    public addOrderBy(
-        field: SpecialFields<Mine, Field>,
+    public addOrderBy<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
         order?: "ASC" | "DESC" | undefined,
         nulls?: "NULLS FIRST" | "NULLS LAST",
     ): JoinQueryBuilder<Mine, Query> {
-        this.stmt_.addOrderBy(`${this.alias_}.${field}`, order, nulls);
+        const { symbol } = this._Decompose_field_like(fieldLike);
+        if (this.stmt_.ordered === false) {
+            this.stmt_.query.orderBy(symbol, order, nulls);
+            this.stmt_.ordered = true;
+        } else {
+            this.stmt_.query.addOrderBy(symbol, order, nulls);
+        }
         return this;
     }
 
-    public addGroupBy(
-        field: SpecialFields<Mine, Field>,
+    public addGroupBy<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
     ): JoinQueryBuilder<Mine, Query> {
-        this.stmt_.addGroupBy(`${this.alias_}.${field}`);
+        const { symbol } = this._Decompose_field_like(fieldLike);
+        if (this.stmt_.groupped === false) {
+            this.stmt_.query.groupBy(symbol);
+            this.stmt_.groupped = true;
+        } else {
+            this.stmt_.query.addGroupBy(symbol);
+        }
         return this;
     }
 
@@ -209,7 +261,7 @@ export class JoinQueryBuilder<
         Literal extends SpecialFields<T, Field>,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         param: Field.MemberType<T, Literal> | null | (() => string),
     ): JoinQueryBuilder<Mine, Query>;
 
@@ -219,7 +271,7 @@ export class JoinQueryBuilder<
         OperatorType extends Operator,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         operator: OperatorType,
         param:
             | (OperatorType extends "=" | "!=" | "<>"
@@ -234,7 +286,7 @@ export class JoinQueryBuilder<
         OperatorType extends Operator,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         operator: "IN" | "NOT IN",
         param: Array<Field.MemberType<T, Literal>> | (() => string),
     ): JoinQueryBuilder<Mine, Query>;
@@ -245,7 +297,7 @@ export class JoinQueryBuilder<
         OperatorType extends Operator,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         operator: "BETWEEN",
         minimum: Field.MemberType<T, Literal> | (() => string),
         maximum: Field.MemberType<T, Literal> | (() => string),
@@ -256,15 +308,14 @@ export class JoinQueryBuilder<
         Literal extends SpecialFields<T, Field>,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        fieldLike: FieldLike<Literal>,
         ...rest: any[]
     ): JoinQueryBuilder<Mine, Query> {
-        const args = getWhereArguments(
-            this.mine_,
-            `${this.alias_}.${field}`,
-            ...(rest as [Operator, Field.MemberType<any, Literal>]),
+        this._Where(
+            (stmt, ...args) => stmt.andWhere(...args),
+            fieldLike,
+            ...rest,
         );
-        this.stmt_.andWhere(...args);
         return (<any>this) as JoinQueryBuilder<Mine, Query>;
     }
 
@@ -273,7 +324,7 @@ export class JoinQueryBuilder<
         Literal extends SpecialFields<T, Field>,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         param: Field.MemberType<T, Literal> | null | (() => string),
     ): JoinQueryBuilder<Mine, Query>;
 
@@ -283,7 +334,7 @@ export class JoinQueryBuilder<
         OperatorType extends Operator,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         operator: OperatorType,
         param:
             | (OperatorType extends "=" | "!=" | "<>"
@@ -298,7 +349,7 @@ export class JoinQueryBuilder<
         OperatorType extends Operator,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         operator: "IN" | "NOT IN",
         param: Array<Field.MemberType<T, Literal>> | (() => string),
     ): JoinQueryBuilder<Mine, Query>;
@@ -309,7 +360,7 @@ export class JoinQueryBuilder<
         OperatorType extends Operator,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        field: FieldLike<Literal>,
         operator: "BETWEEN",
         minimum: Field.MemberType<T, Literal> | (() => string),
         maximum: Field.MemberType<T, Literal> | (() => string),
@@ -320,16 +371,35 @@ export class JoinQueryBuilder<
         Literal extends SpecialFields<T, Field>,
     >(
         this: JoinQueryBuilder<T, Query>,
-        field: Literal,
+        fieldLike: FieldLike<Literal>,
         ...rest: any[]
     ): JoinQueryBuilder<Mine, Query> {
-        const args = getWhereArguments(
-            this.mine_,
-            `${this.alias_}.${field}`,
-            ...(rest as [Operator, Field.MemberType<any, Literal>]),
+        this._Where(
+            (stmt, ...args) => stmt.orWhere(...args),
+            fieldLike,
+            ...rest,
         );
-        this.stmt_.orWhere(...args);
         return (<any>this) as JoinQueryBuilder<Mine, Query>;
+    }
+
+    private _Where(
+        condition: (
+            stmt: orm.SelectQueryBuilder<Query>,
+            ...args: [string, any]
+        ) => any,
+        fieldLike: string | [string, (str: string) => string],
+        ...rest: any[]
+    ) {
+        const parameters: any[] = [
+            this.mine_,
+            typeof fieldLike === "string"
+                ? `${this.alias_}.${fieldLike}`
+                : [`${this.alias_}.${fieldLike[0]}`, fieldLike[1]],
+        ];
+        parameters.push(...rest);
+
+        const args: [string, any] = (getWhereArguments as any)(...parameters);
+        condition(this.stmt_.query, ...args);
     }
 
     /* -----------------------------------------------------------
@@ -737,7 +807,11 @@ export class JoinQueryBuilder<
 
             // DO JOIN
             const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
-            this.stmt_[method](asset.metadata.target(), asset.alias, condition);
+            this.stmt_.query[method](
+                asset.metadata.target(),
+                asset.alias,
+                condition,
+            );
         });
     }
 
@@ -761,7 +835,7 @@ export class JoinQueryBuilder<
                 asset.belongs ? "belongs" : "has",
                 field,
             );
-            this.stmt_[method](`${this.alias_}.${index}`, asset.alias);
+            this.stmt_.query[method](`${this.alias_}.${index}`, asset.alias);
         });
     }
 }
@@ -822,6 +896,12 @@ function get_primary_column(creator: Creator<object>): string {
     return ITableInfo.get(creator).primaryColumn;
 }
 
+interface IStatement<Query> {
+    query: orm.SelectQueryBuilder<Query>;
+    selected: boolean;
+    groupped: boolean;
+    ordered: boolean;
+}
 interface IJoined {
     method: IJoined.Method;
     alias: string;

@@ -1,3 +1,3 @@
-export type WhereColumnType<Literal extends string> =
+export type FieldLike<Literal extends string> =
     | Literal
     | [Literal, (str: string) => string];
