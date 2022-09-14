@@ -12,7 +12,7 @@ import { BbsGroup } from "../models/bbs/BbsGroup";
 import { IBbsArticle } from "../structures/IBbsArticle";
 import { IBbsGroup } from "../structures/IBbsGroup";
 
-export async function test_json_select_builder(): Promise<void> {
+export async function test_json_select_builder(): Promise<IBbsGroup[]> {
     const builder = new safe.JsonSelectBuilder(BbsGroup, {
         articles: new safe.JsonSelectBuilder(BbsArticle, {
             group: safe.DEFAULT,
@@ -89,4 +89,5 @@ export async function test_json_select_builder(): Promise<void> {
             });
         });
     });
+    return regular;
 }

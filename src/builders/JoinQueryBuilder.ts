@@ -10,8 +10,12 @@ import { RelationshipVariable } from "../decorators/base/RelationshipVariable";
 import { ITableInfo } from "../functional/internal/ITableInfo";
 
 import { Creator } from "../typings/Creator";
+import { Field } from "../typings/Field";
 import { Relationship } from "../typings/Relationship";
 import { SpecialFields } from "../typings/SpecialFields";
+
+import { getWhereArguments } from "../functional";
+import { FieldLike, Operator } from "../typings";
 
 /**
  * DB level join query builder.
@@ -44,11 +48,12 @@ import { SpecialFields } from "../typings/SpecialFields";
  * Elapsed Time | 8.07508   | 0.00262
  *
  * @template Mine Target entity to perform the DB join
+ * @template Query Target entity of `TypeORM.SelectQueryBuilder`
  * @reference [stackoverflow/join-queries-vs-multiple-queries](https://stackoverflow.com/questions/1067016/join-queries-vs-multiple-queries)
  * @author Jeongho Nam - https://github.com/samchon
  */
-export class JoinQueryBuilder<Mine extends object> {
-    private readonly stmt_: orm.SelectQueryBuilder<any>;
+export class JoinQueryBuilder<Mine extends object, Query extends object = any> {
+    private readonly stmt_: IStatement<Query>;
     private readonly mine_: Creator<Mine>;
     private readonly alias_: string;
 
@@ -61,14 +66,30 @@ export class JoinQueryBuilder<Mine extends object> {
         CONNSTRUCTOR
     ----------------------------------------------------------- */
     /**
-     * Default Constructor.
-     *
-     * @param stmt A {@link SelectQueryBuilder} instance for the *Mine* entity
-     * @param mine Target ORM class to perform the DB join
-     * @param alias Alias name specification, for the *Mine* entity, if required
+     * @internal
      */
-    public constructor(
-        stmt: orm.SelectQueryBuilder<any>,
+    public static create<Mine extends object, Query extends object>(
+        stmt: orm.SelectQueryBuilder<Query>,
+        mine: Creator<Mine>,
+        alias?: string,
+    ): JoinQueryBuilder<Mine, Query> {
+        return new JoinQueryBuilder(
+            {
+                query: stmt,
+                groupped: false,
+                ordered: false,
+                selected: false,
+            },
+            mine,
+            alias,
+        );
+    }
+
+    /**
+     * @hidden
+     */
+    private constructor(
+        stmt: IStatement<Query>,
         mine: Creator<Mine>,
         alias?: string,
     ) {
@@ -87,12 +108,13 @@ export class JoinQueryBuilder<Mine extends object> {
         closure:
             | ((
                   builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
                   >,
               ) => void)
             | undefined,
         joiner: (asset: IAsset<Mine, Field>) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         // PREPARE ASSET
         const asset: IAsset<Mine, Field> = prepare_asset(
             this.mine_,
@@ -139,8 +161,8 @@ export class JoinQueryBuilder<Mine extends object> {
     }
 
     public get<Field extends SpecialFields<Mine, Relationship.Joinable<any>>>(
-        field: SpecialFields<Mine, Relationship.Joinable<any>>,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+        field: Field,
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         const found: IJoined | undefined = this.joined_.get(field);
         if (found === undefined)
             throw new OutOfRange(
@@ -157,8 +179,244 @@ export class JoinQueryBuilder<Mine extends object> {
         return this.size() === 0;
     }
 
+    public statement(): orm.SelectQueryBuilder<any> {
+        return this.stmt_.query;
+    }
+
     /* -----------------------------------------------------------
-        RAW JOIN
+        STATEMENTS
+    ----------------------------------------------------------- */
+    private _Decompose_field_like<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
+    ): { column: string; symbol: string } {
+        const escape = (field: Literal) =>
+            (
+                ReflectAdaptor.get(
+                    this.mine_.prototype,
+                    field,
+                ) as Belongs.ManyToOne.IMetadata<any>
+            )?.foreign_key_field || field;
+        const symbol = (column: string) => `${this.alias_}.${column}`;
+
+        if (typeof fieldLike === "string") {
+            const column: string = escape(fieldLike);
+            return { column, symbol: symbol(column) };
+        } else {
+            const column: string = escape(fieldLike[0]);
+            const closure: (str: string) => string = fieldLike[1];
+
+            return {
+                column,
+                symbol: closure(symbol(column)),
+            };
+        }
+    }
+
+    public addSelect<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
+        alias?: string,
+    ): this {
+        const { column, symbol } = this._Decompose_field_like(fieldLike);
+        alias ||= column;
+
+        if (this.stmt_.selected === false) {
+            this.stmt_.query.select(symbol, alias);
+            this.stmt_.selected = true;
+        } else {
+            this.stmt_.query.addSelect(symbol, alias || column);
+        }
+        return this;
+    }
+
+    public addOrderBy<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
+        order?: "ASC" | "DESC" | undefined,
+        nulls?: "NULLS FIRST" | "NULLS LAST",
+    ): JoinQueryBuilder<Mine, Query> {
+        const { symbol } = this._Decompose_field_like(fieldLike);
+        if (this.stmt_.ordered === false) {
+            this.stmt_.query.orderBy(symbol, order, nulls);
+            this.stmt_.ordered = true;
+        } else {
+            this.stmt_.query.addOrderBy(symbol, order, nulls);
+        }
+        return this;
+    }
+
+    public addGroupBy<Literal extends SpecialFields<Mine, Field>>(
+        fieldLike: FieldLike<Literal>,
+    ): JoinQueryBuilder<Mine, Query> {
+        const { symbol } = this._Decompose_field_like(fieldLike);
+        if (this.stmt_.groupped === false) {
+            this.stmt_.query.groupBy(symbol);
+            this.stmt_.groupped = true;
+        } else {
+            this.stmt_.query.addGroupBy(symbol);
+        }
+        return this;
+    }
+
+    public andWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        param: Field.MemberType<T, Literal> | null | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public andWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        operator: OperatorType,
+        param:
+            | (OperatorType extends "=" | "!=" | "<>"
+                  ? Field.MemberType<T, Literal> | null
+                  : Field.MemberType<T, Literal>)
+            | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public andWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        operator: "IN" | "NOT IN",
+        param: Array<Field.MemberType<T, Literal>> | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public andWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        operator: "BETWEEN",
+        minimum: Field.MemberType<T, Literal> | (() => string),
+        maximum: Field.MemberType<T, Literal> | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public andWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        fieldLike: FieldLike<Literal>,
+        ...rest: any[]
+    ): JoinQueryBuilder<Mine, Query> {
+        this._Where(
+            (stmt, ...args) => stmt.andWhere(...args),
+            fieldLike,
+            ...rest,
+        );
+        return (<any>this) as JoinQueryBuilder<Mine, Query>;
+    }
+
+    public orWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        param: Field.MemberType<T, Literal> | null | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public orWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        operator: OperatorType,
+        param:
+            | (OperatorType extends "=" | "!=" | "<>"
+                  ? Field.MemberType<T, Literal> | null
+                  : Field.MemberType<T, Literal>)
+            | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public orWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        operator: "IN" | "NOT IN",
+        param: Array<Field.MemberType<T, Literal>> | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public orWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+        OperatorType extends Operator,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        field: FieldLike<Literal>,
+        operator: "BETWEEN",
+        minimum: Field.MemberType<T, Literal> | (() => string),
+        maximum: Field.MemberType<T, Literal> | (() => string),
+    ): JoinQueryBuilder<Mine, Query>;
+
+    public orWhere<
+        T extends Mine & { [P in Literal]: Field },
+        Literal extends SpecialFields<T, Field>,
+    >(
+        this: JoinQueryBuilder<T, Query>,
+        fieldLike: FieldLike<Literal>,
+        ...rest: any[]
+    ): JoinQueryBuilder<Mine, Query> {
+        this._Where(
+            (stmt, ...args) => stmt.orWhere(...args),
+            fieldLike,
+            ...rest,
+        );
+        return (<any>this) as JoinQueryBuilder<Mine, Query>;
+    }
+
+    private _Where(
+        condition: (
+            stmt: orm.SelectQueryBuilder<Query>,
+            ...args: [string, any]
+        ) => any,
+        fieldLike: string | [string, (str: string) => string],
+        ...rest: any[]
+    ) {
+        const parameters: any[] = [
+            this.mine_,
+            typeof fieldLike === "string"
+                ? `${this.alias_}.${fieldLike}`
+                : [`${this.alias_}.${fieldLike[0]}`, fieldLike[1]],
+        ];
+        parameters.push(...rest);
+
+        const args: [string, any] = (getWhereArguments as any)(...parameters);
+        condition(this.stmt_.query, ...args);
+    }
+
+    public getColumn<Literal extends SpecialFields<Mine, Field>>(
+        field: Literal,
+    ): string {
+        const column: string =
+            (
+                ReflectAdaptor.get(
+                    this.mine_.prototype,
+                    field,
+                ) as Belongs.ManyToOne.IMetadata<Mine>
+            )?.foreign_key_field || field;
+        return `${this.alias_}.${column}`;
+    }
+
+    /* -----------------------------------------------------------
+        JOINERS
     ----------------------------------------------------------- */
     /**
      * Configure an inner join.
@@ -183,10 +441,11 @@ export class JoinQueryBuilder<Mine extends object> {
         field: Field,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     /**
      * Configure an inner join with alias specification.
@@ -213,10 +472,11 @@ export class JoinQueryBuilder<Mine extends object> {
         alias: string,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     public innerJoin<
         Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
@@ -226,15 +486,17 @@ export class JoinQueryBuilder<Mine extends object> {
             | string
             | ((
                   builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
                   >,
               ) => void),
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         return this._Join_atomic(
             "innerJoin",
             field,
@@ -265,10 +527,11 @@ export class JoinQueryBuilder<Mine extends object> {
         field: Field,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     /**
      * Configure left join with alias specification.
@@ -295,10 +558,11 @@ export class JoinQueryBuilder<Mine extends object> {
         alias: string,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     public leftJoin<
         Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
@@ -308,15 +572,17 @@ export class JoinQueryBuilder<Mine extends object> {
             | string
             | ((
                   builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
                   >,
               ) => void),
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         return this._Join_atomic(
             "leftJoin",
             field,
@@ -324,50 +590,6 @@ export class JoinQueryBuilder<Mine extends object> {
         );
     }
 
-    private _Join_atomic<
-        Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
-    >(
-        method: "innerJoin" | "leftJoin",
-        field: Field,
-        alias: string | undefined,
-        closure:
-            | ((
-                  builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
-                  >,
-              ) => void)
-            | undefined,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
-        return this._Take_join(method, field, alias, closure, (asset) => {
-            // LIST UP EACH FIELDS
-            const [myField, targetField] = (() => {
-                if (asset.belongs === true)
-                    return [
-                        asset.metadata.foreign_key_field,
-                        get_primary_column(asset.metadata.target()),
-                    ];
-
-                const inverseMetadata: Belongs.ManyToOne.IMetadata<Mine> =
-                    ReflectAdaptor.get(
-                        asset.metadata.target().prototype,
-                        asset.metadata.inverse,
-                    ) as Belongs.ManyToOne.IMetadata<Mine>;
-
-                return [
-                    get_primary_column(this.mine_),
-                    inverseMetadata.foreign_key_field,
-                ];
-            })();
-
-            // DO JOIN
-            const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
-            this.stmt_[method](asset.metadata.target(), asset.alias, condition);
-        });
-    }
-
-    /* -----------------------------------------------------------
-        ORM JOIN
-    ----------------------------------------------------------- */
     /**
      * Configure inner join with mapping.
      *
@@ -396,10 +618,11 @@ export class JoinQueryBuilder<Mine extends object> {
         field: Field,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     /**
      * Configure inner join with mapping and alias specification.
@@ -431,10 +654,11 @@ export class JoinQueryBuilder<Mine extends object> {
         alias: string,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     public innerJoinAndSelect<
         Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
@@ -444,15 +668,17 @@ export class JoinQueryBuilder<Mine extends object> {
             | string
             | ((
                   builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
                   >,
               ) => void),
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         return this._Join_and_select(
             "innerJoinAndSelect",
             field,
@@ -488,10 +714,11 @@ export class JoinQueryBuilder<Mine extends object> {
         field: Field,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     /**
      * Configure left join with mapping and alias specification.
@@ -523,10 +750,11 @@ export class JoinQueryBuilder<Mine extends object> {
         alias: string,
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>>;
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query>;
 
     public leftJoinAndSelect<
         Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
@@ -536,20 +764,68 @@ export class JoinQueryBuilder<Mine extends object> {
             | string
             | ((
                   builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
                   >,
               ) => void),
         closure?: (
             builder: JoinQueryBuilder<
-                Relationship.Joinable.TargetType<Mine, Field>
+                Relationship.Joinable.TargetType<Mine, Field>,
+                Query
             >,
         ) => void,
-    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>> {
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
         return this._Join_and_select(
             "leftJoinAndSelect",
             field,
             ...get_parametric_tuple(alias, closure),
         );
+    }
+
+    private _Join_atomic<
+        Field extends SpecialFields<Mine, Relationship.Joinable<any>>,
+    >(
+        method: "innerJoin" | "leftJoin",
+        field: Field,
+        alias: string | undefined,
+        closure:
+            | ((
+                  builder: JoinQueryBuilder<
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
+                  >,
+              ) => void)
+            | undefined,
+    ): JoinQueryBuilder<Relationship.Joinable.TargetType<Mine, Field>, Query> {
+        return this._Take_join(method, field, alias, closure, (asset) => {
+            // LIST UP EACH FIELDS
+            const [myField, targetField] = (() => {
+                if (asset.belongs === true)
+                    return [
+                        asset.metadata.foreign_key_field,
+                        get_primary_column(asset.metadata.target()),
+                    ];
+
+                const inverseMetadata: Belongs.ManyToOne.IMetadata<Mine> =
+                    ReflectAdaptor.get(
+                        asset.metadata.target().prototype,
+                        asset.metadata.inverse,
+                    ) as Belongs.ManyToOne.IMetadata<Mine>;
+
+                return [
+                    get_primary_column(this.mine_),
+                    inverseMetadata.foreign_key_field,
+                ];
+            })();
+
+            // DO JOIN
+            const condition: string = `${this.alias_}.${myField} = ${asset.alias}.${targetField}`;
+            this.stmt_.query[method](
+                asset.metadata.target(),
+                asset.alias,
+                condition,
+            );
+        });
     }
 
     private _Join_and_select<
@@ -561,7 +837,8 @@ export class JoinQueryBuilder<Mine extends object> {
         closure:
             | ((
                   builder: JoinQueryBuilder<
-                      Relationship.Joinable.TargetType<Mine, Field>
+                      Relationship.Joinable.TargetType<Mine, Field>,
+                      Query
                   >,
               ) => void)
             | undefined,
@@ -571,7 +848,7 @@ export class JoinQueryBuilder<Mine extends object> {
                 asset.belongs ? "belongs" : "has",
                 field,
             );
-            this.stmt_[method](`${this.alias_}.${index}`, asset.alias);
+            this.stmt_.query[method](`${this.alias_}.${index}`, asset.alias);
         });
     }
 }
@@ -632,10 +909,16 @@ function get_primary_column(creator: Creator<object>): string {
     return ITableInfo.get(creator).primaryColumn;
 }
 
+interface IStatement<Query> {
+    query: orm.SelectQueryBuilder<Query>;
+    selected: boolean;
+    groupped: boolean;
+    ordered: boolean;
+}
 interface IJoined {
     method: IJoined.Method;
     alias: string;
-    builder: JoinQueryBuilder<any>;
+    builder: JoinQueryBuilder<any, any>;
 }
 namespace IJoined {
     export type Method =

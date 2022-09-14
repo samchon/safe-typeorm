@@ -5,9 +5,9 @@ import { BelongsAccessorBase } from "../decorators/base/BelongsAccessorBase";
 
 import { Creator } from "../typings/Creator";
 import { Field } from "../typings/Field";
+import { FieldLike } from "../typings/FieldLike";
 import { Operator } from "../typings/Operator";
 import { SpecialFields } from "../typings/SpecialFields";
-import { WhereColumnType } from "../typings/WhereColumnType";
 
 import { findRepository } from "./findRepository";
 import { get_column_name_tuple } from "./internal/get_column_name_tuple";
@@ -41,7 +41,7 @@ export function getWhereArguments<
     Literal extends SpecialFields<T, Field>,
 >(
     creator: Creator<T>,
-    fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
+    fieldLike: FieldLike<`${Literal}` | `${string}.${Literal}`>,
     param: Field.MemberType<T, Literal> | null | (() => string),
 ): [string, Record<string, Field.ValueType<T[Literal]>>];
 
@@ -76,7 +76,7 @@ export function getWhereArguments<
     OperatorType extends Operator,
 >(
     creator: Creator<T>,
-    fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
+    fieldLike: FieldLike<`${Literal}` | `${string}.${Literal}`>,
     operator: OperatorType,
     param:
         | (OperatorType extends "=" | "!=" | "<>"
@@ -115,7 +115,7 @@ export function getWhereArguments<
     Literal extends SpecialFields<T, Field>,
 >(
     creator: Creator<T>,
-    fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
+    fieldLike: FieldLike<`${Literal}` | `${string}.${Literal}`>,
     operator: "IN" | "NOT IN",
     parameters: Array<Field.MemberType<T, Literal>> | (() => string),
 ): [
@@ -154,7 +154,7 @@ export function getWhereArguments<
     Literal extends SpecialFields<T, Field>,
 >(
     creator: Creator<T>,
-    fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
+    fieldLike: FieldLike<`${Literal}` | `${string}.${Literal}`>,
     operator: "BETWEEN",
     minimum: Field.MemberType<T, Literal> | (() => string),
     maximum: Field.MemberType<T, Literal> | (() => string),
@@ -165,16 +165,18 @@ export function getWhereArguments<
     Literal extends SpecialFields<T, Field>,
 >(
     creator: Creator<T>,
-    fieldLike: WhereColumnType<`${Literal}` | `${string}.${Literal}`>,
+    fieldLike: FieldLike<`${Literal}` | `${string}.${Literal}`>,
     ...rest: any[]
 ): [string, any] {
-    const tuple: [string, string] = get_column_name_tuple(
+    const escaper =
+        typeof fieldLike === "string"
+            ? (column: string) => column
+            : (column: string) => fieldLike[1](column);
+    const [alias, column] = get_column_name_tuple(
         creator,
         typeof fieldLike === "string" ? fieldLike : fieldLike[0],
     );
-    const column: string = tuple[0] ? `${tuple[0]}.${tuple[1]}` : tuple[1];
-    const left: string =
-        typeof fieldLike === "string" ? column : fieldLike[1](column);
+    const left: string = escaper(alias ? `${alias}.${column}` : column);
 
     // MOST OPERATORS
     if (rest.length <= 2) {
@@ -185,7 +187,12 @@ export function getWhereArguments<
         ] = (() => {
             const [operator, param] =
                 rest.length === 1 ? ["=", rest[0]] : [rest[0], rest[1]];
-            return [operator, _Decompose_parameter(param)];
+            return [
+                operator,
+                typeof param === "function"
+                    ? param
+                    : _Decompose_parameter(param),
+            ];
         })();
 
         // IS NULL || IS-NOT-NULL
