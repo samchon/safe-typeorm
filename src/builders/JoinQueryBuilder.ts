@@ -402,6 +402,19 @@ export class JoinQueryBuilder<Mine extends object, Query extends object = any> {
         condition(this.stmt_.query, ...args);
     }
 
+    public getColumn<Literal extends SpecialFields<Mine, Field>>(
+        field: Literal,
+    ): string {
+        const column: string =
+            (
+                ReflectAdaptor.get(
+                    this.mine_.prototype,
+                    field,
+                ) as Belongs.ManyToOne.IMetadata<Mine>
+            )?.foreign_key_field || field;
+        return `${this.alias_}.${column}`;
+    }
+
     /* -----------------------------------------------------------
         JOINERS
     ----------------------------------------------------------- */
