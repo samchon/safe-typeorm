@@ -153,24 +153,30 @@ function getDependencies<T extends object>(
     target: Creator<T>,
     connection?: orm.Connection,
 ): Set<Creator<object>> {
+    // CONNECTION
     if (!connection) connection = findRepository(target).manager.connection;
 
-    return MapUtil.take(dependencies, target, () => {
-        const output: Set<Creator<object>> = new Set();
-        for (const meta of connection!.entityMetadatas) {
-            const child: Creator<object> = meta.target as Creator<object>;
-            if (child === target) continue;
+    // FIND OLDBIE ITEM
+    const oldbie: Set<Creator<object>> | undefined = dependencies.get(target);
+    if (oldbie) return oldbie;
 
-            for (const foreign of meta.foreignKeys)
-                if (foreign.referencedEntityMetadata.target === target) {
-                    output.add(child);
-                    for (const grand of getDependencies(child, connection))
-                        output.add(grand);
-                    break;
-                }
-        }
-        return output;
-    });
+    // CREATE NEW ONE
+    const output: Set<Creator<object>> = new Set();
+    dependencies.set(target, output);
+
+    for (const meta of connection!.entityMetadatas) {
+        const child: Creator<object> = meta.target as Creator<object>;
+        if (child === target) continue;
+
+        for (const foreign of meta.foreignKeys)
+            if (foreign.referencedEntityMetadata.target === target) {
+                output.add(child);
+                for (const grand of getDependencies(child, connection))
+                    output.add(grand);
+                break;
+            }
+    }
+    return output;
 }
 
 const dependencies: WeakMap<Creator<object>, Set<Creator<object>>> = new Map();
