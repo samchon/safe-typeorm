@@ -179,7 +179,7 @@ export class JoinQueryBuilder<Mine extends object, Query extends object = any> {
         return this.size() === 0;
     }
 
-    public statement(): orm.SelectQueryBuilder<any> {
+    public statement(): orm.SelectQueryBuilder<Query> {
         return this.stmt_.query;
     }
 
