@@ -1,5 +1,8 @@
 import { sample as _Sample } from "tstl/ranges/algorithm/random";
 
+/**
+ * @internal
+ */
 export namespace ArrayUtil {
     export function at<T>(array: T[], index: number): T {
         return array[index < 0 ? array.length + index : index];
