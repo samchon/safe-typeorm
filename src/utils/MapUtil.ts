@@ -1,3 +1,6 @@
+/**
+ * @internal
+ */
 export namespace MapUtil {
     export function associate<Element, Key, T>(
         elements: Element[],
