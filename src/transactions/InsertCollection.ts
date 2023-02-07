@@ -35,7 +35,6 @@ export class InsertCollection {
     ----------------------------------------------------------- */
     public push<T extends object>(record: T, ignore?: string | boolean): T;
     public push<T extends object>(records: T[], ignore?: string | boolean): T[];
-
     public push<T extends object>(
         input: T | T[],
         ignore: string | boolean = false,

@@ -1,6 +1,6 @@
+import safe from "safe-typeorm";
 import { equal } from "tstl/ranges/algorithm";
 
-import safe from "../..";
 import { ArrayUtil } from "../../utils/ArrayUtil";
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";

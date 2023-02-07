@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { BbsCategory } from "../models/bbs/BbsCategory";
 import { test_recursive_app_join_builder_belongs_to } from "./test_recursive_app_join_builder_belongs_to";
 

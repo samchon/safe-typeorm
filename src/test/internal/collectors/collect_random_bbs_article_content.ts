@@ -1,6 +1,6 @@
+import safe from "safe-typeorm";
 import { randint } from "tstl";
 
-import safe from "../../..";
 import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { AttachmentFile } from "../../models/bbs/AttachmentFile";
 import { BbsArticle } from "../../models/bbs/BbsArticle";

@@ -1,6 +1,6 @@
+import safe from "safe-typeorm";
 import * as orm from "typeorm";
 
-import safe from "../..";
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { BbsArticle } from "../models/bbs/BbsArticle";
 import { BbsGroup } from "../models/bbs/BbsGroup";

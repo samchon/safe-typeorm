@@ -1,6 +1,6 @@
+import safe from "safe-typeorm";
 import { randint } from "tstl/algorithm/random";
 
-import safe from "../../..";
 import { BbsArticle } from "../../models/bbs/BbsArticle";
 import { BbsArticleContent } from "../../models/bbs/BbsArticleContent";
 import { RandomGenerator } from "../procedures/RandomGenerator";

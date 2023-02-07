@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { generate_random_clean_groups } from "../internal/generators/generate_random_clean_groups";
 import { iterate_bbs_group } from "../internal/iterators/iterate_bbs_group";
 import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";

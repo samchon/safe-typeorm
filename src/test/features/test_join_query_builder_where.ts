@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { BbsGroup } from "../models/bbs/BbsGroup";
 import { IBbsGroup } from "../structures/IBbsGroup";
 import { test_json_select_builder } from "./test_json_select_builder";

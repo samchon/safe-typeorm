@@ -1,6 +1,6 @@
+import safe from "safe-typeorm";
 import * as orm from "typeorm";
 
-import safe from "../../..";
 import { BlogUserScrap } from "../blog/BlogUserScrap";
 import { BbsAnswerArticle } from "./BbsAnswerArticle";
 import { BbsArticleContent } from "./BbsArticleContent";

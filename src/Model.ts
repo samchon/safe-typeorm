@@ -15,9 +15,9 @@ import { insert } from "./functional/insert";
 import { toPrimitive } from "./functional/toPrimitive";
 import { update } from "./functional/update";
 
-import { FieldLike } from "./typings/FieldLike";
 import { Creator as _Creator } from "./typings/Creator";
 import { Field } from "./typings/Field";
+import { FieldLike } from "./typings/FieldLike";
 import { Initialized } from "./typings/Initialized";
 import { OmitNever } from "./typings/OmitNever";
 import { Operator } from "./typings/Operator";
