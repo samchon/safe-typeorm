@@ -1,4 +1,5 @@
-import safe from "../../..";
+import safe from "safe-typeorm";
+
 import { BbsArticle } from "../../models/bbs/BbsArticle";
 import { BbsArticleTag } from "../../models/bbs/BbsArticleTag";
 import { RandomGenerator } from "../procedures/RandomGenerator";

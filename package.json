@@ -1,11 +1,11 @@
 {
   "name": "safe-typeorm",
-  "version": "2.0.3",
+  "version": "2.0.4",
   "description": "Make TypeORM much safer",
   "main": "lib/index.js",
   "typings": "lib/index.d.ts",
   "scripts": {
-    "build": "rimraf lib && tsc",
+    "build": "rimraf lib && ttsc",
     "dev": "npm run build -- --watch",
     "eslint": "eslint src",
     "eslint:fix": "eslint src --fix",
@@ -29,7 +29,7 @@
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "pluralize": "^8.0.0",
-    "tstl": "^2.5.2",
+    "tstl": "^2.5.13",
     "typeorm": "^0.2.41",
     "uuid": "^8.3.2"
   },
@@ -50,6 +50,17 @@
     "sloc": "^0.2.1",
     "sqlite3": "^5.0.2",
     "ts-node": "^9.1.1",
-    "typescript": "^4.5.2"
-  }
+    "ttypescript": "^1.5.15",
+    "typescript": "^4.5.2",
+    "typescript-transform-paths": "^3.4.6"
+  },
+  "files": [
+    "LICENSE",
+    "README.md",
+    "package.json",
+    "lib",
+    "src",
+    "!lib/test",
+    "!src/test"
+  ]
 }

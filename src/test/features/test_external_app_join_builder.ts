@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { generate_random_external_db } from "../internal/generators/generate_random_external_db";
 import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";
 import { BbsGroup } from "../models/bbs/BbsGroup";

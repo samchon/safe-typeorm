@@ -1,6 +1,6 @@
+import safe from "safe-typeorm";
 import * as orm from "typeorm";
 
-import safe from "../../..";
 import { BbsArticleContent } from "./BbsArticleContent";
 
 @orm.Entity()

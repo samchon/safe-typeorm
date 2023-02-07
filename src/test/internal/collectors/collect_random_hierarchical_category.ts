@@ -1,4 +1,5 @@
-import safe from "../../..";
+import safe from "safe-typeorm";
+
 import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { BbsCategory } from "../../models/bbs/BbsCategory";
 import { RandomGenerator } from "../procedures/RandomGenerator";

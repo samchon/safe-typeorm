@@ -1,4 +1,5 @@
-import safe from "../../..";
+import safe from "safe-typeorm";
+
 import { ArrayUtil } from "../../../utils/ArrayUtil";
 import { BbsArticle } from "../../models/bbs/BbsArticle";
 import { BbsGroup } from "../../models/bbs/BbsGroup";

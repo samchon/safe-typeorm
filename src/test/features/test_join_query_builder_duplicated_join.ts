@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { generate_random_normal_bbs_group } from "../internal/generators/generate_random_normal_bbs_group";
 import { BbsGroup } from "../models/bbs/BbsGroup";
 

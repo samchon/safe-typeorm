@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { collect_random_external_db } from "../internal/collectors/collect_random_external_db";
 import { iterate_bbs_group } from "../internal/iterators/iterate_bbs_group";
 import { BbsGroup } from "../models/bbs/BbsGroup";

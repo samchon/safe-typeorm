@@ -1,4 +1,5 @@
-import safe from "../../..";
+import safe from "safe-typeorm";
+
 import { BbsArticle } from "../../models/bbs/BbsArticle";
 import { BbsReviewArticle } from "../../models/bbs/BbsReviewArticle";
 import { BbsReviewArticleContent } from "../../models/bbs/BbsReviewArticleContent";

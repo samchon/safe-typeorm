@@ -1,4 +1,5 @@
-import safe from "../../..";
+import safe from "safe-typeorm";
+
 import { BbsGroup } from "../../models/bbs/BbsGroup";
 import { BlogUser } from "../../models/blog/BlogUser";
 import { collect_random_external_db } from "../collectors/collect_random_external_db";

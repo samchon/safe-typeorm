@@ -1,4 +1,5 @@
-import safe from "../..";
+import safe from "safe-typeorm";
+
 import { generate_random_bbs_review_articles as generate_random_reviews } from "../internal/generators/generate_random_bbs_review_articles";
 import { iterate_bbs_review_article } from "../internal/iterators/iterate_bbs_review_article";
 import { must_not_query_anything } from "../internal/procedures/must_not_query_anything";

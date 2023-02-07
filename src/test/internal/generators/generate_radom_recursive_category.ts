@@ -1,4 +1,5 @@
-import safe from "../../..";
+import safe from "safe-typeorm";
+
 import { BbsCategory } from "../../models/bbs/BbsCategory";
 import { collect_random_hierarchical_category } from "../collectors/collect_random_hierarchical_category";
 
