@@ -30,27 +30,34 @@ export namespace Paginator {
     export interface IPagination {
         /**
          * Current page number.
+         *
+         * @type uint
          */
-        page: number;
+        current: number;
 
         /**
          * Limitation of records per a page.
          *
          * @default 100
+         * @type uint
          */
         limit: number;
 
         /**
-         * Total records in the database.
+         * Count of total records in database.
+         *
+         * @type uint
          */
-        total_count: number;
+        records: number;
 
         /**
-         * Total pages.
+         * Number of total pages.
          *
-         * Equal to {@link total_count} / {@link limit} with ceiling.
+         * Equal to {@link records} / {@link limit} with ceiling.
+         *
+         * @type uint
          */
-        total_pages: number;
+        pages: number;
     }
 
     /**
@@ -267,10 +274,10 @@ export namespace Paginator {
         // RETURNS
         return {
             pagination: {
-                page: request.page,
+                current: request.page,
                 limit: request.limit,
-                total_count,
-                total_pages,
+                records: total_count,
+                pages: total_pages,
             },
             data: data,
         };
